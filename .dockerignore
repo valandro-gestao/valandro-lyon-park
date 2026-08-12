@@ -1,0 +1,43 @@
+# Controle de versão
+.git
+.gitignore
+
+# Ambiente virtual local — não entra na imagem
+.venv
+
+# Dados operacionais — não entram na imagem
+# Em produção, este diretório vive no disco persistente do Render (DATA_DIR=/mnt/data)
+# Em desenvolvimento local, continua sendo ./data na máquina do desenvolvedor
+data/
+# EXCEÇÃO: units.yaml é configuração estrutural do código (não dado operacional)
+# e é lido em tempo de execução por app/engine.py. Deve estar na imagem.
+!data/units.yaml
+
+# Arquivos temporários de geração de PDF
+# Gerados em tempo de execução; não precisam estar na imagem
+output/
+
+# Cache Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Variáveis de ambiente com segredos reais (nunca na imagem)
+.env
+*.env
+
+# Arquivos de sistema macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Documentação técnica — sem dependência de código (verificado)
+docs/
+
+# Scripts de setup pontual — não necessários em runtime
+scripts/
+
+# Configuração do Claude Code — específica do ambiente de desenvolvimento
+.claude/

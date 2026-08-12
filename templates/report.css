@@ -1,0 +1,410 @@
+/* ═══════════════════════════════════════════════════════════════
+   Lyon Park Estacionamentos — Relatório Executivo
+   Design system centralizado. Alterações de identidade visual
+   devem ser feitas preferencialmente nas variáveis :root abaixo.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── DESIGN TOKENS ─────────────────────────────────────────────── */
+:root {
+  /* Cores institucionais */
+  --color-primary:       #00B0A0;
+  --color-primary-dark:  #008A7E;
+  --color-primary-light: #E6F7F6;
+  --color-primary-mid:   #B3E8E4;
+
+  /* Paleta de texto */
+  --color-text:          #1F2937;
+  --color-muted:         #6B7280;
+  --color-faint:         #9CA3AF;
+
+  /* Superfícies */
+  --color-border:        #E5E7EB;
+  --color-bg-soft:       #F9FAFB;
+  --color-bg-header-alt: #374151;
+  --color-white:         #ffffff;
+
+  /* Semânticas */
+  --color-positive:      #059669;
+  --color-negative:      #DC2626;
+
+  /* Tipografia */
+  --font-family-base:    Arial, Helvetica, system-ui, sans-serif;
+  --font-size-xs:        6.5pt;
+  --font-size-sm:        7.5pt;
+  --font-size-md:        9pt;
+  --font-size-lg:        11pt;
+  --font-size-xl:        16pt;
+  --font-size-2xl:       20pt;
+
+  /* Espaçamentos (em mm para A4) */
+  --spacing-xs:          1mm;
+  --spacing-sm:          2.5mm;
+  --spacing-md:          5mm;
+  --spacing-lg:          8mm;
+
+  /* Bordas */
+  --radius-sm:           3px;
+  --radius-md:           6px;
+}
+
+/* ── RESET ──────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* ── PÁGINA A4 ──────────────────────────────────────────────────── */
+@page {
+  size: A4 portrait;
+  margin: 16mm 18mm 22mm 18mm;
+
+  @bottom-center {
+    content: "Lyon Park Estacionamentos  ·  gestao@lyonpark.com.br  ·  www.lyonpark.com.br";
+    font-family: var(--font-family-base);
+    font-size: var(--font-size-xs);
+    color: var(--color-faint);
+    border-top: 0.5px solid var(--color-border);
+    padding-top: 3mm;
+    width: 100%;
+    text-align: center;
+  }
+
+  @bottom-right {
+    content: "Pág. " counter(page) " / " counter(pages);
+    font-family: var(--font-family-base);
+    font-size: var(--font-size-xs);
+    color: var(--color-faint);
+    padding-top: 3mm;
+  }
+}
+
+/* ── CORPO ──────────────────────────────────────────────────────── */
+body {
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-md);
+  color: var(--color-text);
+  background: var(--color-white);
+  line-height: 1.5;
+}
+
+/* ── CABEÇALHO ──────────────────────────────────────────────────── */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: var(--spacing-md);
+  border-bottom: 2px solid var(--color-primary);
+  margin-bottom: var(--spacing-md);
+}
+
+.header-logo img {
+  height: 30px;
+  display: block;
+}
+
+.header-info {
+  text-align: right;
+}
+
+.header-info .unit-name {
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  color: var(--color-text);
+  line-height: 1.2;
+}
+
+.header-info .competencia {
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  color: var(--color-primary);
+  margin-top: 2mm;
+}
+
+.header-info .emissao {
+  font-size: var(--font-size-xs);
+  color: var(--color-faint);
+  margin-top: var(--spacing-xs);
+}
+
+/* ── CARDS ──────────────────────────────────────────────────────── */
+.cards {
+  display: flex;
+  gap: 4mm;
+  margin-bottom: var(--spacing-lg);
+}
+
+.card {
+  flex: 1;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 5mm 6mm 4mm;
+  background: var(--color-white);
+  position: relative;
+  overflow: hidden;
+}
+
+/* barra superior padrão */
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: var(--color-primary-mid);
+}
+
+/* card de destaque (Repasse) */
+.card.destaque {
+  background: var(--color-primary-light);
+  border-color: var(--color-primary-mid);
+}
+.card.destaque::before {
+  background: var(--color-primary);
+  height: 4px;
+}
+
+.card-label {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--color-muted);
+  margin-bottom: 2mm;
+}
+
+.card-value {
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  color: var(--color-text);
+  line-height: 1.1;
+  letter-spacing: -0.3px;
+}
+
+.card.destaque .card-value {
+  color: var(--color-primary-dark);
+}
+
+.card-variation {
+  font-size: var(--font-size-xs);
+  margin-top: 2mm;
+  font-weight: 500;
+}
+.card-variation.pos { color: var(--color-positive); }
+.card-variation.neg { color: var(--color-negative); }
+
+/* ── SEÇÃO ──────────────────────────────────────────────────────── */
+.section {
+  margin-bottom: var(--spacing-md);
+}
+
+.section-title {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--color-primary-dark);
+  border-bottom: 1.5px solid var(--color-primary-mid);
+  padding-bottom: 1.5mm;
+  margin-bottom: var(--spacing-sm);
+}
+
+/* ── PRESTAÇÃO DE CONTAS (DRE) ──────────────────────────────────── */
+.dre {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 8.5pt;
+}
+
+.dre td {
+  padding: 2mm 3mm;
+  border-bottom: 0.5px solid var(--color-border);
+}
+
+.dre .dre-label {
+  color: var(--color-text);
+  width: 72%;
+}
+
+.dre .dre-value {
+  text-align: right;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* Linha normal */
+.dre .tipo-normal td {
+  color: var(--color-text);
+}
+
+/* Dedução — recuada e mais suave */
+.dre .tipo-deducao .dre-label {
+  padding-left: 7mm;
+  color: var(--color-muted);
+  font-size: 8pt;
+}
+.dre .tipo-deducao .dre-value {
+  color: var(--color-muted);
+  font-size: 8pt;
+}
+
+/* Subtotal — fundo suave */
+.dre .tipo-subtotal td {
+  background: var(--color-bg-soft);
+  font-weight: 600;
+  border-bottom: 0.5px solid var(--color-primary-mid);
+}
+
+/* Destaque intermediário (Resultado) */
+.dre .tipo-destaque td {
+  background: var(--color-primary-light);
+  font-weight: 700;
+  color: var(--color-primary-dark);
+  border-bottom: 1px solid var(--color-primary-mid);
+}
+
+/* Total final (Repasse) — fundo institucional */
+.dre .tipo-total td {
+  background: var(--color-primary);
+  color: var(--color-white);
+  font-weight: 700;
+  font-size: var(--font-size-md);
+  border-bottom: none;
+}
+
+/* ── COMPARATIVO 12M ────────────────────────────────────────────── */
+.table-comp {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 8pt;
+}
+
+.table-comp thead th {
+  background: var(--color-primary-light);
+  color: var(--color-primary-dark);
+  font-weight: 700;
+  padding: 2mm 3mm;
+  text-align: right;
+  font-size: var(--font-size-xs);
+  letter-spacing: 0.3px;
+  border-bottom: 1.5px solid var(--color-primary-mid);
+}
+.table-comp thead th:first-child {
+  text-align: left;
+}
+
+/* Linha de destaque — mês atual (primeira linha do tbody) */
+.table-comp tbody tr:first-child td {
+  font-weight: 600;
+  background: var(--color-bg-soft);
+}
+
+.table-comp td {
+  padding: 1.8mm 3mm;
+  text-align: right;
+  border-bottom: 0.5px solid var(--color-border);
+  color: var(--color-text);
+  white-space: nowrap;
+}
+.table-comp td:first-child {
+  text-align: left;
+  color: var(--color-muted);
+}
+
+/* Variações */
+.var-pos { color: var(--color-positive); font-size: var(--font-size-xs); }
+.var-neg { color: var(--color-negative); font-size: var(--font-size-xs); }
+.var-neu { color: var(--color-faint);    font-size: var(--font-size-xs); }
+
+/* ── HISTÓRICO ANUAL ────────────────────────────────────────────── */
+.table-hist {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 8pt;
+}
+
+.table-hist thead th {
+  background: var(--color-bg-header-alt);
+  color: var(--color-white);
+  padding: 2mm 3mm;
+  text-align: right;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+}
+.table-hist thead th:first-child {
+  text-align: left;
+}
+
+.table-hist tbody tr:nth-child(even) td {
+  background: var(--color-bg-soft);
+}
+
+.table-hist td {
+  padding: 2mm 3mm;
+  text-align: right;
+  border-bottom: 0.5px solid var(--color-border);
+  color: var(--color-text);
+}
+.table-hist td:first-child {
+  text-align: left;
+  font-weight: 500;
+  color: var(--color-muted);
+}
+
+/* ── BLOCOS RECEITAS EXTRAS ─────────────────────────────────────── */
+.bloco-extra {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  margin-bottom: var(--spacing-sm);
+}
+
+.bloco-extra-titulo {
+  background: var(--color-bg-soft);
+  padding: 2.5mm 4mm;
+  font-size: 8pt;
+  font-weight: 700;
+  color: var(--color-muted);
+  border-bottom: 1px solid var(--color-border);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  font-size: var(--font-size-xs);
+}
+
+.bloco-extra .dre td {
+  padding: 1.8mm 4mm;
+}
+
+/* ── BLOCO EVENTOS ──────────────────────────────────────────────── */
+.table-eventos {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 7.5pt;
+  margin-top: 2mm;
+}
+
+.table-eventos thead th {
+  background: var(--color-primary);
+  color: var(--color-white);
+  padding: 2mm 2.5mm;
+  text-align: left;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+}
+
+.table-eventos tbody tr:nth-child(even) td {
+  background: var(--color-bg-soft);
+}
+
+.table-eventos td {
+  padding: 1.8mm 2.5mm;
+  border-bottom: 0.5px solid var(--color-border);
+  color: var(--color-text);
+}
+
+.table-eventos .num {
+  text-align: right;
+}
+
+/* ── UTILITÁRIOS ────────────────────────────────────────────────── */
+.page-break   { page-break-before: always; }
+.no-break     { page-break-inside: avoid; }

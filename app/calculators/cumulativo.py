@@ -1,0 +1,117 @@
+"""
+Calculadora COM_ALIQUOTA_CUMUL.
+
+Suporta:
+  - alíquota de imposto
+  - ponto de equilíbrio (editável por mês via pe_override)
+  - custos mensais fixos (condomínio, IPTU etc.)
+  - prejuízo acumulado entre meses
+  - faixas_aluguel (se configurado no YAML)
+  - investimentos (dedução do aluguel → saldo_a_pagar)
+  - adicional_fixo (ex: parcelamento de equipamentos)
+  - taxa_admin_fixa
+"""
+from app.models import ResultadoUnidade, get_saldo_acumulado
+
+
+def calcular_com_aliquota_cumul(cfg: dict, mes: str, faturamento: float,
+                                 saldo_override: float = None,
+                                 custos_extras: dict = None,
+                                 pe_override: float = None,
+                                 **kwargs) -> ResultadoUnidade:
+    pe = pe_override if pe_override is not None else cfg.get("ponto_equilibrio", 0.0)
+    aliq = cfg.get("aliquota_imposto", 0.0)
+    pct = cfg.get("percentual_aluguel", 0.0)
+    taxa_admin = cfg.get("taxa_admin_fixa", 0.0) or 0.0
+    adicional = cfg.get("adicional_fixo", 0.0) or 0.0
+
+    if saldo_override is not None:
+        prejuizo_entrada = saldo_override
+    else:
+        prejuizo_entrada = get_saldo_acumulado(cfg["id"])
+
+    # Faturamento pode incluir carregadores (passado em custos_extras)
+    fat_carregadores = float((custos_extras or {}).get("fat_carregadores", 0.0))
+    faturamento_total = faturamento + fat_carregadores
+
+    subtotal = round(faturamento_total * (1 - aliq), 2)
+
+    # Custos mensais fixos (condomínio, IPTU, etc.)
+    custos = {}
+    for k, v in (cfg.get("custos_mensais") or {}).items():
+        custos[k] = float(custos_extras.get(k, v) if custos_extras else v)
+    # Custos extras que não são campos fixos (eventos, etc.)
+    _nao_custo = {"fat_carregadores", "investimentos", "fundo_recomposicao",
+                  "ponto_equilibrio_override"}
+    for k, v in (custos_extras or {}).items():
+        if k not in custos and k not in _nao_custo and v:
+            custos[k] = float(v)
+    total_custos = sum(custos.values())
+
+    resultado_bruto = subtotal - pe - total_custos
+    resultado_com_prejuizo = resultado_bruto + prejuizo_entrada  # prejuizo é negativo
+
+    # Aluguel: por faixas ou percentual simples
+    faixas_aluguel = cfg.get("faixas_aluguel")
+    if resultado_com_prejuizo > 0:
+        if faixas_aluguel:
+            aluguel = _aplicar_faixas(resultado_com_prejuizo, faixas_aluguel)
+        else:
+            aluguel = round(resultado_com_prejuizo * pct, 2)
+        if taxa_admin:
+            aluguel = max(aluguel, taxa_admin)
+        prejuizo_saida = 0.0
+    else:
+        aluguel = 0.0
+        prejuizo_saida = round(resultado_com_prejuizo, 2)
+
+    extras: dict = {}
+    if taxa_admin:
+        extras["taxa_admin"] = taxa_admin
+    if adicional:
+        extras["adicional_fixo"] = adicional
+        aluguel = round(aluguel + adicional, 2)
+    if fat_carregadores:
+        extras["fat_carregadores"] = fat_carregadores
+
+    # Deduções do aluguel → Saldo a Pagar (investimentos ou fundo_recomposicao)
+    for campo in ("investimentos", "fundo_recomposicao"):
+        val = float((custos_extras or {}).get(campo, 0.0))
+        if val == 0.0:
+            val = float((cfg.get("custos_variaveis") or {}).get(campo, 0.0))
+        if val:
+            extras[campo] = val
+            extras["saldo_a_pagar"] = round(aluguel - val, 2)
+            break
+
+    return ResultadoUnidade(
+        unidade_id=cfg["id"],
+        mes_referencia=mes,
+        faturamento=faturamento_total,
+        aliquota_imposto=aliq,
+        subtotal=subtotal,
+        ponto_equilibrio=pe,
+        custos=custos,
+        resultado=round(resultado_bruto, 2),
+        prejuizo_acumulado_entrada=prejuizo_entrada,
+        prejuizo_acumulado_saida=prejuizo_saida,
+        aluguel_calculado=aluguel,
+        extras=extras,
+    )
+
+
+def _aplicar_faixas(base: float, faixas: list) -> float:
+    aluguel = 0.0
+    saldo = base
+    for faixa in faixas:
+        if saldo <= 0:
+            break
+        limite = faixa.get("ate")
+        pct = faixa["percentual"]
+        if limite is None:
+            aluguel += saldo * pct
+        else:
+            parcela = min(saldo, limite)
+            aluguel += parcela * pct
+            saldo -= parcela
+    return round(aluguel, 2)

@@ -1,0 +1,39 @@
+# =============================================================================
+# RENDER — CONFIGURAÇÃO DO SERVIÇO LYON PARK
+# Referência: Plano de Implantação Lyon Park, Etapa 3
+# Runtime: Docker (necessário para dependências nativas do WeasyPrint)
+# =============================================================================
+
+services:
+  - type: web
+    name: lyon-park-fechamento
+    runtime: docker
+    plan: starter
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /_stcore/health
+
+    # Disco persistente: garante que banco SQLite e arquivos de runs
+    # (planilhas de upload, PDFs gerados) sobrevivam a redeploys e reinicializações.
+    # Requisito da Fase 1 — antes da migração para Supabase Storage (Etapa 7/8).
+    disk:
+      name: lyon-data
+      mountPath: /mnt/data
+      sizeGB: 5
+
+    envVars:
+      # Aponta a aplicação para o disco persistente em vez do sistema de arquivos efêmero
+      - key: DATA_DIR
+        value: /mnt/data
+
+      # Porta fixa do Streamlit (declarada explicitamente para Docker no Render)
+      - key: PORT
+        value: 8501
+
+      # Ambiente de execução
+      - key: APP_ENV
+        value: production
+
+      # Credenciais de acesso — valor configurado manualmente no painel do Render.
+      # NUNCA adicionar o valor real aqui. Este arquivo é versionado no Git.
+      - key: AUTH_USERS_YAML
+        sync: false

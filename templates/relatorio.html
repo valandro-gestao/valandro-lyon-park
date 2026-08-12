@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<style>{{ css }}</style>
+</head>
+<body>
+
+<!-- ╔══════════════════════════════╗ -->
+<!-- ║  1. CABEÇALHO               ║ -->
+<!-- ╚══════════════════════════════╝ -->
+<div class="header">
+  <div class="header-logo">
+    <img src="{{ logo_base64 }}" alt="Lyon Park">
+  </div>
+  <div class="header-info">
+    <div class="unit-name">{{ unidade.nome }}</div>
+    <div class="competencia">{{ unidade.competencia_label }}</div>
+    <div class="emissao">Emitido em {{ unidade.data_emissao }}</div>
+  </div>
+</div>
+
+<!-- ╔══════════════════════════════╗ -->
+<!-- ║  2. CARDS PRINCIPAIS         ║ -->
+<!-- ╚══════════════════════════════╝ -->
+{# Variação do mês atual vs. mês anterior está no primeiro item do comparativo #}
+{% set mes_atual = comparativo_12m[0] if comparativo_12m else none %}
+<div class="cards">
+
+  <div class="card">
+    <div class="card-label">Faturamento</div>
+    <div class="card-value">R$ {{ cards.faturamento | fmt_br }}</div>
+    {% if mes_atual and mes_atual.variacao_faturamento is not none %}
+      {% if mes_atual.variacao_faturamento >= 0 %}
+        <div class="card-variation pos">▲ {{ mes_atual.variacao_faturamento | fmt_pct }} vs. mês anterior</div>
+      {% else %}
+        <div class="card-variation neg">▼ {{ mes_atual.variacao_faturamento | abs | fmt_pct }} vs. mês anterior</div>
+      {% endif %}
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <div class="card-label">Resultado da Operação</div>
+    <div class="card-value">R$ {{ cards.resultado | fmt_br }}</div>
+    {% if mes_atual and mes_atual.variacao_resultado is not none %}
+      {% if mes_atual.variacao_resultado >= 0 %}
+        <div class="card-variation pos">▲ {{ mes_atual.variacao_resultado | abs | fmt_pct }} vs. mês anterior</div>
+      {% else %}
+        <div class="card-variation neg">▼ {{ mes_atual.variacao_resultado | abs | fmt_pct }} vs. mês anterior</div>
+      {% endif %}
+    {% endif %}
+  </div>
+
+  <div class="card destaque">
+    <div class="card-label">Valor do Repasse</div>
+    <div class="card-value">R$ {{ cards.repasse | fmt_br }}</div>
+  </div>
+
+</div>
+
+<!-- ╔══════════════════════════════╗ -->
+<!-- ║  3. PRESTAÇÃO DE CONTAS      ║ -->
+<!-- ╚══════════════════════════════╝ -->
+<div class="section no-break">
+  <div class="section-title">Prestação de Contas — {{ unidade.competencia_label }}</div>
+  <table class="dre">
+    <tbody>
+      {% for linha in prestacao.linhas %}
+      <tr class="tipo-{{ linha.tipo }}">
+        <td class="dre-label">{{ linha.descricao }}</td>
+        <td class="dre-value">
+          {% if linha.valor is none %}
+            {# linha de alíquota ou info — sem valor monetário #}
+          {% elif linha.tipo == 'total' %}
+            R$ {{ linha.valor | fmt_br }}
+          {% elif linha.valor < 0 %}
+            ({{ linha.valor | abs | fmt_br }})
+          {% else %}
+            {{ linha.valor | fmt_br }}
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- ╔══════════════════════════════╗ -->
+<!-- ║  4. COMPARATIVO 12 MESES     ║ -->
+<!-- ╚══════════════════════════════╝ -->
+{% if comparativo_12m %}
+<div class="section no-break">
+  <div class="section-title">Comparativo — Últimos {{ comparativo_meses_disponiveis }} Mês{% if comparativo_meses_disponiveis != 1 %}es{% endif %}{% if comparativo_meses_disponiveis < 12 %} (histórico insuficiente para 12){% endif %}</div>
+  <table class="table-comp">
+    <thead>
+      <tr>
+        <th>Mês</th>
+        <th>Faturamento</th>
+        <th>Var.</th>
+        <th>Resultado</th>
+        <th>Var.</th>
+        <th>Repasse</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for m in comparativo_12m %}
+      <tr>
+        <td>{{ m.competencia_label }}</td>
+        <td>{{ m.faturamento | fmt_br }}</td>
+        <td>
+          {% if m.variacao_faturamento is none %}
+            <span class="var-neu">—</span>
+          {% elif m.variacao_faturamento >= 0 %}
+            <span class="var-pos">▲ {{ m.variacao_faturamento | fmt_pct }}</span>
+          {% else %}
+            <span class="var-neg">▼ {{ m.variacao_faturamento | abs | fmt_pct }}</span>
+          {% endif %}
+        </td>
+        <td>{{ m.resultado | fmt_br }}</td>
+        <td>
+          {% if m.variacao_resultado is none %}
+            <span class="var-neu">—</span>
+          {% elif m.variacao_resultado >= 0 %}
+            <span class="var-pos">▲ {{ m.variacao_resultado | abs | fmt_pct }}</span>
+          {% else %}
+            <span class="var-neg">▼ {{ m.variacao_resultado | abs | fmt_pct }}</span>
+          {% endif %}
+        </td>
+        <td>{{ m.repasse | fmt_br }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+<!-- ╔══════════════════════════════╗ -->
+<!-- ║  5. HISTÓRICO ANUAL          ║ -->
+<!-- ╚══════════════════════════════╝ -->
+{% if historico.anos %}
+<div class="section no-break">
+  <div class="section-title">Histórico Anual</div>
+  <table class="table-hist">
+    <thead>
+      <tr>
+        <th>Indicador</th>
+        {% for ano in historico.anos %}
+        <th>{{ ano }}</th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for ind in historico.indicadores %}
+      <tr>
+        <td>{{ ind.label }}</td>
+        {% for v in ind.valores %}
+        <td>{{ v | fmt_br if v is not none else '—' }}</td>
+        {% endfor %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+<!-- ╔══════════════════════════════╗ -->
+<!-- ║  6. BLOCOS RECEITAS EXTRAS   ║ -->
+<!-- ╚══════════════════════════════╝ -->
+{% for bloco in blocos_receitas %}
+<div class="section no-break">
+  <div class="section-title">{{ bloco.titulo }}</div>
+  <div class="bloco-extra">
+    <div class="bloco-extra-titulo">Demonstrativo — {{ unidade.competencia_label }}</div>
+    <table class="dre">
+      <tbody>
+        {% for linha in bloco.linhas %}
+        <tr class="tipo-{{ linha.tipo }}">
+          <td class="dre-label">{{ linha.descricao }}</td>
+          <td class="dre-value">
+            {% if linha.valor is none %}
+              {# linha de alíquota — sem valor monetário #}
+            {% elif linha.tipo == 'total' %}
+              R$ {{ linha.valor | fmt_br }}
+            {% elif linha.valor < 0 %}
+              ({{ linha.valor | abs | fmt_br }})
+            {% else %}
+              {{ linha.valor | fmt_br }}
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endfor %}
+
+<!-- ╔══════════════════════════════╗ -->
+<!-- ║  7. BLOCO EVENTOS            ║ -->
+<!-- ╚══════════════════════════════╝ -->
+{% if bloco_eventos %}
+<div class="section">
+  <div class="section-title">Eventos da Competência</div>
+  <table class="table-eventos">
+    <thead>
+      <tr>
+        <th>Data</th>
+        <th>Evento</th>
+        <th>Horário</th>
+        <th class="num">Qtd. Extras</th>
+        <th class="num">Valor Unit.</th>
+        <th class="num">Valor Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for ev in bloco_eventos.eventos_competencia %}
+      <tr>
+        <td>{{ ev.data }}</td>
+        <td>{{ ev.evento }}</td>
+        <td>{{ ev.horario }}</td>
+        <td class="num">{{ ev.qtd_extras }}</td>
+        <td class="num">{{ ev.valor_unitario | fmt_br }}</td>
+        <td class="num">{{ ev.valor_total | fmt_br }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="section no-break">
+  <div class="section-title">Resumo de Eventos</div>
+  <table class="table-eventos">
+    <thead>
+      <tr>
+        <th>Mês</th>
+        <th class="num">Qtd. Extras</th>
+        <th class="num">Valor Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in bloco_eventos.resumo %}
+      <tr>
+        <td>{{ r.mes }}</td>
+        <td class="num">{{ r.qtd_extras }}</td>
+        <td class="num">{{ r.valor_total | fmt_br }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+</body>
+</html>

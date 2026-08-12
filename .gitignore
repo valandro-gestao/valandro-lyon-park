@@ -1,0 +1,38 @@
+# =============================================================================
+# LYON PARK — GITIGNORE
+# =============================================================================
+
+# Dados operacionais — banco de dados local
+data/db.sqlite
+
+# Dados operacionais — uploads, PDFs, JSONs processados e status.json
+# IMPORTANTE: esses arquivos contêm dados financeiros reais das 23 unidades.
+# Nunca devem ser versionados.
+data/runs/
+
+# PDFs intermediários gerados pelo WeasyPrint antes de serem movidos
+output/
+
+# Cache Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Ambiente virtual local
+.venv/
+
+# Variáveis de ambiente com segredos reais
+.env
+*.env
+
+# Arquivos de sistema macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# IDE e editores
+.idea/
+.vscode/
+*.swp
+*.swo
+.claude/

@@ -1,0 +1,495 @@
+# Cadastro de unidades Lyon Park
+# tipo_calculo:
+#   PERCENTUAL_SIMPLES    — % x max(fat - PE, 0)
+#   COM_ALIQUOTA          — subtotal = fat*(1-aliq); aluguel = % x max(subtotal - PE, 0)
+#   COM_ALIQUOTA_CUMUL    — COM_ALIQUOTA + custos fixos + prejuízo acumulado
+#   COM_FAIXAS            — resultado em faixas progressivas (Fiergs, NL 2800, Monza, Ekos, OKA)
+#   COM_ALIQUOTA_SPLIT    — COM_ALIQUOTA com rateio por splits (Axis)
+#   RESULTADO_SPLIT       — receita - despesas → split operador/contratante - parcela fixa (Medcenter, Viva Open Mall)
+#   PATIO_OPERACAO        — operação completa do Pátio
+#   PATIO_MANUTENCAO      — manutenções do Pátio
+
+unidades:
+
+  - id: fiergs
+    nome: Fiergs
+    contratante: Fiergs
+    ativo: true
+    inicio: "2026-05-01"
+    tipo_relatorio: com_eventos
+    tipo_calculo: COM_FAIXAS
+    tem_base_taxa_cobranca: true
+    ponto_equilibrio: 44394.80
+    aliquota_imposto: 0.1425
+    taxa_cobranca: 0.015
+    reajuste_mes: 5
+    reajuste_indice: IPCA
+    faixas:
+      - ate: 100000.0
+        percentual: 0.85
+      - ate: null
+        percentual: 0.92
+    custos_variaveis:
+      sistema_perto: 0.0
+    relatorio:
+      linhas: [faturamento, aliquota, taxa_cobranca, subtotal, pe, custos, resultado, faixas_aluguel, total_aluguel]
+
+  - id: anitta_mall
+    nome: Anitta Mall
+    tipo_relatorio: padrao
+    contratante: Anitta Mall
+    ativo: true
+    inicio: "2022-01-01"
+    tipo_calculo: COM_ALIQUOTA_CUMUL
+    ponto_equilibrio: 15601.87
+    aliquota_imposto: 0.1425
+    reajuste_mes: 1
+    reajuste_indice: IPCA
+    faixas_aluguel:
+      - ate: 8347.50
+        percentual: 0.40
+      - ate: null
+        percentual: 0.70
+    custos_mensais:
+      condominio: 0.0
+      iptu: 0.0
+      sistema_automacao: 0.0
+    prejuizo_acumulado_inicial: 0.0
+    relatorio:
+      linhas: [faturamento, aliquota, subtotal, pe, condominio, iptu, sistema_automacao, resultado, prejuizo, aluguel]
+
+  - id: a_schneider
+    nome: A. Schneider
+    tipo_relatorio: padrao
+    contratante: "Condomínio A. Schneider"
+    ativo: true
+    inicio: "2023-07-01"
+    tipo_calculo: COM_ALIQUOTA_CUMUL
+    ponto_equilibrio: 12983.29
+    percentual_aluguel: 0.55
+    aliquota_imposto: 0.1425
+    reajuste_mes: 7
+    reajuste_indice: IPCA
+    prejuizo_acumulado_inicial: 0.0
+    relatorio:
+      linhas: [faturamento, aliquota, subtotal, pe, resultado, prejuizo, aluguel]
+
+  - id: axis
+    nome: Axis
+    tipo_relatorio: padrao
+    contratante: Axis
+    ativo: true
+    inicio: "2018-11-01"
+    tipo_calculo: COM_ALIQUOTA_SPLIT
+    ponto_equilibrio: 21500.0
+    aliquota_imposto: 0.0
+    splits:
+      - id: home
+        nome: "Axis Home"
+        percentual_split: 0.550708
+        percentual_aluguel: 0.70
+      - id: office
+        nome: "Axis Office"
+        percentual_split: 0.449292
+        percentual_aluguel: 0.70
+    relatorio:
+      linhas: [faturamento, pe, resultado, aluguel_home, aluguel_office, total_aluguel]
+
+  - id: dom_pedro
+    nome: Dom Pedro
+    tipo_relatorio: padrao
+    contratante: "Dom Pedro"
+    ativo: true
+    inicio: "2020-03-01"
+    tipo_calculo: COM_ALIQUOTA_CUMUL
+    ponto_equilibrio: 10803.71
+    percentual_aluguel: 0.75
+    aliquota_imposto: 0.1633
+    reajuste_mes: 3
+    reajuste_indice: IGPM
+    prejuizo_acumulado_inicial: -171239.32
+    relatorio:
+      linhas: [faturamento, aliquota, subtotal, pe, resultado, prejuizo, aluguel]
+
+  - id: fk
+    nome: FK
+    tipo_relatorio: padrao
+    contratante: FK
+    ativo: true
+    inicio: "2024-07-01"
+    tipo_calculo: COM_ALIQUOTA
+    ponto_equilibrio: 15000.0
+    percentual_aluguel: 0.80
+    aliquota_imposto: 0.1425
+    tem_investimentos: true
+    reajuste_mes: 4
+    reajuste_indice: IPCA
+    custos_variaveis:
+      investimentos: 0.0
+    relatorio:
+      linhas: [faturamento, aliquota, subtotal, pe, resultado, aluguel, investimentos, saldo_a_pagar]
+
+  - id: monza
+    nome: Monza
+    tipo_relatorio: padrao
+    contratante: Monza
+    ativo: true
+    inicio: "2019-10-01"
+    tipo_calculo: COM_FAIXAS
+    ponto_equilibrio: 0.0
+    aliquota_imposto: 0.0
+    taxa_cobranca: 0.0
+    faixas:
+      - ate: 85000.0
+        percentual: 0.45
+      - ate: null
+        percentual: 0.80
+    relatorio:
+      linhas: [faturamento, resultado, faixas_aluguel, total_aluguel]
+
+  - id: ilp
+    nome: ILP
+    tipo_relatorio: com_eventos
+    contratante: ILP
+    ativo: true
+    inicio: "2023-08-01"
+    tipo_calculo: COM_ALIQUOTA_CUMUL
+    ponto_equilibrio: 21655.68
+    percentual_aluguel: 0.75
+    aliquota_imposto: 0.1425
+    reajuste_mes: 8
+    reajuste_indice: IGPM
+    custos_mensais:
+      condominio: 1880.51
+    prejuizo_acumulado_inicial: 0.0
+    relatorio:
+      linhas: [faturamento, aliquota, subtotal, pe, condominio, resultado, prejuizo, aluguel]
+
+  - id: in_1183
+    nome: "In 1183"
+    tipo_relatorio: padrao
+    contratante: "In 1183"
+    ativo: true
+    inicio: "2021-06-01"
+    tipo_calculo: COM_ALIQUOTA_CUMUL
+    tem_faturamento_carregadores: true
+    tem_investimentos: true
+    ponto_equilibrio: 27377.58
+    percentual_aluguel: 0.70
+    aliquota_imposto: 0.1425
+    adicional_fixo: 1353.0
+    reajuste_mes: 6
+    reajuste_indice: IGPM
+    custos_variaveis:
+      investimentos: 0.0
+    prejuizo_acumulado_inicial: 0.0
+    relatorio:
+      linhas: [faturamento, fat_carregadores, aliquota, subtotal, pe, resultado, prejuizo, aluguel, adicional, investimentos, saldo_a_pagar]
+
+  - id: medcenter
+    nome: Medcenter
+    tipo_relatorio: padrao
+    contratante: Medcenter
+    ativo: true
+    inicio: "2023-07-01"
+    tipo_calculo: RESULTADO_SPLIT
+    aliquota_imposto: 0.1425
+    despesas_fixas: 42332.29
+    percentual_operador: 0.15
+    percentual_contratante: 0.85
+    parcela_fixa: 80000.0
+    reajuste_mes: 7
+    reajuste_indice: IPCA
+    custos_mensais:
+      condominio: 0.0
+      iptu: 0.0
+      energia_eletrica: 0.0
+      agua: 0.0
+      manutencao_equipamentos: 0.0
+      internet: 0.0
+    relatorio:
+      linhas: [faturamento, aliquota, receita_liquida, despesas_fixas, custos, resultado, resultado_operador, resultado_contratante, parcela_fixa, saldo_a_pagar]
+
+  - id: mw_tristeza
+    nome: "MW Tristeza"
+    tipo_relatorio: padrao
+    contratante: "MW Tristeza"
+    ativo: true
+    inicio: "2021-05-01"
+    tipo_calculo: COM_ALIQUOTA_CUMUL
+    ponto_equilibrio: 20681.99
+    percentual_aluguel: 0.80
+    aliquota_imposto: 0.1425
+    reajuste_mes: 5
+    reajuste_indice: IGPM
+    prejuizo_correcao_anual: IPCA   # saldo do prejuízo corrigido anualmente pelo IPCA — operação manual
+    custos_mensais:
+      condominio: 9073.23
+      iptu: 0.0
+      energia_eletrica: 0.0
+    taxa_admin_fixa: 4350.0
+    prejuizo_acumulado_inicial: -632029.12
+    relatorio:
+      linhas: [faturamento, aliquota, subtotal, pe, condominio, resultado, prejuizo, aluguel, taxa_admin]
+
+  - id: nl_2800
+    nome: "NL 2800"
+    tipo_relatorio: padrao
+    contratante: "NL 2800"
+    ativo: true
+    inicio: "2025-11-01"
+    tipo_calculo: COM_FAIXAS
+    aliquota_imposto: 0.1425
+    ponto_equilibrio: 0.0
+    taxa_cobranca: 0.0
+    reajuste_mes: 11
+    reajuste_indice: IPCA
+    # Faixas progressivas (ate = largura da faixa, não limite absoluto)
+    faixas:
+      - ate: 45000.0
+        percentual: 0.25
+      - ate: 50000.0
+        percentual: 0.50
+      - ate: null
+        percentual: 0.90
+    relatorio:
+      linhas: [faturamento, aliquota, subtotal, resultado, faixas_aluguel, total_aluguel]
+
+  - id: park_tower
+    nome: "Park Tower"
+    tipo_relatorio: padrao
+    contratante: "Park Tower"
+    ativo: true
+    inicio: "2022-01-01"
+    tipo_calculo: COM_ALIQUOTA
+    ponto_equilibrio: 0.0
+    percentual_aluguel: 0.80
+    aliquota_imposto: 0.1425
+    relatorio:
+      linhas: [faturamento, aliquota, subtotal, resultado, aluguel]
+
+  - id: patio
+    nome: "Pátio"
+    tipo_relatorio: com_receitas_extras
+    contratante: "Trend Pátio 24"
+    ativo: true
+    inicio: "2020-08-01"
+    tipo_calculo: PATIO_OPERACAO
+    aliquota_imposto: 0.1425
+    splits:
+      - id: real
+        nome: "REAL"
+        percentual_split: 0.5352
+        ponto_equilibrio: 22675.67
+        percentual_aluguel: 0.95
+        custos_mensais:
+          monitoramento: 11816.41
+          condominio: 0.0
+      - id: maiojama
+        nome: "MAIOJAMA"
+        percentual_split: 0.4648
+        ponto_equilibrio: 19692.37
+        percentual_aluguel: 0.95
+        custos_mensais:
+          monitoramento: 10262.09
+          condominio: 0.0
+          iptu: 0.0
+    reajuste_mes: 8
+    reajuste_indice: IPCA
+    outros_servicos:
+      percentual_repasse: 0.50
+      split_real: 0.5352
+      split_maiojama: 0.4648
+    carregadores:
+      percentual_repasse: 0.60
+      taxa_intermediacao_weg: 0.10
+      split_real: 0.5352
+      split_maiojama: 0.4648
+    manutencao:
+      retencao_iss: 0.05
+    relatorio:
+      pdfs: [real, maiojama, manutencao]
+
+  - id: patio_manutencao
+    nome: "Pátio — Manutenções"
+    tipo_relatorio: padrao
+    contratante: "Trend Pátio 24"
+    ativo: true
+    inicio: "2020-08-01"
+    tipo_calculo: PATIO_MANUTENCAO
+    retencao_iss: 0.05
+    custos_mensais:
+      aucon: 0.0
+      instalacoes: 0.0
+    relatorio:
+      linhas: [faturamento, resultado]
+
+  - id: praia_de_bellas
+    nome: "Praia de Bellas"
+    tipo_relatorio: padrao
+    contratante: "Praia de Bellas"
+    ativo: true
+    inicio: "2019-07-01"
+    tipo_calculo: COM_ALIQUOTA
+    ponto_equilibrio: 17144.50
+    percentual_aluguel: 0.75
+    aliquota_imposto: 0.1425
+    reajuste_mes: 4
+    reajuste_indice: IPCA
+    relatorio:
+      linhas: [faturamento, aliquota, subtotal, pe, resultado, aluguel]
+
+  - id: vasco
+    nome: Vasco
+    tipo_relatorio: padrao
+    contratante: Vasco
+    ativo: true
+    inicio: "2020-01-01"
+    tipo_calculo: PERCENTUAL_SIMPLES
+    ponto_equilibrio: 16628.71
+    percentual_aluguel: 0.65
+    taxa_admin_fixa: 3104.40
+    reajuste_mes: 3
+    reajuste_indice: IPCA
+    relatorio:
+      linhas: [faturamento, pe, resultado, aluguel, taxa_admin]
+
+  - id: viva_open_mall
+    nome: "Viva Open Mall"
+    tipo_relatorio: padrao
+    contratante: "Viva Open Mall"
+    ativo: true
+    inicio: "2023-03-01"
+    tipo_calculo: RESULTADO_SPLIT
+    aliquota_imposto: 0.1425
+    despesas_fixas: 26626.96
+    percentual_operador: 0.15
+    percentual_contratante: 0.85
+    parcela_fixa: 32533.36
+    reajuste_mes: 3
+    reajuste_indice: IPCA
+    custos_mensais:
+      condominio: 0.0
+      iptu: 0.0
+      energia_eletrica: 0.0
+    relatorio:
+      linhas: [faturamento, aliquota, receita_liquida, despesas_fixas, custos, resultado, resultado_operador, resultado_contratante, parcela_fixa, saldo_a_pagar]
+
+  - id: viva_trindade
+    nome: "Viva Trindade"
+    tipo_relatorio: padrao
+    contratante: "Viva Trindade"
+    ativo: true
+    inicio: "2025-03-01"
+    tipo_calculo: COM_ALIQUOTA_CUMUL
+    ponto_equilibrio: 27823.50
+    percentual_aluguel: 0.85
+    aliquota_imposto: 0.1425
+    tem_investimentos: true
+    reajuste_mes: 5
+    reajuste_indice: IPCA
+    custos_mensais:
+      condominio: 0.0
+      iptu: 0.0
+    custos_variaveis:
+      investimentos: 0.0
+    prejuizo_acumulado_inicial: -149050.05
+    relatorio:
+      linhas: [faturamento, aliquota, subtotal, pe, condominio, iptu, resultado, prejuizo, aluguel, investimentos, saldo_a_pagar]
+
+  - id: w_tower_caxias
+    nome: "W-Tower Caxias"
+    tipo_relatorio: padrao
+    contratante: "W-Tower Caxias"
+    ativo: true
+    inicio: "2020-12-01"
+    tipo_calculo: COM_ALIQUOTA_CUMUL
+    ponto_equilibrio: 23623.56
+    percentual_aluguel: 0.80
+    aliquota_imposto: 0.1325
+    reajuste_mes: 12
+    reajuste_indice: IPCA
+    custos_mensais:
+      condominio: 0.0
+      iptu: 0.0
+      energia_eletrica: 0.0
+    custos_variaveis:
+      fundo_recomposicao: 0.0
+    prejuizo_acumulado_inicial: 0.0
+    relatorio:
+      linhas: [faturamento, aliquota, subtotal, pe, condominio, iptu, energia_eletrica, resultado, prejuizo, aluguel, fundo_recomposicao, saldo_a_pagar]
+
+  - id: ekos
+    nome: Ekos
+    tipo_relatorio: padrao
+    contratante: Ekos
+    ativo: false
+    inicio: "2026-07-01"
+    tipo_calculo: COM_FAIXAS
+    tem_base_taxa_cobranca: true
+    ponto_equilibrio: 6550.0
+    aliquota_imposto: 0.1425
+    taxa_cobranca: 0.015
+    reajuste_mes: 7
+    reajuste_indice: IPCA
+    faixas:
+      - ate: null
+        percentual: 0.85
+    custos_mensais:
+      condominio: 0.0
+      iptu: 0.0
+      energia_eletrica: 0.0
+    relatorio:
+      linhas: [faturamento, aliquota, taxa_cobranca, subtotal, pe, custos, resultado, total_aluguel]
+
+  - id: oka
+    nome: OKA
+    tipo_relatorio: padrao
+    contratante: OKA
+    ativo: false
+    inicio: "2026-07-01"
+    tipo_calculo: COM_FAIXAS
+    tem_base_taxa_cobranca: true
+    ponto_equilibrio: 29902.0
+    aliquota_imposto: 0.1425
+    taxa_cobranca: 0.015
+    reajuste_mes: 7
+    reajuste_indice: IPCA
+    faixas:
+      - ate: null
+        percentual: 0.85
+    custos_mensais:
+      condominio: 0.0
+      iptu: 0.0
+      energia_eletrica: 0.0
+    relatorio:
+      linhas: [faturamento, aliquota, taxa_cobranca, subtotal, pe, custos, resultado, total_aluguel]
+
+  - id: terreno_oka
+    nome: "Terreno OKA"
+    tipo_relatorio: padrao
+    contratante: "OKA"
+    ativo: false
+    inicio: "2026-07-01"
+    tipo_calculo: COM_ALIQUOTA_REPASSE_DUPLO
+    tem_base_taxa_cobranca: true
+    ponto_equilibrio: 29902.0
+    aliquota_imposto: 0.1425
+    taxa_cobranca: 0.015
+    reajuste_mes: 7
+    reajuste_indice: IPCA
+    custos_mensais:
+      condominio: 0.0
+      iptu: 0.0
+      energia_eletrica: 0.0
+    repasses:
+      - id: locadora
+        nome: "Lyon Park (Locadora)"
+        percentual: 0.425
+        aluguel_minimo: 300.0
+      - id: administradora
+        nome: "Lyon Park (Administradora)"
+        percentual: 0.425
+        aluguel_minimo: 0.0
+    relatorio:
+      linhas: [faturamento, aliquota, taxa_cobranca, subtotal, pe, custos, resultado, aluguel_locadora, aluguel_administradora, total_aluguel]
