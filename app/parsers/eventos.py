@@ -26,7 +26,7 @@ from pathlib import Path
 
 import pandas as pd
 
-RUNS_DIR = Path(__file__).parent.parent.parent / "data" / "runs"
+from app.paths import RUNS_DIR
 
 _MES_MAP = {
     "jan": "01", "fev": "02", "mar": "03", "abr": "04",

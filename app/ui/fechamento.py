@@ -19,6 +19,7 @@ from streamlit.components.v1 import html as st_html
 from app import run_manager as rm
 from app.calculators.patio import ResultadoPatio
 from app.engine import calcular, get_unit, get_unit_com_params, get_unidades_ativas
+from app.paths import RUNS_DIR
 from app.models import (
     ResultadoUnidade, get_db, init_db, salvar_lancamento, get_saldo_acumulado,
     salvar_parametros, corrigir_saldo_anual,
@@ -1181,7 +1182,7 @@ def _aplicar_fat_importado(uid_map: dict):
 
 
 def _limpar_fat_import(mes_ref: str):
-    fat_path = Path(f"data/runs/{mes_ref}/processed/faturamento.json")
+    fat_path = RUNS_DIR / mes_ref / "processed" / "faturamento.json"
     if fat_path.exists():
         fat_path.unlink()
     if "faturamentos" in st.session_state:
@@ -1189,7 +1190,7 @@ def _limpar_fat_import(mes_ref: str):
 
 
 def _limpar_ev_uid(mes_ref: str, uid: str):
-    p = Path(f"data/runs/{mes_ref}/processed/eventos_{uid}.json")
+    p = RUNS_DIR / mes_ref / "processed" / f"eventos_{uid}.json"
     if p.exists():
         p.unlink()
 

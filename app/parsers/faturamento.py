@@ -15,7 +15,7 @@ from pathlib import Path
 
 import pandas as pd
 
-RUNS_DIR = Path(__file__).parent.parent.parent / "data" / "runs"
+from app.paths import RUNS_DIR
 
 # UIDs derivados do Pátio que não aparecem diretamente na planilha de faturamento
 _VIRTUAL_UIDS = {"patio_real", "patio_maiojama"}

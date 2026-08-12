@@ -18,9 +18,7 @@ from app.reporter import build_report_data
 from app.renderer import render_html, export_pdf
 from app.models import ResultadoUnidade, get_db
 from app.calculators.patio import ResultadoPatio
-
-PROJECT_ROOT = Path(__file__).parent.parent
-RUNS_DIR     = PROJECT_ROOT / "data" / "runs"
+from app.paths import RUNS_DIR, ensure_dirs
 
 # Transições de status permitidas
 _TRANSITIONS: dict[str, set[str]] = {

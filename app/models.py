@@ -3,6 +3,8 @@ from typing import Optional
 import sqlite3, json, os
 from datetime import date as _date
 
+from app.paths import DB_PATH
+
 # ─── metadados de parâmetros operacionais ────────────────────────────────────
 # Chave dot-notation → (tipo_dado, descrição amigável)
 # tipo_dado é consumido pela futura UI para escolher o componente correto.
@@ -55,7 +57,7 @@ def _infer_meta(chave: str, valor) -> tuple[str, str]:
         return ("texto", chave)
     return ("json", chave)
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "../data/db.sqlite")
+# DB_PATH resolvido via app.paths (lê DATA_DIR do ambiente)
 
 
 @dataclass
@@ -78,12 +80,15 @@ class ResultadoUnidade:
 
 
 def get_db() -> sqlite3.Connection:
+    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
 
 
 def init_db():
+    from app.paths import ensure_dirs
+    ensure_dirs()
     with get_db() as conn:
         conn.executescript("""
             CREATE TABLE IF NOT EXISTS lancamentos (
