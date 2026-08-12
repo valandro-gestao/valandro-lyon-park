@@ -12,6 +12,9 @@ data/
 # EXCEÇÃO: units.yaml é configuração estrutural do código (não dado operacional)
 # e é lido em tempo de execução por app/engine.py. Deve estar na imagem.
 !data/units.yaml
+# EXCEÇÃO: seed.db é o banco inicial copiado para DATA_DIR na primeira inicialização.
+# Nunca é aberto diretamente — apenas copiado se DATA_DIR/db.sqlite não existir.
+!data/seed.db
 
 # Arquivos temporários de geração de PDF
 # Gerados em tempo de execução; não precisam estar na imagem

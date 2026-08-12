@@ -87,8 +87,9 @@ def get_db() -> sqlite3.Connection:
 
 
 def init_db():
-    from app.paths import ensure_dirs
+    from app.paths import ensure_dirs, seed_db_if_missing
     ensure_dirs()
+    seed_db_if_missing()
     with get_db() as conn:
         conn.executescript("""
             CREATE TABLE IF NOT EXISTS lancamentos (

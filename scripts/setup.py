@@ -8,4 +8,5 @@ from app.engine import seed_saldos_iniciais
 if __name__ == "__main__":
     init_db()
     seed_saldos_iniciais()
-    print("Banco de dados inicializado em data/db.sqlite")
+    from app.paths import DB_PATH
+    print(f"Banco de dados inicializado em {DB_PATH}")

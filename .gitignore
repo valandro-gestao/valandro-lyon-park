@@ -2,7 +2,8 @@
 # LYON PARK — GITIGNORE
 # =============================================================================
 
-# Dados operacionais — banco de dados local
+# Banco operacional local — gerado automaticamente a partir de data/seed.db.
+# Nunca versionado: dados operacionais ficam em DATA_DIR (disco persistente em produção).
 data/db.sqlite
 
 # Dados operacionais — uploads, PDFs, JSONs processados e status.json
