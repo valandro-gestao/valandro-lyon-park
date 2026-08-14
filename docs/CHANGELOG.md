@@ -84,9 +84,39 @@ Primeira versão em produção. Cobre o ciclo completo de fechamento mensal das 
 
 ---
 
+## [v1.1.0] — Consolidação Operacional
+
+### Added
+
+- Aplicação completa do Design Language da Valandro.
+- Nova tela de Login.
+- Novo Dashboard de Fechamento.
+- Nova tela de Unidade.
+- Tema claro fixado para toda a aplicação.
+- `README.md`.
+- `docs/ROADMAP.md`.
+- `docs/CHANGELOG.md`.
+- `DESIGN_LANGUAGE` incorporado ao projeto.
+
+### Changed
+
+- Nova hierarquia visual.
+- Nova experiência operacional.
+- Workflow visual de aprovação.
+- Organização do histórico.
+- Consistência entre Login, Dashboard e Unidade.
+
+### Infrastructure
+
+- Consolidação da documentação técnica.
+- Configuração oficial de tema.
+- Estrutura definitiva da v1.1.0.
+
+---
+
 ## Próxima versão
 
-Próxima versão planejada: v1.1.0 — Operação Assistida.
+Próxima versão planejada: v1.2.0 — Workflow.
 
 Consulte [`docs/ROADMAP.md`](docs/ROADMAP.md) para detalhes.
 
