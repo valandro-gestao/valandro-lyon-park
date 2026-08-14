@@ -1,0 +1,12 @@
+# Tema fixo em light mode — o Design Language da Valandro (docs/03_DESIGN_LANGUAGE.md)
+# foi desenvolvido para tema claro. Sem isso, o Streamlit segue a preferência de
+# dark mode do sistema operacional/navegador do usuário, quebrando a identidade
+# visual aprovada. Não há alternância de tema neste produto.
+
+[theme]
+base = "light"
+primaryColor = "#1B3A6B"          # --vd-navy — ações primárias, foco, seleção
+backgroundColor = "#FFFFFF"        # fundo principal
+secondaryBackgroundColor = "#F5F6F8"  # fundo de widgets/inputs nativos
+textColor = "#1F2937"              # --vd-ink
+font = "sans serif"
