@@ -33,6 +33,7 @@
 21. [Ciclo de vida dos produtos](#21-ciclo-de-vida-dos-produtos)
 22. [Roadmap arquitetural da plataforma](#22-roadmap-arquitetural-da-plataforma)
 23. [Glossário](#23-glossário)
+24. [Documentação mínima obrigatória de um produto](#24-documentação-mínima-obrigatória-de-um-produto)
 - [Registro de decisões arquiteturais](#registro-de-decisões-arquiteturais)
 - [Histórico de revisões](#histórico-de-revisões)
 
@@ -506,6 +507,117 @@ timeline
 
 ---
 
+## 24. Documentação mínima obrigatória de um produto
+
+Todo produto desenvolvido pela Valandro nasce com a documentação abaixo. Não como entrega posterior ao desenvolvimento — como parte do produto desde o primeiro commit.
+
+### Filosofia
+
+**Documentação não é um artefato do projeto. É parte do produto.**
+
+A mesma disciplina aplicada ao código deve ser aplicada à documentação. Um recurso somente é considerado concluído quando:
+
+1. código implementado;
+2. testes realizados;
+3. documentação atualizada;
+4. roadmap revisado (quando a entrega altera o plano de evolução do produto);
+5. changelog atualizado (quando aplicável — novas versões, correções relevantes, mudanças de comportamento).
+
+Essa é uma diretriz permanente do padrão Valandro. Não é opcional, não é recomendação, e não é adiada para "depois que o produto estabilizar". Produtos sem documentação são produtos que não podem ser mantidos, evoluídos ou transferidos para outra pessoa — o que contradiz o princípio 1.1 deste documento.
+
+---
+
+### Documentos obrigatórios
+
+#### `README.md` — **[Obrigatório]**
+
+Porta de entrada do projeto. É o primeiro arquivo que qualquer pessoa lê ao abrir o repositório.
+
+Deve conter:
+
+- objetivo do sistema — o que ele faz e para quem;
+- visão geral do produto e do ciclo de uso;
+- principais funcionalidades;
+- tecnologias utilizadas;
+- estrutura do projeto (diretórios e responsabilidades);
+- como executar localmente;
+- como publicar em produção;
+- referências à documentação especializada.
+
+O README **não substitui** os demais documentos — ele os complementa e aponta para eles. O objetivo é que qualquer desenvolvedor que nunca viu o sistema consiga se orientar em minutos.
+
+#### `docs/ROADMAP.md` — **[Obrigatório]**
+
+Documento de estratégia do produto. Descreve onde o produto está indo, na perspectiva do valor entregue ao usuário — não apenas da evolução tecnológica.
+
+Deve conter:
+
+- versões planejadas, com objetivo de cada uma;
+- valor entregue ao usuário por versão;
+- principais funcionalidades de cada versão;
+- justificativa da ordem de priorização.
+
+O ROADMAP complementa o CHANGELOG: ROADMAP → para onde o produto vai; CHANGELOG → como o produto evoluiu.
+
+#### `CHANGELOG.md` — **[Obrigatório]**
+
+Histórico oficial das versões publicadas em produção. Segue [Semantic Versioning](https://semver.org) e o formato [Keep a Changelog](https://keepachangelog.com), adaptado às categorias da Valandro: `Added`, `Changed`, `Fixed`, `Infrastructure`, `Documentation`.
+
+Requisitos:
+
+- registra apenas mudanças relevantes — não é um espelho do `git log`;
+- descreve mudanças do ponto de vista do produto e do usuário;
+- não substitui o Git — o Git registra o que mudou no código; o CHANGELOG registra o que mudou no produto.
+
+#### `docs/ARQUITETURA.md` — **[Obrigatório]**
+
+Referência técnica completa da solução. Não descreve o que o produto faz para o usuário — descreve como ele foi construído e por quê.
+
+Deve conter:
+
+- componentes do sistema e suas responsabilidades;
+- fluxo de dados entre os componentes;
+- decisões arquiteturais e suas justificativas;
+- diagramas (quando ajudam a comunicar algo que o texto não consegue sozinho).
+
+Este documento é o complemento técnico do README. Um desenvolvedor que leu o README entende o produto; um desenvolvedor que leu o ARQUITETURA.md entende a implementação.
+
+#### `docs/BANCO_DE_DADOS.md` — **[Obrigatório para sistemas com persistência]**
+
+Obrigatório em qualquer sistema que persiste dados. Não substituível pelo ARQUITETURA.md — o banco merece documentação própria pela sua criticidade operacional.
+
+Deve conter:
+
+- modelo do banco (tabelas, campos, relacionamentos relevantes);
+- estratégia de seed e dados iniciais;
+- ciclo de vida dos dados em cada ambiente (desenvolvimento, homologação, produção);
+- procedimento de migração de schema;
+- estratégia de backup e recuperação.
+
+#### `LICENSE` — **[Obrigatório]**
+
+Todo repositório deve possuir uma licença explícita, mesmo em projetos privados. A ausência de licença cria ambiguidade legal sobre uso, redistribuição e manutenção futura. A licença aplicável é definida para cada produto com base em seu modelo de negócio e na relação contratual com o cliente.
+
+---
+
+### Artefatos obrigatórios no GitHub
+
+#### GitHub Releases — **[Obrigatório]**
+
+Cada versão publicada em produção deve possuir uma Release correspondente no GitHub. A Release representa um marco do produto — não apenas um deploy. Deve referenciar o changelog da versão e, quando aplicável, incluir os artefatos compilados ou instruções de atualização.
+
+#### GitHub Project — **[Obrigatório]**
+
+Todo produto deve possuir um Project próprio para gestão do backlog. O Project acompanha a evolução do produto desde o MVP — registrando o que foi entregue, o que está em andamento e o que está planejado, em alinhamento com o ROADMAP.
+
+---
+
+### Registro desta decisão
+
+Esta seção foi incorporada ao padrão em agosto de 2026, a partir das práticas desenvolvidas e validadas durante o desenvolvimento do **Lyon Park v1.0.0** — primeiro produto da Valandro a nascer com documentação completa desde o início. O padrão aqui definido se aplica a todos os produtos novos e é a referência para adequação progressiva dos produtos existentes.
+
+---
+
 ## Registro de decisões arquiteturais
 
 | # | Decisão | Categoria | Status |
@@ -524,6 +636,8 @@ timeline
 | 12 | Ciclo de vida do produto (Ideia → ... → Produto consolidado) orienta o nível de exigência arquitetural esperado em cada fase | Governança da plataforma | Obrigatório |
 | 13 | A plataforma existe para acelerar entregas — nenhuma decisão arquitetural bloqueia uma entrega importante do negócio | Governança da plataforma | Obrigatório |
 | 14 | Aplicações compartilham padrões e infraestrutura, nunca regras de negócio ou dados | Arquitetura | Obrigatório |
+| 15 | Documentação mínima obrigatória (README, ROADMAP, CHANGELOG, ARQUITETURA, BANCO_DE_DADOS, LICENSE, GitHub Releases, GitHub Project) como parte do produto desde o primeiro commit — não como entrega posterior | Governança da plataforma | Obrigatório |
+| 16 | Um recurso só é considerado concluído quando código, testes e documentação estão atualizados | Governança da plataforma | Obrigatório |
 
 ---
 
@@ -533,6 +647,7 @@ timeline
 |---|---|---|---|
 | 0.1 | 04/08/2026 | Rascunho inicial gerado a partir da sessão de definição de arquitetura | Rascunho |
 | 1.0 | 10/08/2026 | Hospedagem e frontend redefinidos como critério (não fornecedor/tecnologia fixa); adicionados os princípios de aceleração e de compartilhamento; adicionadas as seções de critérios para criação de aplicações e ciclo de vida dos produtos; documento consolidado com diagramas e glossário | **Aprovado — oficial** |
+| 1.1 | 15/08/2026 | Adicionada a seção 24 — Documentação mínima obrigatória de um produto, instituindo README, ROADMAP, CHANGELOG, ARQUITETURA, BANCO_DE_DADOS, LICENSE, GitHub Releases e GitHub Project como artefatos obrigatórios; adicionado o princípio de definição de conclusão de recurso; registradas as decisões 15 e 16 | **Aprovado — oficial** |
 
 ---
 
