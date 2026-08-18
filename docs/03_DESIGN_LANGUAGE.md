@@ -51,15 +51,84 @@ Não é sobre layout. É o teste por trás de qualquer decisão visual futura.
 
 ---
 
-## 4. Implementação atual (v1.0)
+## 4. Implementação atual (v1.1)
 
 Decisões de execução — podem mudar sem alterar os princípios das seções 1 a 3.
 
-- **Tipografia:** Manrope (display/itálico de leitura), IBM Plex Sans (corpo), IBM Plex Mono (dado tabular).
-- **Voz do dado:** `var(--font-mono)`, numérico tabular, `var(--text-primary)`.
-- **Voz da leitura:** `var(--font-display)` itálico, peso 600, `var(--red-500)` — reservada à frase que interpreta um dado; nunca rótulo decorativo repetido.
-- **Cor:** paleta e tokens do design system vigente (azul institucional, navy-900, cinzas, red-500/green-500/amber-500 restritos a status). Máximo 1–2 cores de fundo por peça.
-- **Espaçamento:** escala de 4px do design system vigente.
+### 4.1 Tipografia
+
+**Alvo (não implementado ainda):** Manrope (display/itálico de leitura), IBM Plex Sans (corpo), IBM Plex Mono (dado tabular).
+
+**Implementação atual:** stack de sistema (`-apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif`) para todos os papéis tipográficos.
+
+**Motivo:** carregamento de fontes via CDN externo foi descartado explicitamente — não há dependência de rede além da aplicação em si. A estratégia de auto-hospedagem das fontes para o portfólio Valandro ainda não foi definida. Quando for definida, a troca é feita apenas nos tokens CSS (`--vd-font-display` e `--vd-font-body`) sem alteração de estrutura.
+
+### 4.2 Tokens CSS oficiais (aplicação Streamlit)
+
+Os tokens abaixo são a referência canônica para toda tela do Lyon Park. Qualquer nova tela deve declará-los em `:root` e usá-los via variável — nunca com valores literais.
+
+```css
+:root {
+  /* Marca e ações primárias */
+  --vd-navy:      #1B3A6B;   /* Cor principal — botões primários, foco, seleção */
+  --vd-navy-mid:  #2E6DA4;   /* Estado hover de elementos navy */
+
+  /* Texto */
+  --vd-ink:       #1F2937;   /* Texto principal */
+  --vd-muted:     #6B7280;   /* Labels, texto secundário */
+  --vd-faint:     #9CA3AF;   /* Texto terciário, contexto discreto */
+
+  /* Estrutura */
+  --vd-border:    #E2E5EA;   /* Bordas de inputs e divisores */
+
+  /* Status operacional */
+  --vd-green:     #059669;   /* Aprovado */
+  --vd-amber:     #B45309;   /* Em andamento / atenção */
+  --vd-red:       #DC2626;   /* Erro / pendente / leitura */
+  --vd-red-bg:    #FDECEA;   /* Fundo de alertas de erro */
+
+  /* Tipografia (stack de sistema — ver 4.1) */
+  --vd-font-display: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --vd-font-body:    -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+```
+
+### 4.3 Tema Streamlit
+
+O tema claro é fixo — sem alternância dark/light. Configurado em `.streamlit/config.toml`:
+
+```toml
+[theme]
+base = "light"
+primaryColor = "#1B3A6B"           # --vd-navy
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F5F6F8"
+textColor = "#1F2937"              # --vd-ink
+font = "sans serif"
+```
+
+**Motivo:** o Design Language foi desenvolvido para tema claro. Sem configuração fixa, o Streamlit segue a preferência de dark mode do sistema operacional do usuário, quebrando a identidade visual em metade dos ambientes.
+
+### 4.4 Hierarquia de identidade de marca
+
+- **Valandro** é a marca primária em todas as telas — aparece com logo em destaque no Login e discretamente no Dashboard.
+- **Lyon Park** aparece como contexto operacional/cliente, nunca como marca principal.
+- O sistema **não é white-label**: a autoria Valandro deve ser visível.
+
+**Aplicação no Login:** logo Valandro centralizado, campo de contexto `"Lyon Park · Fechamento mensal"` em tipografia menor e cor faint.
+
+**Aplicação no Dashboard:** logo Valandro pequeno no canto superior esquerdo (`height: 28px`), sem texto de marca — presença discreta mas consistente.
+
+### 4.5 Layout e espaçamento
+
+- **Container principal:** `max-width: 1180px` — otimizado para notebooks de ~14". Evita dispersão em monitores largos sem reduzir informação em telas menores.
+- **Sidebar:** removida completamente via CSS (`display: none`). A navegação é feita pelo próprio conteúdo da tela, não por menu lateral.
+- **Escala de espaçamento:** 4px como unidade base.
+
+### 4.6 Voz do dado e voz da leitura
+
+- **Voz do dado:** `var(--vd-font-body)`, numérico tabular, `var(--vd-ink)`.
+- **Voz da leitura:** `var(--vd-font-display)` itálico, peso 600, `var(--vd-red)` — reservada à frase que interpreta um dado; nunca rótulo decorativo repetido.
 
 ---
 

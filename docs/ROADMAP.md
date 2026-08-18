@@ -1,7 +1,7 @@
 # ROADMAP — Lyon Park Fechamento Mensal
 
 **Produto:** Gerador de Relatórios Lyon Park  
-**Versão atual:** 1.0.0  
+**Versão atual:** 1.1.0  
 **Padrão de versões:** [Semantic Versioning 2.0.0](https://semver.org)  
 **Referência arquitetural:** [PADRAO_TECNOLOGICO_VALANDRO.md](./PADRAO_TECNOLOGICO_VALANDRO.md)
 
@@ -23,12 +23,13 @@ Este documento descreve a estratégia de evolução do Lyon Park como **produto*
 ## Linha do tempo
 
 ```
-ago/2026   v1.0.0  Produção
-           v1.1.0  Operação Assistida
-           v1.2.0  Workflow
-           v1.3.0  Parametrização
-           v1.4.0  Analytics
-           v1.5.0  Automações Operacionais
+ago/2026   v1.0.0  Produção              — lançado em 12/08/2026
+           v1.1.0  Consolidação          — lançado em 14/08/2026
+           v1.2.0  Operação Assistida
+           v1.3.0  Workflow
+           v1.4.0  Parametrização
+           v1.5.0  Analytics
+           v1.6.0  Automações Operacionais
 2027+      v2.0.0  Migração Supabase (MAJOR)
            v2.1.0  Perfis e Auditoria
            v2.2.0  API REST
@@ -71,37 +72,73 @@ Perfis de usuário, tela de parametrização, Supabase, API REST, testes automat
 
 ---
 
-## v1.1.0 — Operação Assistida
+## v1.1.0 — Consolidação Operacional
+**Lançamento:** 14/08/2026
 
 ### Problema que resolve
-As primeiras competências reais em produção são as mais arriscadas. A operadora aprende o sistema, o sistema encontra seus primeiros edge cases reais, e a Valandro precisa conseguir diagnosticar problemas rapidamente. Hoje o sistema faz o trabalho, mas não auxilia a operadora a ter confiança de que está fazendo certo.
+A v1.0.0 era funcionalmente completa, mas a interface herdou os padrões visuais padrão do Streamlit sem identidade. Qualquer novo desenvolvimento produziria telas inconsistentes entre si. Antes de evoluir funcionalmente o produto, era necessário estabelecer a linguagem visual como referência estável.
+
+### Valor entregue
+O sistema passa a ter identidade visual consistente em todas as telas — Login, Dashboard e Unidade falam a mesma língua visual. A Valandro aparece como fabricante do produto; Lyon Park como contexto operacional. O Design Language está documentado e é a referência para todo desenvolvimento futuro.
+
+### O que foi entregue
+
+**Tela de Login redesenhada**  
+Layout centralizado com logo Valandro como marca primária, campo de contexto "Lyon Park · Fechamento mensal", formulário de credenciais com tokens CSS próprios. Nenhuma dependência de CDN externo.
+
+**Dashboard de Fechamento redesenhado**  
+Hierarquia visual clara: marca discreta no topo, competência em destaque, resumo operacional consolidado, ações em linha com o contexto, lista de unidades agrupada por status. Layout contido em `max-width: 1180px` (otimizado para notebook 14").
+
+**Tela de Unidade padronizada**  
+Cabeçalho com mesma identidade do Dashboard. Parâmetros à esquerda, resultado à direita. Workflow visual de aprovação com chips de status coloridos.
+
+**Tema claro fixo**  
+`.streamlit/config.toml` com `base = "light"` e tokens de cor alinhados ao Design Language. Elimina variação de aparência entre sistemas operacionais com preferência dark mode.
+
+**Design Language documentado e incorporado ao repositório**  
+`docs/03_DESIGN_LANGUAGE.md` com princípios permanentes, regras consolidadas, tokens CSS oficiais, decisão de tipografia e hierarquia de identidade de marca.
+
+### Fora do escopo desta versão
+Comparativo com mês anterior, alertas de parâmetro, logs operacionais estruturados, correções de bugs de cálculo. Esses itens passam para v1.2.0.
+
+### Por que esta versão veio antes das melhorias operacionais
+Estabelecer o Design Language primeiro evita que cada nova funcionalidade crie seus próprios padrões visuais ad hoc. Com a linguagem estabelecida, toda tela futura tem uma referência clara — e o custo de manter consistência visual cai progressivamente.
+
+---
+
+## v1.2.0 — Operação Assistida
+
+> **Nota de sequência:** esta versão corresponde ao que era originalmente descrito como v1.1.0 no plano inicial. A v1.1.0 foi ocupada pela Consolidação Operacional (Design Language), deslocando as versões seguintes em um número.
+
+### Problema que resolve
+As primeiras competências reais em produção são as mais arriscadas. A operadora aprende o sistema, o sistema encontra seus primeiros edge cases reais, e a Valandro precisa conseguir diagnosticar problemas rapidamente. O sistema faz o trabalho, mas não auxilia a operadora a ter confiança de que está fazendo certo.
 
 ### Valor entregue
 A operadora consegue detectar erros antes de aprovar — não depois. Um número inesperado é sinalizado antes de virar PDF. A Valandro consegue diagnosticar o que aconteceu em produção sem precisar acessar o servidor manualmente.
 
 ### Principais funcionalidades
 
-**Comparativo automático com o mês anterior**  
+**Comparativo automático com o mês anterior**
 Antes de aprovar, a operadora vê lado a lado o resultado atual e o do mês anterior para a mesma unidade. Variações grandes ficam visíveis antes de qualquer aprovação.
 
-**Alerta de parâmetro fora do padrão**  
+**Alerta de parâmetro fora do padrão**
 Se um valor editável difere significativamente do último aprovado (ex: ponto de equilíbrio alterado em mais de 20%), o sistema exibe um aviso antes de calcular. Evita aprovações por erro de digitação.
 
-**Variação percentual no bloco de histórico do PDF**  
-O bloco de comparativo mensal do relatório passa a exibir a variação `%` mês a mês. Hoje o bloco existe, mas não indica se o resultado melhorou ou piorou.
+**Variação percentual no bloco de histórico do PDF**
+O bloco de comparativo mensal do relatório passa a exibir a variação `%` mês a mês.
 
-**Log estruturado das ações operacionais**  
+**Log estruturado das ações operacionais**
 Importação de planilha, cálculo, aprovação, reabertura e geração de PDF passam a gerar entradas de log visíveis no painel do Render. Diagnóstico remoto de problemas passa a ser possível sem acesso ao servidor.
 
-**Correções pós-launch**  
-Bugs e ajustes de UX identificados nos primeiros fechamentos reais. Esta é a única versão que tem espaço aberto para correções não previstas — porque não é possível saber o que vai aparecer antes de a operadora usar o sistema de verdade.
+**Correções pós-launch**
+Bugs e ajustes de UX identificados nos primeiros fechamentos reais.
 
 ### Por que está aqui
-A primeira versão é funcionalmente completa, mas não é ainda confortável. Esta versão existe para fazer a operação ficar confortável antes de evoluir o produto. Seguindo o princípio 1.2 do padrão Valandro: a arquitetura — e o roadmap — servem ao negócio, não o contrário.
+O sistema é usado em produção, mas sem alertas e sem comparativo não é possível detectar facilmente um número errado antes de aprovar. Esta versão resolve isso.
 
 ---
 
-## v1.2.0 — Workflow
+## v1.3.0 — Workflow
 
 ### Problema que resolve
 O workflow de aprovação atual é funcional mas pouco rastreável. Quando um relatório é reaberto não fica registrado o motivo. Quando um resultado muda após uma reabertura não é fácil comparar o que mudou. Isso gera insegurança — especialmente quando o contratante questiona um valor.
@@ -111,16 +148,16 @@ Cada decisão tomada no processo de fechamento passa a ter um registro rastreáv
 
 ### Principais funcionalidades
 
-**Motivo obrigatório ao reabrir**  
+**Motivo obrigatório ao reabrir**
 Hoje a reabertura é imediata. A partir desta versão, o operador registra o motivo antes de reabrir um relatório aprovado. O motivo é salvo no histórico e exibido na linha do tempo da unidade.
 
-**Comparativo de versões ao recalcular**  
+**Comparativo de versões ao recalcular**
 Ao recalcular após reabertura, o sistema exibe as diferenças numéricas entre a versão aprovada e o novo cálculo antes de aprovar novamente. A operadora decide com visibilidade, não com fé.
 
-**Memória de cálculo no PDF**  
+**Memória de cálculo no PDF**
 O relatório passa a incluir, em seção dedicada, todos os parâmetros utilizados no cálculo: faturamento, ponto de equilíbrio, custos, alíquotas, resultado, aluguel. Se o contratante questionar um número, a memória está no documento.
 
-**Registro de aprovações com timestamp e usuário**  
+**Registro de aprovações com timestamp e usuário**
 Cada aprovação passa a registrar data, hora e responsável no banco. Base técnica para a trilha de auditoria completa que vem em versões futuras.
 
 ### Por que está antes de Parametrização
@@ -128,7 +165,7 @@ O workflow é usado todo mês pela operadora. A parametrização é usada ocasio
 
 ---
 
-## v1.3.0 — Parametrização
+## v1.4.0 — Parametrização
 
 ### Problema que resolve
 Hoje, qualquer ajuste de parâmetro operacional (ponto de equilíbrio, percentual de aluguel, custos mensais) exige que a equipe da Valandro acesse o banco de dados diretamente ou edite o YAML. Isso cria dependência técnica para operações que deveriam ser rotineiras — especialmente quando um contrato é renegociado.
@@ -152,7 +189,7 @@ Esta versão usa infraestrutura que já existe — o banco armazena `tipo_dado` 
 
 ---
 
-## v1.4.0 — Analytics
+## v1.5.0 — Analytics
 
 ### Problema que resolve
 Hoje o sistema processa o fechamento, mas não responde perguntas sobre a operação. Qual unidade demora mais para fechar? Quantos dias em média vão da importação da planilha até a aprovação do último relatório? Quais unidades foram reabertas mais vezes? Quais têm saldo acumulado crescendo? Essas informações estão no banco, mas ninguém as vê.
@@ -182,7 +219,7 @@ Os dados para esta versão já existem no banco desde v1.0.0. O custo técnico �
 
 ---
 
-## v1.5.0 — Automações Operacionais
+## v1.6.0 — Automações Operacionais
 
 ### Problema que resolve
 Mesmo com o sistema funcionando bem, ainda existem etapas manuais no início e no fim de cada fechamento: alguém precisa baixar a planilha de faturamento, importar manualmente, e depois enviar cada PDF ao contratante correspondente. São tarefas repetitivas, previsíveis e sem valor agregado — exatamente o tipo de trabalho que deve ser eliminado.

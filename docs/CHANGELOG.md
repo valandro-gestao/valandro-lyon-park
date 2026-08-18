@@ -22,7 +22,7 @@ Para a filosofia de produto e a estratégia de evolução, consulte [`docs/ROADM
 
 ---
 
-## [v1.0.0] — 2026-08-15
+## [v1.0.0] — 2026-08-12
 
 Primeira versão em produção. Cobre o ciclo completo de fechamento mensal das 23 unidades de estacionamento gerenciadas pela Lyon Park.
 
@@ -84,7 +84,7 @@ Primeira versão em produção. Cobre o ciclo completo de fechamento mensal das 
 
 ---
 
-## [v1.1.0] — Consolidação Operacional
+## [v1.1.0] — 2026-08-14 — Consolidação Operacional
 
 ### Added
 

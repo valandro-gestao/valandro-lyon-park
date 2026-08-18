@@ -5,7 +5,7 @@ Sistema de geração de relatórios mensais de prestação de contas para os 23 
 | | |
 |---|---|
 | **Status** | Produção |
-| **Versão** | v1.0.0 |
+| **Versão** | v1.1.0 |
 | **Plataforma** | Python · Streamlit · Docker · Render |
 | **Unidades** | 23 |
 | **Calculadoras** | 9 |
@@ -103,10 +103,18 @@ A configuração estrutural de cada unidade (tipo de cálculo, layout do relató
 
 ```
 lyon-reports/
-├── main.py                     # Entrada da aplicação Streamlit + autenticação
+├── main.py                     # Entrada da aplicação Streamlit + autenticação + tela de login
 ├── render.yaml                 # Configuração do serviço no Render
 ├── Dockerfile                  # Build da imagem (python:3.14-slim + WeasyPrint)
 ├── requirements.txt            # Dependências Python fixadas
+│
+├── .streamlit/
+│   └── config.toml             # Tema claro fixo (light mode obrigatório — ver docs/03_DESIGN_LANGUAGE.md)
+│
+├── assets/
+│   ├── valandro_logo.png       # Logo Valandro — marca primária em Login e Dashboard
+│   ├── logo.png                # Logo Lyon Park (uso contextual)
+│   └── logo_alt.png            # Variante do logo Lyon Park
 │
 ├── app/
 │   ├── paths.py                # Resolução centralizada de caminhos (DATA_DIR)
@@ -134,10 +142,13 @@ lyon-reports/
 │   └── setup.py                # Inicialização manual do banco
 │
 └── docs/
+    ├── README.md               # Este arquivo
     ├── ARQUITETURA.md          # Referência técnica detalhada
     ├── BANCO_DE_DADOS.md       # Seed, DATA_DIR e ciclo de vida do banco
+    ├── CHANGELOG.md            # Histórico de versões
+    ├── ROADMAP.md              # Estratégia de evolução do produto
     ├── PADRAO_TECNOLOGICO_VALANDRO.md
-    └── ROADMAP.md
+    └── 03_DESIGN_LANGUAGE.md  # Identidade visual e padrões de UI
 ```
 
 Em produção, os dados operacionais ficam separados da imagem Docker:
@@ -218,7 +229,8 @@ Os documentos estão organizados na ordem recomendada de leitura para quem está
 | 3 | [`docs/ARQUITETURA.md`](docs/ARQUITETURA.md) | Referência técnica completa: calculadoras, fluxo de parâmetros, banco de dados, decisões de arquitetura |
 | 4 | [`docs/BANCO_DE_DADOS.md`](docs/BANCO_DE_DADOS.md) | Seed vs. banco operacional, DATA_DIR, ciclo de vida por cenário |
 | 5 | [`docs/PADRAO_TECNOLOGICO_VALANDRO.md`](docs/PADRAO_TECNOLOGICO_VALANDRO.md) | Stack oficial Valandro e princípios que guiam as decisões técnicas |
-| 6 | [`CHANGELOG.md`](CHANGELOG.md) | Histórico detalhado de alterações por versão |
+| 6 | [`docs/CHANGELOG.md`](CHANGELOG.md) | Histórico detalhado de alterações por versão |
+| 7 | [`docs/03_DESIGN_LANGUAGE.md`](03_DESIGN_LANGUAGE.md) | Identidade visual, tokens CSS, tipografia, regras de UI |
 
 ---
 
@@ -227,7 +239,7 @@ Os documentos estão organizados na ordem recomendada de leitura para quem está
 | Versão | Entrega | Status |
 |---|---|---|
 | `v1.0.0` | Produção — 23 unidades, 9 calculadoras, workflow completo | **Lançado** |
-| `v1.1.0` | Operação Assistida — comparativo mensal, alertas, logs operacionais | Planejado |
+| `v1.1.0` | Consolidação Operacional — Design Language aplicado, nova UI (Login, Dashboard, Unidade) | **Lançado** |
 | `v1.2.0` | Workflow — motivo de reabertura, memória de cálculo no PDF, comparativo de versões | Planejado |
 | `v1.3.0` | Parametrização — tela de edição de parâmetros via UI, sem acesso ao banco | Planejado |
 | `v1.4.0` | Analytics — indicadores de fechamento, evolução de saldos, dashboards | Planejado |
@@ -240,7 +252,18 @@ Os documentos estão organizados na ordem recomendada de leitura para quem está
 
 ## Histórico de Versões
 
-### v1.0.0 — 15/08/2026
+### v1.1.0 — 14/08/2026
+
+Aplicação do Design Language da Valandro em toda a interface operacional:
+
+- Nova tela de Login com identidade Valandro (marca primária) e Lyon Park como contexto
+- Novo Dashboard de Fechamento com hierarquia visual, resumo operacional e ações por grupo
+- Nova tela de Unidade com layout padronizado de parâmetros e resultado
+- Tema claro fixado via `.streamlit/config.toml` — sem alternância dark/light
+- Tokens CSS oficiais definidos e aplicados consistentemente em todas as telas
+- Documentação completa: README, ROADMAP, CHANGELOG, DESIGN_LANGUAGE incorporados ao repositório
+
+### v1.0.0 — 12/08/2026
 
 Primeira versão em produção. Cobre o ciclo completo de fechamento mensal das 23 unidades:
 
