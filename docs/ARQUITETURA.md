@@ -128,12 +128,59 @@ graph TD
 
 Todos os calculadores recebem `(cfg, mes, faturamento, **kwargs)` e retornam `ResultadoUnidade`. A seleção do calculador ocorre em `engine.py:calcular()` com base no campo `tipo_calculo` do YAML.
 
+### Mapeamento unidade → calculadora
+
+> **`data/units.yaml` é a fonte de verdade operacional para o mapeamento `unidade → tipo_calculo`.** Em caso de divergência entre este documento e o YAML, o YAML prevalece.
+
+Tabela extraída de `data/units.yaml` em 18/08/2026:
+
+**Unidades ativas:**
+
+| uid | Nome comercial | tipo_calculo |
+|---|---|---|
+| `fiergs` | Fiergs | COM_FAIXAS |
+| `anitta_mall` | Anitta Mall | COM_ALIQUOTA_CUMUL |
+| `a_schneider` | A. Schneider | COM_ALIQUOTA_CUMUL |
+| `axis` | Axis | COM_ALIQUOTA_SPLIT |
+| `dom_pedro` | Dom Pedro | COM_ALIQUOTA_CUMUL |
+| `fk` | FK | COM_ALIQUOTA |
+| `monza` | Monza | COM_FAIXAS |
+| `ilp` | ILP | COM_ALIQUOTA_CUMUL |
+| `in_1183` | In 1183 | COM_ALIQUOTA_CUMUL |
+| `medcenter` | Medcenter | RESULTADO_SPLIT |
+| `mw_tristeza` | MW Tristeza | COM_ALIQUOTA_CUMUL |
+| `nl_2800` | NL 2800 | COM_FAIXAS |
+| `park_tower` | Park Tower | COM_ALIQUOTA |
+| `patio` | Pátio | PATIO_OPERACAO |
+| `patio_manutencao` | Pátio — Manutenções | PATIO_MANUTENCAO |
+| `praia_de_bellas` | Praia de Bellas | COM_ALIQUOTA |
+| `vasco` | Vasco | PERCENTUAL_SIMPLES |
+| `viva_open_mall` | Viva Open Mall | RESULTADO_SPLIT |
+| `viva_trindade` | Viva Trindade | COM_ALIQUOTA_CUMUL |
+| `w_tower_caxias` | W-Tower Caxias | COM_ALIQUOTA_CUMUL |
+
+**Unidades inativas (`ativo: false`):**
+
+| uid | Nome comercial | tipo_calculo |
+|---|---|---|
+| `ekos` | Ekos | COM_FAIXAS |
+| `oka` | OKA | COM_FAIXAS |
+| `terreno_oka` | Terreno OKA | COM_ALIQUOTA_REPASSE_DUPLO |
+
+### Divergências históricas registradas
+
+As seguintes divergências existem entre versões anteriores deste documento (escrito em julho/2026, antes do lançamento) e a configuração operacional atual em `data/units.yaml`:
+
+- **Anitta Mall:** o mapeamento correto atual é `COM_ALIQUOTA_CUMUL`. A classificação anterior como `COM_ALIQUOTA` era erro de documentação.
+- **FK:** o sistema atual possui uma única unidade com id `fk` (nome comercial: FK). Referências anteriores a "FK Moinhos" e "FK Rosário" como unidades separadas representam nomenclatura ou estrutura histórica anterior à configuração atual.
+- **Parking 1:** apareceu em documentação anterior (julho/2026), mas não faz parte das unidades atualmente configuradas em `data/units.yaml`. A razão histórica dessa ausência não está documentada.
+
 ---
 
 ### 3.1 PERCENTUAL_SIMPLES
 
 **Arquivo:** `app/calculators/base.py`  
-**Unidades:** Vasco da Gama
+**Unidades:** Vasco
 
 **Finalidade:** Contrato simples sem alíquota de imposto. O aluguel é um percentual do resultado após dedução do ponto de equilíbrio. Quando o resultado é negativo, cobra uma taxa de administração fixa.
 
@@ -159,7 +206,7 @@ senão:
 ### 3.2 COM_ALIQUOTA
 
 **Arquivo:** `app/calculators/base.py`  
-**Unidades:** Anitta Mall, FK Moinhos, FK Rosário
+**Unidades:** FK, Park Tower, Praia de Bellas
 
 **Finalidade:** Cálculo com desconto de alíquota de imposto antes de aplicar o ponto de equilíbrio. Suporta dedução de investimentos do aluguel (saldo a pagar).
 
@@ -184,7 +231,7 @@ saldo_a_pagar = aluguel - investimentos  (se houver)
 ### 3.3 COM_ALIQUOTA_CUMUL
 
 **Arquivo:** `app/calculators/cumulativo.py`  
-**Unidades:** A. Schneider, Dom Pedro, ILP, In 1183, MW Tristeza, Parking 1, Viva Trindade, W Tower
+**Unidades:** A. Schneider, Anitta Mall, Dom Pedro, ILP, In 1183, MW Tristeza, Viva Trindade, W-Tower Caxias
 
 **Finalidade:** Calculadora mais completa do sistema. Acumula prejuízo entre meses — quando o resultado é negativo, o saldo devedor é carregado para a próxima competência. Suporta custos mensais fixos, faixas de aluguel progressivas, fundo de recomposição e adicional fixo.
 
@@ -224,7 +271,7 @@ senão:
 ### 3.4 COM_FAIXAS
 
 **Arquivo:** `app/calculators/faixas.py`  
-**Unidades:** Ekos, Fiergs, Monza, NL 2800, OKA
+**Unidades:** Fiergs, Monza, NL 2800 (ativas) · Ekos, OKA (inativas)
 
 **Finalidade:** Calcula o aluguel aplicando alíquotas progressivas por faixas de resultado. Cada faixa é aplicada sobre uma **fatia** do resultado (semântica de largura), não sobre o total acumulado.
 
@@ -317,7 +364,7 @@ saldo_a_pagar = resultado_contratante - parcela_fixa
 ### 3.7 COM_ALIQUOTA_REPASSE_DUPLO
 
 **Arquivo:** `app/calculators/repasse_duplo.py`  
-**Unidades:** Terreno OKA
+**Unidades:** Terreno OKA (inativa)
 
 **Finalidade:** O resultado é distribuído para múltiplos beneficiários (locadora, administradora) com percentuais e valores mínimos garantidos individuais.
 
@@ -795,6 +842,12 @@ O sistema foi projetado para receber novas unidades apenas com adição de entra
 - Exportação do histórico de parâmetros para CSV/Excel
 - Backup automático do `db.sqlite` antes de cada competência
 
+#### Memórias de Cálculo — situação atual
+
+As Memórias de Cálculo formais — documentos contratuais que registram entradas e saídas esperadas para cada unidade — **não estão versionadas neste repositório** e não fazem parte do código-fonte ou da documentação técnica do sistema. São documentos externos ao repositório, mantidos fora do controle de versão.
+
+Qualquer alteração futura em regra de cálculo que dependa de validação contratual deve ser confrontada com a respectiva Memória de Cálculo externa antes de ser considerada correta.
+
 ### 10.6 Autenticação e Multi-usuário
 
 - Login com perfis: `operador` (edita e calcula), `revisor` (aprova), `admin` (parametriza)
@@ -803,4 +856,4 @@ O sistema foi projetado para receber novas unidades apenas com adição de entra
 
 ---
 
-*Documento gerado em julho/2026. Para dúvidas sobre a arquitetura, consultar o histórico do projeto ou contatar o time de desenvolvimento.*
+*Documento gerado em julho/2026. Mapeamento de unidades atualizado em 18/08/2026 para refletir a configuração operacional de `data/units.yaml` no lançamento. Para dúvidas sobre a arquitetura, consultar o histórico do projeto ou contatar o time de desenvolvimento.*
