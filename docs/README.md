@@ -95,7 +95,7 @@ A configuração estrutural de cada unidade (tipo de cálculo, layout do relató
 | Container | Docker (python:3.14-slim) | — |
 | Deploy | Render (Starter, Persistent Disk) | — |
 
-> Padrão tecnológico e estratégia de migração: [`docs/PADRAO_TECNOLOGICO_VALANDRO.md`](docs/PADRAO_TECNOLOGICO_VALANDRO.md).
+> Padrão tecnológico Valandro: fonte oficial em [`valandro-gestao/plataforma-valandro`](https://github.com/valandro-gestao/plataforma-valandro) — [`docs/PADRAO_TECNOLOGICO_VALANDRO.md`](docs/PADRAO_TECNOLOGICO_VALANDRO.md) é apenas um ponteiro local.
 
 ---
 
@@ -228,7 +228,7 @@ Os documentos estão organizados na ordem recomendada de leitura para quem está
 | 2 | [`docs/ROADMAP.md`](docs/ROADMAP.md) | Estratégia de evolução do produto por versão, com objetivo e valor entregue |
 | 3 | [`docs/ARQUITETURA.md`](docs/ARQUITETURA.md) | Referência técnica completa: calculadoras, fluxo de parâmetros, banco de dados, decisões de arquitetura |
 | 4 | [`docs/BANCO_DE_DADOS.md`](docs/BANCO_DE_DADOS.md) | Seed vs. banco operacional, DATA_DIR, ciclo de vida por cenário |
-| 5 | [`docs/PADRAO_TECNOLOGICO_VALANDRO.md`](docs/PADRAO_TECNOLOGICO_VALANDRO.md) | Stack oficial Valandro e princípios que guiam as decisões técnicas |
+| 5 | [`docs/PADRAO_TECNOLOGICO_VALANDRO.md`](docs/PADRAO_TECNOLOGICO_VALANDRO.md) | Ponteiro para a fonte oficial do padrão tecnológico, mantida em `valandro-gestao/plataforma-valandro` |
 | 6 | [`docs/CHANGELOG.md`](CHANGELOG.md) | Histórico detalhado de alterações por versão |
 | 7 | [`docs/03_DESIGN_LANGUAGE.md`](03_DESIGN_LANGUAGE.md) | Identidade visual, tokens CSS, tipografia, regras de UI |
 
