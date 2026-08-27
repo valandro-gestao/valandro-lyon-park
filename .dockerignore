@@ -39,8 +39,11 @@ __pycache__/
 # Documentação técnica — sem dependência de código (verificado)
 docs/
 
-# Scripts de setup pontual — não necessários em runtime
+# Scripts locais não entram na imagem por padrão
 scripts/
+
+# Exceção: executor de migrations necessário em produção
+!scripts/migrate.py
 
 # Configuração do Claude Code — específica do ambiente de desenvolvimento
 .claude/
