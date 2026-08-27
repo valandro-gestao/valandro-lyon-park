@@ -1360,51 +1360,51 @@ def _detalhe_patio(uid: str, u: dict, mes_ref: str,
     st.metric("Faturamento Total (Planilha)", _fmt(fat_importado) if fat_importado else "—")
     st.divider()
 
-    col_p, col_r = st.columns([3, 2], gap="large")
+    # Fluxo sequencial em largura total — igual às demais unidades
+    # (Parâmetros → Resultado, um abaixo do outro, sem dividir a página em
+    # colunas fixas). A memória de cálculo de cada contratante usa exatamente
+    # a mesma função e a mesma largura que qualquer outra unidade.
+    st.markdown('<p class="section-title">Parâmetros</p>', unsafe_allow_html=True)
 
-    with col_p:
-        st.markdown('<p class="section-title">Parâmetros</p>', unsafe_allow_html=True)
+    fat_val = st.session_state.get(
+        "fat_patio",
+        st.session_state.get("faturamentos", {}).get("patio", fat_importado or 0.0),
+    )
+    fat = st.number_input("Faturamento total (R$)", min_value=0.0, step=100.0,
+                           format="%.2f", value=float(fat_val), key="fat_patio")
 
-        fat_val = st.session_state.get(
-            "fat_patio",
-            st.session_state.get("faturamentos", {}).get("patio", fat_importado or 0.0),
-        )
-        fat = st.number_input("Faturamento total (R$)", min_value=0.0, step=100.0,
-                               format="%.2f", value=float(fat_val), key="fat_patio")
+    st.caption("**Outros Serviços**")
+    c1, c2, c3 = st.columns(3)
+    midia = c1.number_input("Mídias", min_value=0.0, step=100.0, format="%.2f", key="fp_midia")
+    eq    = c2.number_input("Equip.", min_value=0.0, step=100.0, format="%.2f", key="fp_eq")
+    lona  = c3.number_input("Lona",   min_value=0.0, step=100.0, format="%.2f", key="fp_lona")
 
-        st.caption("**Outros Serviços**")
-        c1, c2, c3 = st.columns(3)
-        midia = c1.number_input("Mídias", min_value=0.0, step=100.0, format="%.2f", key="fp_midia")
-        eq    = c2.number_input("Equip.", min_value=0.0, step=100.0, format="%.2f", key="fp_eq")
-        lona  = c3.number_input("Lona",   min_value=0.0, step=100.0, format="%.2f", key="fp_lona")
+    st.caption("**Carregadores**")
+    c1, c2, c3, c4 = st.columns(4)
+    rec_car   = c1.number_input("Receita",    min_value=0.0, step=100.0, format="%.2f", key="fp_rec_car")
+    en        = c2.number_input("Energia",    min_value=0.0, step=10.0,  format="%.2f", key="fp_energia")
+    inv_car   = c3.number_input("Investim.",  min_value=0.0, step=100.0, format="%.2f", key="fp_inv_car")
+    saldo_car = c4.number_input("Saldo ant.", step=100.0, format="%.2f",               key="fp_saldo_car")
 
-        st.caption("**Carregadores**")
-        c1, c2, c3, c4 = st.columns(4)
-        rec_car   = c1.number_input("Receita",    min_value=0.0, step=100.0, format="%.2f", key="fp_rec_car")
-        en        = c2.number_input("Energia",    min_value=0.0, step=10.0,  format="%.2f", key="fp_energia")
-        inv_car   = c3.number_input("Investim.",  min_value=0.0, step=100.0, format="%.2f", key="fp_inv_car")
-        saldo_car = c4.number_input("Saldo ant.", step=100.0, format="%.2f",               key="fp_saldo_car")
-
-        st.caption("**Custos Variáveis**")
-        c1, c2 = st.columns(2)
-        with c1:
-            st.caption("REAL")
-            cond_real = st.number_input("Condomínio", min_value=0.0, step=10.0, format="%.2f", key="fp_cond_r")
-        with c2:
-            st.caption("MAIOJAMA")
-            cond_mj = st.number_input("Condomínio", min_value=0.0, step=10.0, format="%.2f", key="fp_cond_m")
-            iptu_mj = st.number_input("IPTU",       min_value=0.0, step=10.0, format="%.2f", key="fp_iptu_m")
+    st.caption("**Custos Variáveis**")
+    c1, c2 = st.columns(2)
+    with c1:
+        st.caption("REAL")
+        cond_real = st.number_input("Condomínio", min_value=0.0, step=10.0, format="%.2f", key="fp_cond_r")
+    with c2:
+        st.caption("MAIOJAMA")
+        cond_mj = st.number_input("Condomínio", min_value=0.0, step=10.0, format="%.2f", key="fp_cond_m")
+        iptu_mj = st.number_input("IPTU",       min_value=0.0, step=10.0, format="%.2f", key="fp_iptu_m")
 
     # Rascunho de trabalho do Pátio — mesmo mecanismo das unidades simples.
     _salvar_rascunho("patio", mes_ref, _CHAVES_PATIO)
 
-    with col_r:
-        st.markdown('<p class="section-title">Resultado</p>', unsafe_allow_html=True)
-        r = resultados.get("patio")
-        if r is None:
-            st.info("Preencha os dados e clique em **Calcular**.")
-        elif isinstance(r, ResultadoPatio):
-            _mostrar_resultado_patio(r)
+    st.markdown('<p class="section-title">Resultado</p>', unsafe_allow_html=True)
+    r = resultados.get("patio")
+    if r is None:
+        st.info("Preencha os dados e clique em **Calcular**.")
+    elif isinstance(r, ResultadoPatio):
+        _mostrar_resultado_patio(r)
 
     st.divider()
 

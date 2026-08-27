@@ -1,0 +1,5851 @@
+{
+  "a_schneider": [
+    {
+      "aluguel_calculado": 13825.91,
+      "faturamento": 30024.39,
+      "mes_referencia": "2023-08",
+      "resultado": 13825.91
+    },
+    {
+      "aluguel_calculado": 15066.18,
+      "faturamento": 31470.76,
+      "mes_referencia": "2023-09",
+      "resultado": 15066.18
+    },
+    {
+      "aluguel_calculado": 21203.1,
+      "faturamento": 38627.52,
+      "mes_referencia": "2023-10",
+      "resultado": 21203.1
+    },
+    {
+      "aluguel_calculado": 11086.2,
+      "faturamento": 37407.27,
+      "mes_referencia": "2023-11",
+      "resultado": 20156.73
+    },
+    {
+      "aluguel_calculado": 9535.42,
+      "faturamento": 34119.1,
+      "mes_referencia": "2023-12",
+      "resultado": 17337.13
+    },
+    {
+      "aluguel_calculado": 7913.93,
+      "faturamento": 30681.01,
+      "mes_referencia": "2024-01",
+      "resultado": 14388.97
+    },
+    {
+      "aluguel_calculado": 7340.91,
+      "faturamento": 29466.02,
+      "mes_referencia": "2024-02",
+      "resultado": 13347.11
+    },
+    {
+      "aluguel_calculado": 12123.3,
+      "faturamento": 39606.25,
+      "mes_referencia": "2024-03",
+      "resultado": 22042.36
+    },
+    {
+      "aluguel_calculado": 14655.66,
+      "faturamento": 44975.68,
+      "mes_referencia": "2024-04",
+      "resultado": 26646.65
+    },
+    {
+      "aluguel_calculado": 6318.32,
+      "faturamento": 27297.8,
+      "mes_referencia": "2024-05",
+      "resultado": 11487.86
+    },
+    {
+      "aluguel_calculado": 11889.89,
+      "faturamento": 39111.34,
+      "mes_referencia": "2024-06",
+      "resultado": 21617.97
+    },
+    {
+      "aluguel_calculado": 14505.85,
+      "faturamento": 45246.05,
+      "mes_referencia": "2024-07",
+      "resultado": 26374.28
+    },
+    {
+      "aluguel_calculado": 14182.14,
+      "faturamento": 44559.66,
+      "mes_referencia": "2024-08",
+      "resultado": 25785.71
+    },
+    {
+      "aluguel_calculado": 12258.06,
+      "faturamento": 40480.0,
+      "mes_referencia": "2024-09",
+      "resultado": 22287.39
+    },
+    {
+      "aluguel_calculado": 14746.27,
+      "faturamento": 45755.81,
+      "mes_referencia": "2024-10",
+      "resultado": 26811.4
+    },
+    {
+      "aluguel_calculado": 13839.9,
+      "faturamento": 43834.02,
+      "mes_referencia": "2024-11",
+      "resultado": 25163.46
+    },
+    {
+      "aluguel_calculado": 12399.08,
+      "faturamento": 40779.0,
+      "mes_referencia": "2024-12",
+      "resultado": 22543.78
+    },
+    {
+      "aluguel_calculado": 9232.09,
+      "faturamento": 34063.94,
+      "mes_referencia": "2025-01",
+      "resultado": 16785.62
+    },
+    {
+      "aluguel_calculado": 9407.06,
+      "faturamento": 34434.93,
+      "mes_referencia": "2025-02",
+      "resultado": 17103.74
+    },
+    {
+      "aluguel_calculado": 11759.84,
+      "faturamento": 39423.6,
+      "mes_referencia": "2025-03",
+      "resultado": 21381.53
+    },
+    {
+      "aluguel_calculado": 12971.47,
+      "faturamento": 41992.66,
+      "mes_referencia": "2025-04",
+      "resultado": 23584.5
+    },
+    {
+      "aluguel_calculado": 13896.49,
+      "faturamento": 43954.0,
+      "mes_referencia": "2025-05",
+      "resultado": 25266.35
+    },
+    {
+      "aluguel_calculado": 13736.29,
+      "faturamento": 43614.33,
+      "mes_referencia": "2025-06",
+      "resultado": 24975.08
+    },
+    {
+      "aluguel_calculado": 14582.58,
+      "faturamento": 46060.73,
+      "mes_referencia": "2025-07",
+      "resultado": 26513.79
+    },
+    {
+      "aluguel_calculado": 14464.34,
+      "faturamento": 45810.02,
+      "mes_referencia": "2025-08",
+      "resultado": 26298.8
+    },
+    {
+      "aluguel_calculado": 16603.68,
+      "faturamento": 50346.13,
+      "mes_referencia": "2025-09",
+      "resultado": 30188.52
+    },
+    {
+      "aluguel_calculado": 17869.66,
+      "faturamento": 53030.41,
+      "mes_referencia": "2025-10",
+      "resultado": 32490.29
+    },
+    {
+      "aluguel_calculado": 15215.43,
+      "faturamento": 47402.57,
+      "mes_referencia": "2025-11",
+      "resultado": 27664.41
+    },
+    {
+      "aluguel_calculado": 13447.36,
+      "faturamento": 43653.69,
+      "mes_referencia": "2025-12",
+      "resultado": 24449.75
+    },
+    {
+      "aluguel_calculado": 11159.65,
+      "faturamento": 38802.98,
+      "mes_referencia": "2026-01",
+      "resultado": 20290.27
+    },
+    {
+      "aluguel_calculado": 7560.41,
+      "faturamento": 31171.41,
+      "mes_referencia": "2026-02",
+      "resultado": 13746.19
+    },
+    {
+      "aluguel_calculado": 17224.95,
+      "faturamento": 51663.42,
+      "mes_referencia": "2026-03",
+      "resultado": 31318.09
+    },
+    {
+      "aluguel_calculado": 16455.57,
+      "faturamento": 50032.07,
+      "mes_referencia": "2026-04",
+      "resultado": 29919.21
+    }
+  ],
+  "anitta_mall": [
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 7586.64,
+      "mes_referencia": "2022-01",
+      "resultado": -6584.46
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 9504.29,
+      "mes_referencia": "2022-02",
+      "resultado": -4940.07
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 13948.17,
+      "mes_referencia": "2022-03",
+      "resultado": -1129.44
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 12722.0,
+      "mes_referencia": "2022-04",
+      "resultado": -2180.89
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 14250.27,
+      "mes_referencia": "2022-05",
+      "resultado": -870.39
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 13825.0,
+      "mes_referencia": "2022-06",
+      "resultado": -1235.06
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 11884.42,
+      "mes_referencia": "2022-07",
+      "resultado": -2899.11
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 8749.45,
+      "mes_referencia": "2022-08",
+      "resultado": -5017.35
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 15129.23,
+      "mes_referencia": "2022-09",
+      "resultado": 453.31
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 21249.63,
+      "mes_referencia": "2022-10",
+      "resultado": 5701.56
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 16701.0,
+      "mes_referencia": "2022-11",
+      "resultado": 1801.11
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 17233.9,
+      "mes_referencia": "2022-12",
+      "resultado": 2258.07
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 15053.16,
+      "mes_referencia": "2023-01",
+      "resultado": -346.84
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 15773.29,
+      "mes_referencia": "2023-02",
+      "resultado": 270.68
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 23854.0,
+      "mes_referencia": "2023-03",
+      "resultado": 7199.89
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 20898.93,
+      "mes_referencia": "2023-04",
+      "resultado": 4665.91
+    },
+    {
+      "aluguel_calculado": 1983.83,
+      "faturamento": 24568.62,
+      "mes_referencia": "2023-05",
+      "resultado": 7812.67
+    },
+    {
+      "aluguel_calculado": 2194.49,
+      "faturamento": 21855.57,
+      "mes_referencia": "2023-06",
+      "resultado": 5486.23
+    },
+    {
+      "aluguel_calculado": 2994.54,
+      "faturamento": 24188.06,
+      "mes_referencia": "2023-07",
+      "resultado": 7486.34
+    },
+    {
+      "aluguel_calculado": 4011.5,
+      "faturamento": 25905.29,
+      "mes_referencia": "2023-08",
+      "resultado": 8958.87
+    },
+    {
+      "aluguel_calculado": 2876.02,
+      "faturamento": 23842.52,
+      "mes_referencia": "2023-09",
+      "resultado": 7190.04
+    },
+    {
+      "aluguel_calculado": 3046.7,
+      "faturamento": 24340.13,
+      "mes_referencia": "2023-10",
+      "resultado": 7616.74
+    },
+    {
+      "aluguel_calculado": 3486.9,
+      "faturamento": 25349.13,
+      "mes_referencia": "2023-11",
+      "resultado": 8481.96
+    },
+    {
+      "aluguel_calculado": 1560.09,
+      "faturamento": 20006.0,
+      "mes_referencia": "2023-12",
+      "resultado": 3900.23
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 19224.0,
+      "mes_referencia": "2024-01",
+      "resultado": -1690.34
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 18377.56,
+      "mes_referencia": "2024-02",
+      "resultado": 1483.84
+    },
+    {
+      "aluguel_calculado": 1915.2,
+      "faturamento": 22471.64,
+      "mes_referencia": "2024-03",
+      "resultado": 4994.51
+    },
+    {
+      "aluguel_calculado": 2021.6,
+      "faturamento": 22541.0,
+      "mes_referencia": "2024-04",
+      "resultado": 5053.99
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 13988.67,
+      "mes_referencia": "2024-05",
+      "resultado": -2279.64
+    },
+    {
+      "aluguel_calculado": 769.59,
+      "faturamento": 21549.3,
+      "mes_referencia": "2024-06",
+      "resultado": 4203.6
+    },
+    {
+      "aluguel_calculado": 2881.18,
+      "faturamento": 25047.09,
+      "mes_referencia": "2024-07",
+      "resultado": 7202.96
+    },
+    {
+      "aluguel_calculado": 3103.53,
+      "faturamento": 25695.33,
+      "mes_referencia": "2024-08",
+      "resultado": 7758.83
+    },
+    {
+      "aluguel_calculado": 2761.56,
+      "faturamento": 24698.33,
+      "mes_referencia": "2024-09",
+      "resultado": 6903.9
+    },
+    {
+      "aluguel_calculado": 4451.26,
+      "faturamento": 27561.01,
+      "mes_referencia": "2024-10",
+      "resultado": 9358.65
+    },
+    {
+      "aluguel_calculado": 3224.86,
+      "faturamento": 26049.06,
+      "mes_referencia": "2024-11",
+      "resultado": 8062.15
+    },
+    {
+      "aluguel_calculado": 1424.7,
+      "faturamento": 20800.77,
+      "mes_referencia": "2024-12",
+      "resultado": 3561.74
+    },
+    {
+      "aluguel_calculado": 791.99,
+      "faturamento": 19760.19,
+      "mes_referencia": "2025-01",
+      "resultado": 1979.97
+    },
+    {
+      "aluguel_calculado": 1206.32,
+      "faturamento": 20968.15,
+      "mes_referencia": "2025-02",
+      "resultado": 3015.8
+    },
+    {
+      "aluguel_calculado": 1613.66,
+      "faturamento": 22155.74,
+      "mes_referencia": "2025-03",
+      "resultado": 4034.16
+    },
+    {
+      "aluguel_calculado": 2171.47,
+      "faturamento": 23782.0,
+      "mes_referencia": "2025-04",
+      "resultado": 5428.68
+    },
+    {
+      "aluguel_calculado": 1621.98,
+      "faturamento": 22180.0,
+      "mes_referencia": "2025-05",
+      "resultado": 4054.96
+    },
+    {
+      "aluguel_calculado": 2451.08,
+      "faturamento": 24597.18,
+      "mes_referencia": "2025-06",
+      "resultado": 6127.69
+    },
+    {
+      "aluguel_calculado": 5410.82,
+      "faturamento": 29382.35,
+      "mes_referencia": "2025-07",
+      "resultado": 10230.98
+    },
+    {
+      "aluguel_calculado": 7934.94,
+      "faturamento": 32058.33,
+      "mes_referencia": "2025-08",
+      "resultado": 12525.63
+    },
+    {
+      "aluguel_calculado": 9393.96,
+      "faturamento": 33605.13,
+      "mes_referencia": "2025-09",
+      "resultado": 13852.01
+    },
+    {
+      "aluguel_calculado": 9842.67,
+      "faturamento": 34080.84,
+      "mes_referencia": "2025-10",
+      "resultado": 14259.93
+    },
+    {
+      "aluguel_calculado": 10080.49,
+      "faturamento": 34332.96,
+      "mes_referencia": "2025-11",
+      "resultado": 14476.12
+    },
+    {
+      "aluguel_calculado": 6555.76,
+      "faturamento": 30596.17,
+      "mes_referencia": "2025-12",
+      "resultado": 11271.83
+    },
+    {
+      "aluguel_calculado": 3483.64,
+      "faturamento": 28082.64,
+      "mes_referencia": "2026-01",
+      "resultado": 8478.99
+    },
+    {
+      "aluguel_calculado": 2692.08,
+      "faturamento": 26043.24,
+      "mes_referencia": "2026-02",
+      "resultado": 6730.21
+    },
+    {
+      "aluguel_calculado": 7798.05,
+      "faturamento": 35357.95,
+      "mes_referencia": "2026-03",
+      "resultado": 14717.57
+    },
+    {
+      "aluguel_calculado": 5696.86,
+      "faturamento": 31857.43,
+      "mes_referencia": "2026-04",
+      "resultado": 11715.88
+    }
+  ],
+  "axis": [
+    {
+      "aluguel_calculado": 684.25,
+      "faturamento": 19477.5,
+      "mes_referencia": "2021-01",
+      "resultado": 977.5
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 17239.8,
+      "mes_referencia": "2021-02",
+      "resultado": -1260.2
+    },
+    {
+      "aluguel_calculado": 891.02,
+      "faturamento": 19772.89,
+      "mes_referencia": "2021-03",
+      "resultado": 1272.89
+    },
+    {
+      "aluguel_calculado": 1218.7,
+      "faturamento": 20241.0,
+      "mes_referencia": "2021-04",
+      "resultado": 1741.0
+    },
+    {
+      "aluguel_calculado": 4436.19,
+      "faturamento": 24837.42,
+      "mes_referencia": "2021-05",
+      "resultado": 6337.42
+    },
+    {
+      "aluguel_calculado": 4465.18,
+      "faturamento": 24878.83,
+      "mes_referencia": "2021-06",
+      "resultado": 6378.83
+    },
+    {
+      "aluguel_calculado": 5543.53,
+      "faturamento": 26419.33,
+      "mes_referencia": "2021-07",
+      "resultado": 7919.33
+    },
+    {
+      "aluguel_calculado": 8340.57,
+      "faturamento": 30415.1,
+      "mes_referencia": "2021-08",
+      "resultado": 11915.1
+    },
+    {
+      "aluguel_calculado": 4425.63,
+      "faturamento": 27822.33,
+      "mes_referencia": "2021-09",
+      "resultado": 6322.33
+    },
+    {
+      "aluguel_calculado": 4478.42,
+      "faturamento": 29397.74,
+      "mes_referencia": "2021-10",
+      "resultado": 6397.74
+    },
+    {
+      "aluguel_calculado": 4712.87,
+      "faturamento": 28232.67,
+      "mes_referencia": "2021-11",
+      "resultado": 6732.67
+    },
+    {
+      "aluguel_calculado": 5307.13,
+      "faturamento": 29081.61,
+      "mes_referencia": "2021-12",
+      "resultado": 7581.61
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 21151.81,
+      "mes_referencia": "2022-01",
+      "resultado": -348.19
+    },
+    {
+      "aluguel_calculado": 234.99,
+      "faturamento": 21835.7,
+      "mes_referencia": "2022-02",
+      "resultado": 335.7
+    },
+    {
+      "aluguel_calculado": 9819.45,
+      "faturamento": 35527.78,
+      "mes_referencia": "2022-03",
+      "resultado": 14027.78
+    },
+    {
+      "aluguel_calculado": 6070.4,
+      "faturamento": 30172.0,
+      "mes_referencia": "2022-04",
+      "resultado": 8672.0
+    },
+    {
+      "aluguel_calculado": 8270.02,
+      "faturamento": 33314.31,
+      "mes_referencia": "2022-05",
+      "resultado": 11814.31
+    },
+    {
+      "aluguel_calculado": 7302.28,
+      "faturamento": 31931.83,
+      "mes_referencia": "2022-06",
+      "resultado": 10431.83
+    },
+    {
+      "aluguel_calculado": 4537.04,
+      "faturamento": 27981.48,
+      "mes_referencia": "2022-07",
+      "resultado": 6481.48
+    },
+    {
+      "aluguel_calculado": 9205.34,
+      "faturamento": 34650.49,
+      "mes_referencia": "2022-08",
+      "resultado": 13150.49
+    },
+    {
+      "aluguel_calculado": 8012.21,
+      "faturamento": 32946.01,
+      "mes_referencia": "2022-09",
+      "resultado": 11446.01
+    },
+    {
+      "aluguel_calculado": 7209.22,
+      "faturamento": 31798.88,
+      "mes_referencia": "2022-10",
+      "resultado": 10298.88
+    },
+    {
+      "aluguel_calculado": 4043.78,
+      "faturamento": 27276.83,
+      "mes_referencia": "2022-11",
+      "resultado": 5776.83
+    },
+    {
+      "aluguel_calculado": 5395.14,
+      "faturamento": 29207.35,
+      "mes_referencia": "2022-12",
+      "resultado": 7707.35
+    },
+    {
+      "aluguel_calculado": 4724.34,
+      "faturamento": 28249.06,
+      "mes_referencia": "2023-01",
+      "resultado": 6749.06
+    },
+    {
+      "aluguel_calculado": 2941.51,
+      "faturamento": 25702.16,
+      "mes_referencia": "2023-02",
+      "resultado": 4202.16
+    },
+    {
+      "aluguel_calculado": 15264.61,
+      "faturamento": 43306.58,
+      "mes_referencia": "2023-03",
+      "resultado": 21806.58
+    },
+    {
+      "aluguel_calculado": 9485.04,
+      "faturamento": 35050.06,
+      "mes_referencia": "2023-04",
+      "resultado": 13550.06
+    },
+    {
+      "aluguel_calculado": 14642.79,
+      "faturamento": 42418.27,
+      "mes_referencia": "2023-05",
+      "resultado": 20918.27
+    },
+    {
+      "aluguel_calculado": 11899.09,
+      "faturamento": 38498.7,
+      "mes_referencia": "2023-06",
+      "resultado": 16998.7
+    },
+    {
+      "aluguel_calculado": 12164.12,
+      "faturamento": 38877.31,
+      "mes_referencia": "2023-07",
+      "resultado": 17377.31
+    },
+    {
+      "aluguel_calculado": 15426.05,
+      "faturamento": 43537.21,
+      "mes_referencia": "2023-08",
+      "resultado": 22037.21
+    },
+    {
+      "aluguel_calculado": 10599.13,
+      "faturamento": 36641.62,
+      "mes_referencia": "2023-09",
+      "resultado": 15141.62
+    },
+    {
+      "aluguel_calculado": 12989.01,
+      "faturamento": 40055.73,
+      "mes_referencia": "2023-10",
+      "resultado": 18555.73
+    },
+    {
+      "aluguel_calculado": 11294.38,
+      "faturamento": 37634.83,
+      "mes_referencia": "2023-11",
+      "resultado": 16134.83
+    },
+    {
+      "aluguel_calculado": 9119.63,
+      "faturamento": 34528.04,
+      "mes_referencia": "2023-12",
+      "resultado": 13028.04
+    },
+    {
+      "aluguel_calculado": 8941.09,
+      "faturamento": 34272.99,
+      "mes_referencia": "2024-01",
+      "resultado": 12772.99
+    },
+    {
+      "aluguel_calculado": 7126.35,
+      "faturamento": 31680.5,
+      "mes_referencia": "2024-02",
+      "resultado": 10180.5
+    },
+    {
+      "aluguel_calculado": 12775.53,
+      "faturamento": 39750.76,
+      "mes_referencia": "2024-03",
+      "resultado": 18250.76
+    },
+    {
+      "aluguel_calculado": 20450.64,
+      "faturamento": 50715.2,
+      "mes_referencia": "2024-04",
+      "resultado": 29215.2
+    },
+    {
+      "aluguel_calculado": 8167.21,
+      "faturamento": 33167.44,
+      "mes_referencia": "2024-05",
+      "resultado": 11667.44
+    },
+    {
+      "aluguel_calculado": 15781.12,
+      "faturamento": 44044.46,
+      "mes_referencia": "2024-06",
+      "resultado": 22544.46
+    },
+    {
+      "aluguel_calculado": 18754.18,
+      "faturamento": 48291.69,
+      "mes_referencia": "2024-07",
+      "resultado": 26791.69
+    },
+    {
+      "aluguel_calculado": 25131.06,
+      "faturamento": 57401.52,
+      "mes_referencia": "2024-08",
+      "resultado": 35901.52
+    },
+    {
+      "aluguel_calculado": 21455.67,
+      "faturamento": 52150.96,
+      "mes_referencia": "2024-09",
+      "resultado": 30650.96
+    },
+    {
+      "aluguel_calculado": 25699.46,
+      "faturamento": 58213.51,
+      "mes_referencia": "2024-10",
+      "resultado": 36713.51
+    },
+    {
+      "aluguel_calculado": 19169.63,
+      "faturamento": 48885.19,
+      "mes_referencia": "2024-11",
+      "resultado": 27385.19
+    },
+    {
+      "aluguel_calculado": 14862.85,
+      "faturamento": 42732.65,
+      "mes_referencia": "2024-12",
+      "resultado": 21232.65
+    },
+    {
+      "aluguel_calculado": 12766.63,
+      "faturamento": 39738.04,
+      "mes_referencia": "2025-01",
+      "resultado": 18238.04
+    },
+    {
+      "aluguel_calculado": 14594.48,
+      "faturamento": 42349.26,
+      "mes_referencia": "2025-02",
+      "resultado": 20849.26
+    },
+    {
+      "aluguel_calculado": 20633.47,
+      "faturamento": 50976.38,
+      "mes_referencia": "2025-03",
+      "resultado": 29476.38
+    },
+    {
+      "aluguel_calculado": 24935.52,
+      "faturamento": 57122.17,
+      "mes_referencia": "2025-04",
+      "resultado": 35622.17
+    },
+    {
+      "aluguel_calculado": 23515.32,
+      "faturamento": 55093.32,
+      "mes_referencia": "2025-05",
+      "resultado": 33593.32
+    },
+    {
+      "aluguel_calculado": 19652.26,
+      "faturamento": 49574.66,
+      "mes_referencia": "2025-06",
+      "resultado": 28074.66
+    },
+    {
+      "aluguel_calculado": 26368.94,
+      "faturamento": 59169.91,
+      "mes_referencia": "2025-07",
+      "resultado": 37669.91
+    },
+    {
+      "aluguel_calculado": 20570.47,
+      "faturamento": 50886.39,
+      "mes_referencia": "2025-08",
+      "resultado": 29386.39
+    },
+    {
+      "aluguel_calculado": 24345.41,
+      "faturamento": 56279.16,
+      "mes_referencia": "2025-09",
+      "resultado": 34779.16
+    },
+    {
+      "aluguel_calculado": 25222.91,
+      "faturamento": 57532.73,
+      "mes_referencia": "2025-10",
+      "resultado": 36032.73
+    },
+    {
+      "aluguel_calculado": 17678.86,
+      "faturamento": 46755.52,
+      "mes_referencia": "2025-11",
+      "resultado": 25255.52
+    },
+    {
+      "aluguel_calculado": 17501.39,
+      "faturamento": 46501.98,
+      "mes_referencia": "2025-12",
+      "resultado": 25001.98
+    },
+    {
+      "aluguel_calculado": 16876.24,
+      "faturamento": 45608.91,
+      "mes_referencia": "2026-01",
+      "resultado": 24108.91
+    },
+    {
+      "aluguel_calculado": 11353.8,
+      "faturamento": 37719.71,
+      "mes_referencia": "2026-02",
+      "resultado": 16219.71
+    },
+    {
+      "aluguel_calculado": 22454.39,
+      "faturamento": 53577.7,
+      "mes_referencia": "2026-03",
+      "resultado": 32077.7
+    },
+    {
+      "aluguel_calculado": 22721.01,
+      "faturamento": 53958.59,
+      "mes_referencia": "2026-04",
+      "resultado": 32458.59
+    }
+  ],
+  "dom_pedro": [
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 963.0,
+      "mes_referencia": "2021-01",
+      "resultado": -9144.26
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 1423.43,
+      "mes_referencia": "2021-02",
+      "resultado": -8759.02
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 694.0,
+      "mes_referencia": "2021-04",
+      "resultado": -9369.33
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 780.67,
+      "mes_referencia": "2021-05",
+      "resultado": -9296.81
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 1102.0,
+      "mes_referencia": "2021-06",
+      "resultado": -9027.96
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 1363.16,
+      "mes_referencia": "2021-07",
+      "resultado": -8809.44
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 2417.0,
+      "mes_referencia": "2021-08",
+      "resultado": -7927.7
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 1438.5,
+      "mes_referencia": "2021-09",
+      "resultado": -8746.41
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 2029.48,
+      "mes_referencia": "2021-10",
+      "resultado": -8251.93
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 3276.0,
+      "mes_referencia": "2021-11",
+      "resultado": -7208.97
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 2812.0,
+      "mes_referencia": "2021-12",
+      "resultado": -7597.2
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 3235.0,
+      "mes_referencia": "2022-01",
+      "resultado": -7243.28
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 2574.0,
+      "mes_referencia": "2022-02",
+      "resultado": -7796.33
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 3013.5,
+      "mes_referencia": "2022-03",
+      "resultado": -7428.6
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 4126.71,
+      "mes_referencia": "2022-04",
+      "resultado": -6497.18
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 4237.0,
+      "mes_referencia": "2022-05",
+      "resultado": -6404.9
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 3440.0,
+      "mes_referencia": "2022-06",
+      "resultado": -7071.75
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 7825.0,
+      "mes_referencia": "2022-07",
+      "resultado": -3402.82
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 7881.5,
+      "mes_referencia": "2022-08",
+      "resultado": -3355.55
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 7199.0,
+      "mes_referencia": "2022-09",
+      "resultado": -3926.6
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 6636.5,
+      "mes_referencia": "2022-10",
+      "resultado": -4397.24
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 5755.16,
+      "mes_referencia": "2022-11",
+      "resultado": -5134.66
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 7186.0,
+      "mes_referencia": "2022-12",
+      "resultado": -3937.47
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 6129.17,
+      "mes_referencia": "2023-01",
+      "resultado": -4821.72
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 5343.0,
+      "mes_referencia": "2023-02",
+      "resultado": -5479.51
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 8002.0,
+      "mes_referencia": "2023-03",
+      "resultado": -3254.73
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 6107.0,
+      "mes_referencia": "2023-04",
+      "resultado": -4840.27
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 8293.0,
+      "mes_referencia": "2023-05",
+      "resultado": -3011.25
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 11732.0,
+      "mes_referencia": "2023-06",
+      "resultado": -133.84
+    },
+    {
+      "aluguel_calculado": 734.86,
+      "faturamento": 13063.0,
+      "mes_referencia": "2023-07",
+      "resultado": 979.81
+    },
+    {
+      "aluguel_calculado": 1031.68,
+      "faturamento": 13536.0,
+      "mes_referencia": "2023-08",
+      "resultado": 1375.57
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 11462.0,
+      "mes_referencia": "2023-09",
+      "resultado": -359.74
+    },
+    {
+      "aluguel_calculado": 571.65,
+      "faturamento": 12802.91,
+      "mes_referencia": "2023-10",
+      "resultado": 762.19
+    },
+    {
+      "aluguel_calculado": 850.32,
+      "faturamento": 13247.0,
+      "mes_referencia": "2023-11",
+      "resultado": 1133.76
+    },
+    {
+      "aluguel_calculado": 423.61,
+      "faturamento": 12567.01,
+      "mes_referencia": "2023-12",
+      "resultado": 564.82
+    },
+    {
+      "aluguel_calculado": 416.22,
+      "faturamento": 12555.23,
+      "mes_referencia": "2024-01",
+      "resultado": 554.96
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 7665.72,
+      "mes_referencia": "2024-02",
+      "resultado": -3536.09
+    },
+    {
+      "aluguel_calculado": 2433.91,
+      "faturamento": 15770.55,
+      "mes_referencia": "2024-03",
+      "resultado": 3245.22
+    },
+    {
+      "aluguel_calculado": 1767.77,
+      "faturamento": 14709.0,
+      "mes_referencia": "2024-04",
+      "resultado": 2357.02
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 10292.67,
+      "mes_referencia": "2024-05",
+      "resultado": -1338.12
+    },
+    {
+      "aluguel_calculado": 381.56,
+      "faturamento": 12500.0,
+      "mes_referencia": "2024-06",
+      "resultado": 508.75
+    },
+    {
+      "aluguel_calculado": 2572.6,
+      "faturamento": 15991.55,
+      "mes_referencia": "2024-07",
+      "resultado": 3430.13
+    },
+    {
+      "aluguel_calculado": 1496.67,
+      "faturamento": 14277.0,
+      "mes_referencia": "2024-08",
+      "resultado": 1995.57
+    },
+    {
+      "aluguel_calculado": 1172.24,
+      "faturamento": 13760.0,
+      "mes_referencia": "2024-09",
+      "resultado": 1562.99
+    },
+    {
+      "aluguel_calculado": 2202.01,
+      "faturamento": 15401.0,
+      "mes_referencia": "2024-10",
+      "resultado": 2936.02
+    },
+    {
+      "aluguel_calculado": 426.12,
+      "faturamento": 12571.0,
+      "mes_referencia": "2024-11",
+      "resultado": 568.16
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 11535.0,
+      "mes_referencia": "2024-12",
+      "resultado": -298.67
+    },
+    {
+      "aluguel_calculado": 1282.21,
+      "faturamento": 13935.23,
+      "mes_referencia": "2025-01",
+      "resultado": 1709.61
+    },
+    {
+      "aluguel_calculado": 1480.36,
+      "faturamento": 14251.0,
+      "mes_referencia": "2025-02",
+      "resultado": 1973.81
+    },
+    {
+      "aluguel_calculado": 460.49,
+      "faturamento": 13646.11,
+      "mes_referencia": "2025-03",
+      "resultado": 613.99
+    },
+    {
+      "aluguel_calculado": 1291.89,
+      "faturamento": 14971.0,
+      "mes_referencia": "2025-04",
+      "resultado": 1722.53
+    },
+    {
+      "aluguel_calculado": 3551.63,
+      "faturamento": 18572.03,
+      "mes_referencia": "2025-05",
+      "resultado": 4735.51
+    },
+    {
+      "aluguel_calculado": 2752.57,
+      "faturamento": 17298.67,
+      "mes_referencia": "2025-06",
+      "resultado": 3670.09
+    },
+    {
+      "aluguel_calculado": 2032.03,
+      "faturamento": 16150.46,
+      "mes_referencia": "2025-07",
+      "resultado": 2709.38
+    },
+    {
+      "aluguel_calculado": 2518.03,
+      "faturamento": 16924.92,
+      "mes_referencia": "2025-08",
+      "resultado": 3357.37
+    },
+    {
+      "aluguel_calculado": 2686.39,
+      "faturamento": 17193.21,
+      "mes_referencia": "2025-09",
+      "resultado": 3581.85
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 11601.94,
+      "mes_referencia": "2025-10",
+      "resultado": -1096.37
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 10474.22,
+      "mes_referencia": "2025-11",
+      "resultado": -2039.93
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 10238.13,
+      "mes_referencia": "2025-12",
+      "resultado": -2237.47
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 10265.99,
+      "mes_referencia": "2026-01",
+      "resultado": -2214.16
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 6123.62,
+      "mes_referencia": "2026-02",
+      "resultado": -5680.08
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 10393.0,
+      "mes_referencia": "2026-03",
+      "resultado": -2107.89
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 9769.64,
+      "mes_referencia": "2026-04",
+      "resultado": -2629.45
+    }
+  ],
+  "ekos": [],
+  "fiergs": [],
+  "fk": [
+    {
+      "aluguel_calculado": 5516.01,
+      "faturamento": 14679.62,
+      "mes_referencia": "2021-01",
+      "resultado": 13790.04
+    },
+    {
+      "aluguel_calculado": 4799.94,
+      "faturamento": 12765.8,
+      "mes_referencia": "2021-02",
+      "resultado": 11999.85
+    },
+    {
+      "aluguel_calculado": 5063.08,
+      "faturamento": 13465.64,
+      "mes_referencia": "2021-03",
+      "resultado": 12657.7
+    },
+    {
+      "aluguel_calculado": 2329.91,
+      "faturamento": 14630.2,
+      "mes_referencia": "2021-04",
+      "resultado": 2912.39
+    },
+    {
+      "aluguel_calculado": 3543.37,
+      "faturamento": 16243.84,
+      "mes_referencia": "2021-05",
+      "resultado": 4429.21
+    },
+    {
+      "aluguel_calculado": 4359.95,
+      "faturamento": 17359.27,
+      "mes_referencia": "2021-06",
+      "resultado": 5449.94
+    },
+    {
+      "aluguel_calculado": 5907.44,
+      "faturamento": 19449.63,
+      "mes_referencia": "2021-07",
+      "resultado": 7384.3
+    },
+    {
+      "aluguel_calculado": 6596.91,
+      "faturamento": 20386.81,
+      "mes_referencia": "2021-08",
+      "resultado": 8246.13
+    },
+    {
+      "aluguel_calculado": 6736.31,
+      "faturamento": 20590.53,
+      "mes_referencia": "2021-09",
+      "resultado": 8420.38
+    },
+    {
+      "aluguel_calculado": 7035.71,
+      "faturamento": 20997.36,
+      "mes_referencia": "2021-10",
+      "resultado": 8794.63
+    },
+    {
+      "aluguel_calculado": 7388.39,
+      "faturamento": 21491.8,
+      "mes_referencia": "2021-11",
+      "resultado": 9235.49
+    },
+    {
+      "aluguel_calculado": 8101.56,
+      "faturamento": 22470.21,
+      "mes_referencia": "2021-12",
+      "resultado": 10126.95
+    },
+    {
+      "aluguel_calculado": 5594.56,
+      "faturamento": 19140.49,
+      "mes_referencia": "2022-01",
+      "resultado": 6993.19
+    },
+    {
+      "aluguel_calculado": 5466.99,
+      "faturamento": 18987.68,
+      "mes_referencia": "2022-02",
+      "resultado": 6833.73
+    },
+    {
+      "aluguel_calculado": 10527.13,
+      "faturamento": 25816.38,
+      "mes_referencia": "2022-03",
+      "resultado": 13158.91
+    },
+    {
+      "aluguel_calculado": 8506.66,
+      "faturamento": 23154.33,
+      "mes_referencia": "2022-04",
+      "resultado": 10633.33
+    },
+    {
+      "aluguel_calculado": 9107.64,
+      "faturamento": 23998.0,
+      "mes_referencia": "2022-05",
+      "resultado": 11384.55
+    },
+    {
+      "aluguel_calculado": 8973.84,
+      "faturamento": 23849.0,
+      "mes_referencia": "2022-06",
+      "resultado": 11217.3
+    },
+    {
+      "aluguel_calculado": 7628.94,
+      "faturamento": 22052.14,
+      "mes_referencia": "2022-07",
+      "resultado": 9536.18
+    },
+    {
+      "aluguel_calculado": 9877.18,
+      "faturamento": 25104.46,
+      "mes_referencia": "2022-08",
+      "resultado": 12346.48
+    },
+    {
+      "aluguel_calculado": 7733.28,
+      "faturamento": 22217.34,
+      "mes_referencia": "2022-09",
+      "resultado": 9666.6
+    },
+    {
+      "aluguel_calculado": 8686.29,
+      "faturamento": 24696.99,
+      "mes_referencia": "2022-10",
+      "resultado": 10857.86
+    },
+    {
+      "aluguel_calculado": 7753.21,
+      "faturamento": 23444.67,
+      "mes_referencia": "2022-11",
+      "resultado": 9691.51
+    },
+    {
+      "aluguel_calculado": 7339.51,
+      "faturamento": 22888.95,
+      "mes_referencia": "2022-12",
+      "resultado": 9174.39
+    },
+    {
+      "aluguel_calculado": 7104.55,
+      "faturamento": 22572.88,
+      "mes_referencia": "2023-01",
+      "resultado": 8880.69
+    },
+    {
+      "aluguel_calculado": 5288.28,
+      "faturamento": 20119.2,
+      "mes_referencia": "2023-02",
+      "resultado": 6610.34
+    },
+    {
+      "aluguel_calculado": 11277.54,
+      "faturamento": 28247.59,
+      "mes_referencia": "2023-03",
+      "resultado": 14096.92
+    },
+    {
+      "aluguel_calculado": 8817.82,
+      "faturamento": 24917.27,
+      "mes_referencia": "2023-04",
+      "resultado": 11022.28
+    },
+    {
+      "aluguel_calculado": 10225.27,
+      "faturamento": 26832.9,
+      "mes_referencia": "2023-05",
+      "resultado": 12781.59
+    },
+    {
+      "aluguel_calculado": 9496.78,
+      "faturamento": 25852.6,
+      "mes_referencia": "2023-06",
+      "resultado": 11870.98
+    },
+    {
+      "aluguel_calculado": 9122.36,
+      "faturamento": 25352.52,
+      "mes_referencia": "2023-07",
+      "resultado": 11402.95
+    },
+    {
+      "aluguel_calculado": 12474.61,
+      "faturamento": 29914.98,
+      "mes_referencia": "2023-08",
+      "resultado": 15593.26
+    },
+    {
+      "aluguel_calculado": 9685.76,
+      "faturamento": 26140.4,
+      "mes_referencia": "2023-09",
+      "resultado": 12107.2
+    },
+    {
+      "aluguel_calculado": 10735.91,
+      "faturamento": 27582.85,
+      "mes_referencia": "2023-10",
+      "resultado": 13419.89
+    },
+    {
+      "aluguel_calculado": 11511.4,
+      "faturamento": 29269.61,
+      "mes_referencia": "2023-11",
+      "resultado": 14389.24
+    },
+    {
+      "aluguel_calculado": 8538.09,
+      "faturamento": 25235.42,
+      "mes_referencia": "2023-12",
+      "resultado": 10672.61
+    },
+    {
+      "aluguel_calculado": 9007.16,
+      "faturamento": 25888.4,
+      "mes_referencia": "2024-01",
+      "resultado": 11258.95
+    },
+    {
+      "aluguel_calculado": 7629.74,
+      "faturamento": 24020.67,
+      "mes_referencia": "2024-02",
+      "resultado": 9537.17
+    },
+    {
+      "aluguel_calculado": 12364.86,
+      "faturamento": 30480.35,
+      "mes_referencia": "2024-03",
+      "resultado": 15456.07
+    },
+    {
+      "aluguel_calculado": 13802.58,
+      "faturamento": 32446.39,
+      "mes_referencia": "2024-04",
+      "resultado": 17253.23
+    },
+    {
+      "aluguel_calculado": 7989.69,
+      "faturamento": 24543.06,
+      "mes_referencia": "2024-05",
+      "resultado": 9987.11
+    },
+    {
+      "aluguel_calculado": 13142.82,
+      "faturamento": 31564.44,
+      "mes_referencia": "2024-06",
+      "resultado": 16428.52
+    },
+    {
+      "aluguel_calculado": 15022.01,
+      "faturamento": 34145.5,
+      "mes_referencia": "2024-07",
+      "resultado": 18777.51
+    },
+    {
+      "aluguel_calculado": 17915.91,
+      "faturamento": 40701.45,
+      "mes_referencia": "2024-08",
+      "resultado": 22394.89
+    },
+    {
+      "aluguel_calculado": 16475.98,
+      "faturamento": 38602.42,
+      "mes_referencia": "2024-09",
+      "resultado": 20594.98
+    },
+    {
+      "aluguel_calculado": 19665.26,
+      "faturamento": 43251.52,
+      "mes_referencia": "2024-10",
+      "resultado": 24581.58
+    },
+    {
+      "aluguel_calculado": 14812.88,
+      "faturamento": 36178.08,
+      "mes_referencia": "2024-11",
+      "resultado": 18516.1
+    },
+    {
+      "aluguel_calculado": 15072.12,
+      "faturamento": 36555.97,
+      "mes_referencia": "2024-12",
+      "resultado": 18840.14
+    },
+    {
+      "aluguel_calculado": 14653.36,
+      "faturamento": 35945.54,
+      "mes_referencia": "2025-01",
+      "resultado": 18316.7
+    },
+    {
+      "aluguel_calculado": 14443.66,
+      "faturamento": 35639.85,
+      "mes_referencia": "2025-02",
+      "resultado": 18054.57
+    },
+    {
+      "aluguel_calculado": 16101.55,
+      "faturamento": 38056.61,
+      "mes_referencia": "2025-03",
+      "resultado": 20126.94
+    },
+    {
+      "aluguel_calculado": 14963.06,
+      "faturamento": 36397.0,
+      "mes_referencia": "2025-04",
+      "resultado": 18703.83
+    },
+    {
+      "aluguel_calculado": 16261.66,
+      "faturamento": 38290.0,
+      "mes_referencia": "2025-05",
+      "resultado": 20327.08
+    },
+    {
+      "aluguel_calculado": 15487.85,
+      "faturamento": 37162.0,
+      "mes_referencia": "2025-06",
+      "resultado": 19359.82
+    },
+    {
+      "aluguel_calculado": 15252.49,
+      "faturamento": 37475.11,
+      "mes_referencia": "2025-07",
+      "resultado": 19065.62
+    },
+    {
+      "aluguel_calculado": 16563.69,
+      "faturamento": 39386.48,
+      "mes_referencia": "2025-08",
+      "resultado": 20704.62
+    },
+    {
+      "aluguel_calculado": 17428.21,
+      "faturamento": 40646.71,
+      "mes_referencia": "2025-09",
+      "resultado": 21785.26
+    },
+    {
+      "aluguel_calculado": 18317.34,
+      "faturamento": 41942.81,
+      "mes_referencia": "2025-10",
+      "resultado": 22896.67
+    },
+    {
+      "aluguel_calculado": 15167.79,
+      "faturamento": 37351.63,
+      "mes_referencia": "2025-11",
+      "resultado": 18959.73
+    },
+    {
+      "aluguel_calculado": 15709.84,
+      "faturamento": 38141.8,
+      "mes_referencia": "2025-12",
+      "resultado": 19637.3
+    },
+    {
+      "aluguel_calculado": 12252.19,
+      "faturamento": 33101.49,
+      "mes_referencia": "2026-01",
+      "resultado": 15315.24
+    },
+    {
+      "aluguel_calculado": 9818.63,
+      "faturamento": 29554.02,
+      "mes_referencia": "2026-02",
+      "resultado": 12273.28
+    },
+    {
+      "aluguel_calculado": 17250.13,
+      "faturamento": 40387.11,
+      "mes_referencia": "2026-03",
+      "resultado": 21562.66
+    },
+    {
+      "aluguel_calculado": 16718.49,
+      "faturamento": 41863.69,
+      "mes_referencia": "2026-04",
+      "resultado": 20898.11
+    }
+  ],
+  "ilp": [
+    {
+      "aluguel_calculado": 19048.1,
+      "faturamento": 63627.72,
+      "mes_referencia": "2023-08",
+      "resultado": 27211.57
+    },
+    {
+      "aluguel_calculado": 32039.68,
+      "faturamento": 79080.45,
+      "mes_referencia": "2023-09",
+      "resultado": 45770.98
+    },
+    {
+      "aluguel_calculado": 32802.63,
+      "faturamento": 80451.58,
+      "mes_referencia": "2023-10",
+      "resultado": 46860.9
+    },
+    {
+      "aluguel_calculado": 19584.31,
+      "faturamento": 58289.07,
+      "mes_referencia": "2023-11",
+      "resultado": 27977.59
+    },
+    {
+      "aluguel_calculado": 10439.66,
+      "faturamento": 43122.53,
+      "mes_referencia": "2023-12",
+      "resultado": 14913.8
+    },
+    {
+      "aluguel_calculado": 639.47,
+      "faturamento": 26591.0,
+      "mes_referencia": "2024-01",
+      "resultado": 913.53
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 25120.0,
+      "mes_referencia": "2024-02",
+      "resultado": -822.92
+    },
+    {
+      "aluguel_calculado": 12149.22,
+      "faturamento": 45901.0,
+      "mes_referencia": "2024-03",
+      "resultado": 17356.03
+    },
+    {
+      "aluguel_calculado": 25050.82,
+      "faturamento": 67392.58,
+      "mes_referencia": "2024-04",
+      "resultado": 35786.89
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 5988.0,
+      "mes_referencia": "2024-05",
+      "resultado": -17775.91
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 42085.08,
+      "mes_referencia": "2024-06",
+      "resultado": 9794.36
+    },
+    {
+      "aluguel_calculado": 17980.45,
+      "faturamento": 65647.56,
+      "mes_referencia": "2024-07",
+      "resultado": 33667.91
+    },
+    {
+      "aluguel_calculado": 30690.9,
+      "faturamento": 75109.87,
+      "mes_referencia": "2024-08",
+      "resultado": 40921.2
+    },
+    {
+      "aluguel_calculado": 40751.39,
+      "faturamento": 90753.0,
+      "mes_referencia": "2024-09",
+      "resultado": 54335.19
+    },
+    {
+      "aluguel_calculado": 27450.28,
+      "faturamento": 70071.0,
+      "mes_referencia": "2024-10",
+      "resultado": 36600.37
+    },
+    {
+      "aluguel_calculado": 32956.61,
+      "faturamento": 78632.83,
+      "mes_referencia": "2024-11",
+      "resultado": 43942.14
+    },
+    {
+      "aluguel_calculado": 15129.29,
+      "faturamento": 50913.0,
+      "mes_referencia": "2024-12",
+      "resultado": 20172.39
+    },
+    {
+      "aluguel_calculado": 1862.3,
+      "faturamento": 31007.0,
+      "mes_referencia": "2025-01",
+      "resultado": 2483.06
+    },
+    {
+      "aluguel_calculado": 5022.22,
+      "faturamento": 35920.39,
+      "mes_referencia": "2025-02",
+      "resultado": 6696.29
+    },
+    {
+      "aluguel_calculado": 15170.12,
+      "faturamento": 51705.84,
+      "mes_referencia": "2025-03",
+      "resultado": 20226.83
+    },
+    {
+      "aluguel_calculado": 25413.41,
+      "faturamento": 67628.0,
+      "mes_referencia": "2025-04",
+      "resultado": 33884.55
+    },
+    {
+      "aluguel_calculado": 23999.18,
+      "faturamento": 65429.0,
+      "mes_referencia": "2025-05",
+      "resultado": 31998.91
+    },
+    {
+      "aluguel_calculado": 25763.11,
+      "faturamento": 68087.0,
+      "mes_referencia": "2025-06",
+      "resultado": 34350.81
+    },
+    {
+      "aluguel_calculado": 18211.01,
+      "faturamento": 56888.67,
+      "mes_referencia": "2025-07",
+      "resultado": 24281.34
+    },
+    {
+      "aluguel_calculado": 36554.1,
+      "faturamento": 86144.38,
+      "mes_referencia": "2025-08",
+      "resultado": 48738.81
+    },
+    {
+      "aluguel_calculado": 36483.17,
+      "faturamento": 86034.08,
+      "mes_referencia": "2025-09",
+      "resultado": 48644.22
+    },
+    {
+      "aluguel_calculado": 39278.81,
+      "faturamento": 90381.05,
+      "mes_referencia": "2025-10",
+      "resultado": 52371.75
+    },
+    {
+      "aluguel_calculado": 25001.46,
+      "faturamento": 68181.09,
+      "mes_referencia": "2025-11",
+      "resultado": 33335.28
+    },
+    {
+      "aluguel_calculado": 9368.3,
+      "faturamento": 43872.96,
+      "mes_referencia": "2025-12",
+      "resultado": 12491.06
+    },
+    {
+      "aluguel_calculado": 1777.13,
+      "faturamento": 30839.53,
+      "mes_referencia": "2026-01",
+      "resultado": 2369.51
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 26062.19,
+      "mes_referencia": "2026-02",
+      "resultado": -3524.68
+    },
+    {
+      "aluguel_calculado": 21236.03,
+      "faturamento": 69343.91,
+      "mes_referencia": "2026-03",
+      "resultado": 31839.39
+    },
+    {
+      "aluguel_calculado": 18032.51,
+      "faturamento": 59086.13,
+      "mes_referencia": "2026-04",
+      "resultado": 24043.35
+    }
+  ],
+  "in_1183": [
+    {
+      "aluguel_calculado": 8363.99,
+      "faturamento": 29899.2,
+      "mes_referencia": "2021-06",
+      "resultado": 11948.56
+    },
+    {
+      "aluguel_calculado": 10094.22,
+      "faturamento": 32781.7,
+      "mes_referencia": "2021-07",
+      "resultado": 14420.31
+    },
+    {
+      "aluguel_calculado": 12727.82,
+      "faturamento": 37169.22,
+      "mes_referencia": "2021-08",
+      "resultado": 18182.61
+    },
+    {
+      "aluguel_calculado": 12982.95,
+      "faturamento": 37594.25,
+      "mes_referencia": "2021-09",
+      "resultado": 18547.07
+    },
+    {
+      "aluguel_calculado": 13481.07,
+      "faturamento": 38424.1,
+      "mes_referencia": "2021-10",
+      "resultado": 19258.67
+    },
+    {
+      "aluguel_calculado": 15272.54,
+      "faturamento": 41408.65,
+      "mes_referencia": "2021-11",
+      "resultado": 21817.92
+    },
+    {
+      "aluguel_calculado": 15000.53,
+      "faturamento": 40955.48,
+      "mes_referencia": "2021-12",
+      "resultado": 21429.32
+    },
+    {
+      "aluguel_calculado": 12203.89,
+      "faturamento": 36296.36,
+      "mes_referencia": "2022-01",
+      "resultado": 17434.13
+    },
+    {
+      "aluguel_calculado": 10827.93,
+      "faturamento": 34004.04,
+      "mes_referencia": "2022-02",
+      "resultado": 15468.46
+    },
+    {
+      "aluguel_calculado": 20226.17,
+      "faturamento": 51060.67,
+      "mes_referencia": "2022-03",
+      "resultado": 28894.52
+    },
+    {
+      "aluguel_calculado": 19342.09,
+      "faturamento": 49587.82,
+      "mes_referencia": "2022-04",
+      "resultado": 27631.56
+    },
+    {
+      "aluguel_calculado": 23961.08,
+      "faturamento": 57594.96,
+      "mes_referencia": "2022-05",
+      "resultado": 34230.12
+    },
+    {
+      "aluguel_calculado": 23307.47,
+      "faturamento": 56506.06,
+      "mes_referencia": "2022-06",
+      "resultado": 33296.39
+    },
+    {
+      "aluguel_calculado": 22902.33,
+      "faturamento": 55831.1,
+      "mes_referencia": "2022-07",
+      "resultado": 32717.61
+    },
+    {
+      "aluguel_calculado": 29445.29,
+      "faturamento": 66731.5,
+      "mes_referencia": "2022-08",
+      "resultado": 42064.7
+    },
+    {
+      "aluguel_calculado": 25103.6,
+      "faturamento": 59498.36,
+      "mes_referencia": "2022-09",
+      "resultado": 35862.28
+    },
+    {
+      "aluguel_calculado": 26937.16,
+      "faturamento": 62553.03,
+      "mes_referencia": "2022-10",
+      "resultado": 38481.66
+    },
+    {
+      "aluguel_calculado": 24040.28,
+      "faturamento": 57726.9,
+      "mes_referencia": "2022-11",
+      "resultado": 34343.26
+    },
+    {
+      "aluguel_calculado": 22654.62,
+      "faturamento": 55418.43,
+      "mes_referencia": "2022-12",
+      "resultado": 32363.74
+    },
+    {
+      "aluguel_calculado": 19754.61,
+      "faturamento": 50587.09,
+      "mes_referencia": "2023-01",
+      "resultado": 28220.87
+    },
+    {
+      "aluguel_calculado": 14508.63,
+      "faturamento": 41847.44,
+      "mes_referencia": "2023-02",
+      "resultado": 20726.62
+    },
+    {
+      "aluguel_calculado": 30734.75,
+      "faturamento": 68879.7,
+      "mes_referencia": "2023-03",
+      "resultado": 43906.78
+    },
+    {
+      "aluguel_calculado": 22329.86,
+      "faturamento": 54877.39,
+      "mes_referencia": "2023-04",
+      "resultado": 31899.8
+    },
+    {
+      "aluguel_calculado": 31242.59,
+      "faturamento": 69725.75,
+      "mes_referencia": "2023-05",
+      "resultado": 44632.27
+    },
+    {
+      "aluguel_calculado": 28149.26,
+      "faturamento": 64572.35,
+      "mes_referencia": "2023-06",
+      "resultado": 40213.23
+    },
+    {
+      "aluguel_calculado": 28649.32,
+      "faturamento": 65405.43,
+      "mes_referencia": "2023-07",
+      "resultado": 40927.6
+    },
+    {
+      "aluguel_calculado": 30929.91,
+      "faturamento": 69204.83,
+      "mes_referencia": "2023-08",
+      "resultado": 44185.58
+    },
+    {
+      "aluguel_calculado": 25589.25,
+      "faturamento": 60307.45,
+      "mes_referencia": "2023-09",
+      "resultado": 36556.08
+    },
+    {
+      "aluguel_calculado": 29492.55,
+      "faturamento": 66810.24,
+      "mes_referencia": "2023-10",
+      "resultado": 42132.22
+    },
+    {
+      "aluguel_calculado": 28145.72,
+      "faturamento": 66144.3,
+      "mes_referencia": "2023-11",
+      "resultado": 40208.18
+    },
+    {
+      "aluguel_calculado": 22626.34,
+      "faturamento": 56949.15,
+      "mes_referencia": "2023-12",
+      "resultado": 32323.34
+    },
+    {
+      "aluguel_calculado": 23366.65,
+      "faturamento": 58182.5,
+      "mes_referencia": "2024-01",
+      "resultado": 33380.93
+    },
+    {
+      "aluguel_calculado": 19111.79,
+      "faturamento": 51094.02,
+      "mes_referencia": "2024-02",
+      "resultado": 27302.56
+    },
+    {
+      "aluguel_calculado": 28957.37,
+      "faturamento": 67496.48,
+      "mes_referencia": "2024-03",
+      "resultado": 41367.67
+    },
+    {
+      "aluguel_calculado": 34158.87,
+      "faturamento": 76162.03,
+      "mes_referencia": "2024-04",
+      "resultado": 48798.38
+    },
+    {
+      "aluguel_calculado": 14152.34,
+      "faturamento": 42831.7,
+      "mes_referencia": "2024-05",
+      "resultado": 20217.62
+    },
+    {
+      "aluguel_calculado": 31420.99,
+      "faturamento": 71600.81,
+      "mes_referencia": "2024-06",
+      "resultado": 44887.13
+    },
+    {
+      "aluguel_calculado": 36611.32,
+      "faturamento": 80922.98,
+      "mes_referencia": "2024-07",
+      "resultado": 52301.89
+    },
+    {
+      "aluguel_calculado": 37248.81,
+      "faturamento": 81985.02,
+      "mes_referencia": "2024-08",
+      "resultado": 53212.58
+    },
+    {
+      "aluguel_calculado": 33901.77,
+      "faturamento": 76408.95,
+      "mes_referencia": "2024-09",
+      "resultado": 48431.1
+    },
+    {
+      "aluguel_calculado": 38612.54,
+      "faturamento": 84256.95,
+      "mes_referencia": "2024-10",
+      "resultado": 55160.76
+    },
+    {
+      "aluguel_calculado": 30785.76,
+      "faturamento": 71217.75,
+      "mes_referencia": "2024-11",
+      "resultado": 43979.65
+    },
+    {
+      "aluguel_calculado": 28219.18,
+      "faturamento": 66941.9,
+      "mes_referencia": "2024-12",
+      "resultado": 40313.11
+    },
+    {
+      "aluguel_calculado": 26511.75,
+      "faturamento": 64097.37,
+      "mes_referencia": "2025-01",
+      "resultado": 37873.92
+    },
+    {
+      "aluguel_calculado": 26921.92,
+      "faturamento": 64780.71,
+      "mes_referencia": "2025-02",
+      "resultado": 38459.89
+    },
+    {
+      "aluguel_calculado": 30227.18,
+      "faturamento": 70287.18,
+      "mes_referencia": "2025-03",
+      "resultado": 43181.69
+    },
+    {
+      "aluguel_calculado": 32624.35,
+      "faturamento": 74280.8,
+      "mes_referencia": "2025-04",
+      "resultado": 46606.22
+    },
+    {
+      "aluguel_calculado": 36163.39,
+      "faturamento": 80176.74,
+      "mes_referencia": "2025-05",
+      "resultado": 51661.98
+    },
+    {
+      "aluguel_calculado": 34715.37,
+      "faturamento": 78307.3,
+      "mes_referencia": "2025-06",
+      "resultado": 49593.39
+    },
+    {
+      "aluguel_calculado": 37653.24,
+      "faturamento": 90740.87,
+      "mes_referencia": "2025-07",
+      "resultado": 53790.35
+    },
+    {
+      "aluguel_calculado": 33532.05,
+      "faturamento": 86449.32,
+      "mes_referencia": "2025-08",
+      "resultado": 47902.92
+    },
+    {
+      "aluguel_calculado": 36026.35,
+      "faturamento": 90666.5,
+      "mes_referencia": "2025-09",
+      "resultado": 51466.21
+    },
+    {
+      "aluguel_calculado": 34089.6,
+      "faturamento": 87483.8,
+      "mes_referencia": "2025-10",
+      "resultado": 48699.42
+    },
+    {
+      "aluguel_calculado": 28615.66,
+      "faturamento": 78488.49,
+      "mes_referencia": "2025-11",
+      "resultado": 40879.51
+    },
+    {
+      "aluguel_calculado": 25447.3,
+      "faturamento": 73171.28,
+      "mes_referencia": "2025-12",
+      "resultado": 36353.29
+    },
+    {
+      "aluguel_calculado": 23528.72,
+      "faturamento": 70055.46,
+      "mes_referencia": "2026-01",
+      "resultado": 33612.46
+    },
+    {
+      "aluguel_calculado": 17867.8,
+      "faturamento": 60577.49,
+      "mes_referencia": "2026-02",
+      "resultado": 25525.42
+    },
+    {
+      "aluguel_calculado": 34853.38,
+      "faturamento": 88796.51,
+      "mes_referencia": "2026-03",
+      "resultado": 49790.54
+    },
+    {
+      "aluguel_calculado": 31048.27,
+      "faturamento": 82421.68,
+      "mes_referencia": "2026-04",
+      "resultado": 44354.67
+    }
+  ],
+  "medcenter": [
+    {
+      "aluguel_calculado": 16130.07,
+      "faturamento": 277832.82,
+      "mes_referencia": "2023-07",
+      "resultado": 128173.42
+    },
+    {
+      "aluguel_calculado": 100723.83,
+      "faturamento": 411964.42,
+      "mes_referencia": "2023-08",
+      "resultado": 240965.11
+    },
+    {
+      "aluguel_calculado": 57447.02,
+      "faturamento": 345064.09,
+      "mes_referencia": "2023-09",
+      "resultado": 183262.69
+    },
+    {
+      "aluguel_calculado": 64592.9,
+      "faturamento": 359933.65,
+      "mes_referencia": "2023-10",
+      "resultado": 192790.53
+    },
+    {
+      "aluguel_calculado": 62925.55,
+      "faturamento": 355330.26,
+      "mes_referencia": "2023-11",
+      "resultado": 190567.4
+    },
+    {
+      "aluguel_calculado": 31827.89,
+      "faturamento": 310878.55,
+      "mes_referencia": "2023-12",
+      "resultado": 149103.86
+    },
+    {
+      "aluguel_calculado": 60109.17,
+      "faturamento": 351613.62,
+      "mes_referencia": "2024-01",
+      "resultado": 186812.23
+    },
+    {
+      "aluguel_calculado": 50475.6,
+      "faturamento": 315798.53,
+      "mes_referencia": "2024-02",
+      "resultado": 173967.47
+    },
+    {
+      "aluguel_calculado": 74428.61,
+      "faturamento": 351319.14,
+      "mes_referencia": "2024-03",
+      "resultado": 205904.81
+    },
+    {
+      "aluguel_calculado": 63537.11,
+      "faturamento": 388404.32,
+      "mes_referencia": "2024-04",
+      "resultado": 191382.81
+    },
+    {
+      "aluguel_calculado": 27944.81,
+      "faturamento": 307395.51,
+      "mes_referencia": "2024-05",
+      "resultado": 143926.41
+    },
+    {
+      "aluguel_calculado": 129932.03,
+      "faturamento": 463596.81,
+      "mes_referencia": "2024-06",
+      "resultado": 279909.37
+    },
+    {
+      "aluguel_calculado": 124995.1,
+      "faturamento": 471335.23,
+      "mes_referencia": "2024-07",
+      "resultado": 273326.8
+    },
+    {
+      "aluguel_calculado": 138303.33,
+      "faturamento": 475780.13,
+      "mes_referencia": "2024-08",
+      "resultado": 291071.11
+    },
+    {
+      "aluguel_calculado": 99876.78,
+      "faturamento": 432304.49,
+      "mes_referencia": "2024-09",
+      "resultado": 239835.7
+    },
+    {
+      "aluguel_calculado": 122651.59,
+      "faturamento": 471178.36,
+      "mes_referencia": "2024-10",
+      "resultado": 270202.11
+    },
+    {
+      "aluguel_calculado": 113069.83,
+      "faturamento": 449942.48,
+      "mes_referencia": "2024-11",
+      "resultado": 257426.45
+    },
+    {
+      "aluguel_calculado": 70696.0,
+      "faturamento": 380285.37,
+      "mes_referencia": "2024-12",
+      "resultado": 200928.0
+    },
+    {
+      "aluguel_calculado": 107869.2,
+      "faturamento": 406577.39,
+      "mes_referencia": "2025-01",
+      "resultado": 250492.27
+    },
+    {
+      "aluguel_calculado": 98948.66,
+      "faturamento": 390781.88,
+      "mes_referencia": "2025-02",
+      "resultado": 238598.21
+    },
+    {
+      "aluguel_calculado": 92049.96,
+      "faturamento": 416106.15,
+      "mes_referencia": "2025-03",
+      "resultado": 229399.94
+    },
+    {
+      "aluguel_calculado": 111531.11,
+      "faturamento": 450567.48,
+      "mes_referencia": "2025-04",
+      "resultado": 255374.81
+    },
+    {
+      "aluguel_calculado": 128974.61,
+      "faturamento": 475573.45,
+      "mes_referencia": "2025-05",
+      "resultado": 278632.81
+    },
+    {
+      "aluguel_calculado": 149010.82,
+      "faturamento": 505741.63,
+      "mes_referencia": "2025-06",
+      "resultado": 305347.76
+    },
+    {
+      "aluguel_calculado": 182218.71,
+      "faturamento": 557890.1,
+      "mes_referencia": "2025-07",
+      "resultado": 349624.95
+    },
+    {
+      "aluguel_calculado": 179987.23,
+      "faturamento": 549376.22,
+      "mes_referencia": "2025-08",
+      "resultado": 346649.64
+    },
+    {
+      "aluguel_calculado": 178882.49,
+      "faturamento": 551601.34,
+      "mes_referencia": "2025-09",
+      "resultado": 345176.66
+    },
+    {
+      "aluguel_calculado": 205599.54,
+      "faturamento": 593068.49,
+      "mes_referencia": "2025-10",
+      "resultado": 380799.38
+    },
+    {
+      "aluguel_calculado": 141854.93,
+      "faturamento": 493494.35,
+      "mes_referencia": "2025-11",
+      "resultado": 295806.58
+    },
+    {
+      "aluguel_calculado": 138162.94,
+      "faturamento": 487805.92,
+      "mes_referencia": "2025-12",
+      "resultado": 290883.92
+    }
+  ],
+  "monza": [
+    {
+      "aluguel_calculado": 18170.96,
+      "faturamento": 40379.9,
+      "mes_referencia": "2021-01",
+      "resultado": 40379.9
+    },
+    {
+      "aluguel_calculado": 15341.37,
+      "faturamento": 34091.93,
+      "mes_referencia": "2021-02",
+      "resultado": 34091.93
+    },
+    {
+      "aluguel_calculado": 18069.41,
+      "faturamento": 40154.24,
+      "mes_referencia": "2021-03",
+      "resultado": 40154.24
+    },
+    {
+      "aluguel_calculado": 19405.64,
+      "faturamento": 43123.64,
+      "mes_referencia": "2021-04",
+      "resultado": 43123.64
+    },
+    {
+      "aluguel_calculado": 20396.78,
+      "faturamento": 45326.17,
+      "mes_referencia": "2021-05",
+      "resultado": 45326.17
+    },
+    {
+      "aluguel_calculado": 23045.17,
+      "faturamento": 51211.5,
+      "mes_referencia": "2021-06",
+      "resultado": 51211.5
+    },
+    {
+      "aluguel_calculado": 22671.01,
+      "faturamento": 50380.02,
+      "mes_referencia": "2021-07",
+      "resultado": 50380.02
+    },
+    {
+      "aluguel_calculado": 22960.23,
+      "faturamento": 51022.74,
+      "mes_referencia": "2021-08",
+      "resultado": 51022.74
+    },
+    {
+      "aluguel_calculado": 21712.69,
+      "faturamento": 48250.43,
+      "mes_referencia": "2021-09",
+      "resultado": 48250.43
+    },
+    {
+      "aluguel_calculado": 21008.11,
+      "faturamento": 46684.68,
+      "mes_referencia": "2021-10",
+      "resultado": 46684.68
+    },
+    {
+      "aluguel_calculado": 23478.99,
+      "faturamento": 52175.54,
+      "mes_referencia": "2021-11",
+      "resultado": 52175.54
+    },
+    {
+      "aluguel_calculado": 23633.88,
+      "faturamento": 52519.73,
+      "mes_referencia": "2021-12",
+      "resultado": 52519.73
+    },
+    {
+      "aluguel_calculado": 21253.39,
+      "faturamento": 47229.76,
+      "mes_referencia": "2022-01",
+      "resultado": 47229.76
+    },
+    {
+      "aluguel_calculado": 19748.43,
+      "faturamento": 43885.39,
+      "mes_referencia": "2022-02",
+      "resultado": 43885.39
+    },
+    {
+      "aluguel_calculado": 27172.87,
+      "faturamento": 60384.16,
+      "mes_referencia": "2022-03",
+      "resultado": 60384.16
+    },
+    {
+      "aluguel_calculado": 24273.07,
+      "faturamento": 53940.15,
+      "mes_referencia": "2022-04",
+      "resultado": 53940.15
+    },
+    {
+      "aluguel_calculado": 25826.28,
+      "faturamento": 57391.74,
+      "mes_referencia": "2022-05",
+      "resultado": 57391.74
+    },
+    {
+      "aluguel_calculado": 25597.54,
+      "faturamento": 56883.43,
+      "mes_referencia": "2022-06",
+      "resultado": 56883.43
+    },
+    {
+      "aluguel_calculado": 26075.42,
+      "faturamento": 57945.37,
+      "mes_referencia": "2022-07",
+      "resultado": 57945.37
+    },
+    {
+      "aluguel_calculado": 27380.97,
+      "faturamento": 60846.61,
+      "mes_referencia": "2022-08",
+      "resultado": 60846.61
+    },
+    {
+      "aluguel_calculado": 26039.23,
+      "faturamento": 57864.95,
+      "mes_referencia": "2022-09",
+      "resultado": 57864.95
+    },
+    {
+      "aluguel_calculado": 27558.63,
+      "faturamento": 61241.41,
+      "mes_referencia": "2022-10",
+      "resultado": 61241.41
+    },
+    {
+      "aluguel_calculado": 27004.46,
+      "faturamento": 60009.91,
+      "mes_referencia": "2022-11",
+      "resultado": 60009.91
+    },
+    {
+      "aluguel_calculado": 26301.42,
+      "faturamento": 58447.61,
+      "mes_referencia": "2022-12",
+      "resultado": 58447.61
+    },
+    {
+      "aluguel_calculado": 26998.3,
+      "faturamento": 59996.22,
+      "mes_referencia": "2023-01",
+      "resultado": 59996.22
+    },
+    {
+      "aluguel_calculado": 22689.84,
+      "faturamento": 50421.86,
+      "mes_referencia": "2023-02",
+      "resultado": 50421.86
+    },
+    {
+      "aluguel_calculado": 31807.99,
+      "faturamento": 70684.43,
+      "mes_referencia": "2023-03",
+      "resultado": 70684.43
+    },
+    {
+      "aluguel_calculado": 28094.83,
+      "faturamento": 62432.96,
+      "mes_referencia": "2023-04",
+      "resultado": 62432.96
+    },
+    {
+      "aluguel_calculado": 30430.74,
+      "faturamento": 67623.86,
+      "mes_referencia": "2023-05",
+      "resultado": 67623.86
+    },
+    {
+      "aluguel_calculado": 30330.12,
+      "faturamento": 67400.26,
+      "mes_referencia": "2023-06",
+      "resultado": 67400.26
+    },
+    {
+      "aluguel_calculado": 31429.19,
+      "faturamento": 69842.64,
+      "mes_referencia": "2023-07",
+      "resultado": 69842.64
+    },
+    {
+      "aluguel_calculado": 32897.47,
+      "faturamento": 73105.48,
+      "mes_referencia": "2023-08",
+      "resultado": 73105.48
+    },
+    {
+      "aluguel_calculado": 29281.69,
+      "faturamento": 65070.42,
+      "mes_referencia": "2023-09",
+      "resultado": 65070.42
+    },
+    {
+      "aluguel_calculado": 31391.82,
+      "faturamento": 69759.61,
+      "mes_referencia": "2023-10",
+      "resultado": 69759.61
+    },
+    {
+      "aluguel_calculado": 32488.25,
+      "faturamento": 72196.1,
+      "mes_referencia": "2023-11",
+      "resultado": 72196.1
+    },
+    {
+      "aluguel_calculado": 28019.48,
+      "faturamento": 62265.5,
+      "mes_referencia": "2023-12",
+      "resultado": 62265.5
+    },
+    {
+      "aluguel_calculado": 29206.72,
+      "faturamento": 64903.82,
+      "mes_referencia": "2024-01",
+      "resultado": 64903.82
+    },
+    {
+      "aluguel_calculado": 25550.32,
+      "faturamento": 56778.48,
+      "mes_referencia": "2024-02",
+      "resultado": 56778.48
+    },
+    {
+      "aluguel_calculado": 31535.5,
+      "faturamento": 70078.89,
+      "mes_referencia": "2024-03",
+      "resultado": 70078.89
+    },
+    {
+      "aluguel_calculado": 35113.64,
+      "faturamento": 78030.3,
+      "mes_referencia": "2024-04",
+      "resultado": 78030.3
+    },
+    {
+      "aluguel_calculado": 21692.46,
+      "faturamento": 48205.47,
+      "mes_referencia": "2024-05",
+      "resultado": 48205.47
+    },
+    {
+      "aluguel_calculado": 28762.51,
+      "faturamento": 63916.68,
+      "mes_referencia": "2024-06",
+      "resultado": 63916.68
+    },
+    {
+      "aluguel_calculado": 35483.6,
+      "faturamento": 78852.45,
+      "mes_referencia": "2024-07",
+      "resultado": 78852.45
+    },
+    {
+      "aluguel_calculado": 34638.16,
+      "faturamento": 76973.69,
+      "mes_referencia": "2024-08",
+      "resultado": 76973.69
+    },
+    {
+      "aluguel_calculado": 35623.75,
+      "faturamento": 79163.9,
+      "mes_referencia": "2024-09",
+      "resultado": 79163.9
+    },
+    {
+      "aluguel_calculado": 38250.0,
+      "faturamento": 88567.59,
+      "mes_referencia": "2024-10",
+      "resultado": 88567.59
+    },
+    {
+      "aluguel_calculado": 36061.52,
+      "faturamento": 80136.72,
+      "mes_referencia": "2024-11",
+      "resultado": 80136.72
+    },
+    {
+      "aluguel_calculado": 34492.42,
+      "faturamento": 76649.82,
+      "mes_referencia": "2024-12",
+      "resultado": 76649.82
+    },
+    {
+      "aluguel_calculado": 34855.28,
+      "faturamento": 77456.17,
+      "mes_referencia": "2025-01",
+      "resultado": 77456.17
+    },
+    {
+      "aluguel_calculado": 31151.56,
+      "faturamento": 69225.7,
+      "mes_referencia": "2025-02",
+      "resultado": 69225.7
+    },
+    {
+      "aluguel_calculado": 40378.97,
+      "faturamento": 89731.05,
+      "mes_referencia": "2025-03",
+      "resultado": 89731.05
+    },
+    {
+      "aluguel_calculado": 38250.0,
+      "faturamento": 94342.99,
+      "mes_referencia": "2025-04",
+      "resultado": 94342.99
+    },
+    {
+      "aluguel_calculado": 38250.0,
+      "faturamento": 102312.16,
+      "mes_referencia": "2025-05",
+      "resultado": 102312.16
+    },
+    {
+      "aluguel_calculado": 38250.0,
+      "faturamento": 95718.81,
+      "mes_referencia": "2025-06",
+      "resultado": 95718.81
+    },
+    {
+      "aluguel_calculado": 38250.0,
+      "faturamento": 99006.25,
+      "mes_referencia": "2025-07",
+      "resultado": 99006.25
+    },
+    {
+      "aluguel_calculado": 38250.0,
+      "faturamento": 96722.39,
+      "mes_referencia": "2025-08",
+      "resultado": 96722.39
+    },
+    {
+      "aluguel_calculado": 38250.0,
+      "faturamento": 102011.78,
+      "mes_referencia": "2025-09",
+      "resultado": 102011.78
+    },
+    {
+      "aluguel_calculado": 38250.0,
+      "faturamento": 106789.98,
+      "mes_referencia": "2025-10",
+      "resultado": 106789.98
+    },
+    {
+      "aluguel_calculado": 38250.0,
+      "faturamento": 100710.67,
+      "mes_referencia": "2025-11",
+      "resultado": 100710.67
+    },
+    {
+      "aluguel_calculado": 38250.0,
+      "faturamento": 96098.05,
+      "mes_referencia": "2025-12",
+      "resultado": 96098.05
+    },
+    {
+      "aluguel_calculado": 37741.21,
+      "faturamento": 83869.35,
+      "mes_referencia": "2026-01",
+      "resultado": 83869.35
+    },
+    {
+      "aluguel_calculado": 33850.71,
+      "faturamento": 75223.8,
+      "mes_referencia": "2026-02",
+      "resultado": 75223.8
+    },
+    {
+      "aluguel_calculado": 38250.0,
+      "faturamento": 110581.4,
+      "mes_referencia": "2026-03",
+      "resultado": 110581.4
+    },
+    {
+      "aluguel_calculado": 38250.0,
+      "faturamento": 105287.23,
+      "mes_referencia": "2026-04",
+      "resultado": 105287.23
+    }
+  ],
+  "mw_tristeza": [
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 2844.34,
+      "mes_referencia": "2021-05",
+      "resultado": -20079.9
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 5474.68,
+      "mes_referencia": "2021-06",
+      "resultado": -18060.98
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 5906.37,
+      "mes_referencia": "2021-07",
+      "resultado": -17516.12
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 6851.45,
+      "mes_referencia": "2021-08",
+      "resultado": -16721.3
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 7201.05,
+      "mes_referencia": "2021-09",
+      "resultado": -16444.83
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 7720.05,
+      "mes_referencia": "2021-10",
+      "resultado": -15999.17
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 8053.05,
+      "mes_referencia": "2021-11",
+      "resultado": -18149.49
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 8025.92,
+      "mes_referencia": "2021-12",
+      "resultado": -18919.96
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 7243.05,
+      "mes_referencia": "2022-01",
+      "resultado": -19832.51
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 7339.62,
+      "mes_referencia": "2022-02",
+      "resultado": -18981.19
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 8768.5,
+      "mes_referencia": "2022-03",
+      "resultado": -17767.88
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 8736.05,
+      "mes_referencia": "2022-04",
+      "resultado": -17208.29
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 10480.05,
+      "mes_referencia": "2022-05",
+      "resultado": -17589.18
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 10199.95,
+      "mes_referencia": "2022-06",
+      "resultado": -17775.5
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 12156.79,
+      "mes_referencia": "2022-07",
+      "resultado": -15832.02
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 13481.58,
+      "mes_referencia": "2022-08",
+      "resultado": -14116.67
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 14184.84,
+      "mes_referencia": "2022-09",
+      "resultado": -13127.11
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 14964.93,
+      "mes_referencia": "2022-10",
+      "resultado": -12577.66
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 15164.84,
+      "mes_referencia": "2022-11",
+      "resultado": -12260.29
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 15900.84,
+      "mes_referencia": "2022-12",
+      "resultado": -11572.61
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 14189.61,
+      "mes_referencia": "2023-01",
+      "resultado": -13140.25
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 13900.29,
+      "mes_referencia": "2023-02",
+      "resultado": -14309.28
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 17679.0,
+      "mes_referencia": "2023-03",
+      "resultado": -11230.4
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 16939.84,
+      "mes_referencia": "2023-04",
+      "resultado": -11912.83
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 20171.0,
+      "mes_referencia": "2023-05",
+      "resultado": -9383.85
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 20202.84,
+      "mes_referencia": "2023-06",
+      "resultado": -9085.75
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 18434.77,
+      "mes_referencia": "2023-07",
+      "resultado": -10761.41
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 21402.1,
+      "mes_referencia": "2023-08",
+      "resultado": -8076.72
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 18885.84,
+      "mes_referencia": "2023-09",
+      "resultado": -10117.01
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 20363.1,
+      "mes_referencia": "2023-10",
+      "resultado": -8928.11
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 22074.84,
+      "mes_referencia": "2023-11",
+      "resultado": -7681.5
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 21114.84,
+      "mes_referencia": "2023-12",
+      "resultado": -8209.3
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 13544.36,
+      "mes_referencia": "2024-01",
+      "resultado": -14790.33
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 18827.56,
+      "mes_referencia": "2024-02",
+      "resultado": -10548.08
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 26643.89,
+      "mes_referencia": "2024-03",
+      "resultado": -3945.57
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 23470.71,
+      "mes_referencia": "2024-04",
+      "resultado": -6577.39
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 19535.85,
+      "mes_referencia": "2024-05",
+      "resultado": -9705.12
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 23645.84,
+      "mes_referencia": "2024-06",
+      "resultado": -6126.98
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 20793.1,
+      "mes_referencia": "2024-07",
+      "resultado": -8568.22
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 26513.52,
+      "mes_referencia": "2024-08",
+      "resultado": -4172.06
+    },
+    {
+      "aluguel_calculado": 458.13,
+      "faturamento": 32054.68,
+      "mes_referencia": "2024-09",
+      "resultado": 572.66
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 27731.52,
+      "mes_referencia": "2024-10",
+      "resultado": -4933.53
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 28275.84,
+      "mes_referencia": "2024-11",
+      "resultado": -5414.93
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 24343.0,
+      "mes_referencia": "2024-12",
+      "resultado": -8797.05
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 21040.1,
+      "mes_referencia": "2025-01",
+      "resultado": -12873.2
+    },
+    {
+      "aluguel_calculado": 2488.01,
+      "faturamento": 37043.38,
+      "mes_referencia": "2025-02",
+      "resultado": 3110.02
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 31190.08,
+      "mes_referencia": "2025-03",
+      "resultado": -1981.55
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 32081.88,
+      "mes_referencia": "2025-04",
+      "resultado": -1521.87
+    },
+    {
+      "aluguel_calculado": 1434.6,
+      "faturamento": 36174.71,
+      "mes_referencia": "2025-05",
+      "resultado": 1793.25
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 32068.09,
+      "mes_referencia": "2025-06",
+      "resultado": -1567.44
+    },
+    {
+      "aluguel_calculado": 1247.84,
+      "faturamento": 35802.52,
+      "mes_referencia": "2025-07",
+      "resultado": 1559.8
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 33532.72,
+      "mes_referencia": "2025-08",
+      "resultado": -411.88
+    },
+    {
+      "aluguel_calculado": 1977.84,
+      "faturamento": 36856.04,
+      "mes_referencia": "2025-09",
+      "resultado": 2472.3
+    },
+    {
+      "aluguel_calculado": 3102.11,
+      "faturamento": 38593.03,
+      "mes_referencia": "2025-10",
+      "resultado": 3877.63
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 33878.41,
+      "mes_referencia": "2025-11",
+      "resultado": -158.87
+    },
+    {
+      "aluguel_calculado": 2204.85,
+      "faturamento": 37070.41,
+      "mes_referencia": "2025-12",
+      "resultado": 2756.06
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 30355.71,
+      "mes_referencia": "2026-01",
+      "resultado": -3187.24
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 30152.23,
+      "mes_referencia": "2026-02",
+      "resultado": -3774.29
+    },
+    {
+      "aluguel_calculado": 2200.98,
+      "faturamento": 38086.6,
+      "mes_referencia": "2026-03",
+      "resultado": 2751.23
+    },
+    {
+      "aluguel_calculado": 914.35,
+      "faturamento": 36171.7,
+      "mes_referencia": "2026-04",
+      "resultado": 1142.94
+    }
+  ],
+  "nl_2800": [
+    {
+      "aluguel_calculado": 1954.39,
+      "faturamento": 9116.67,
+      "mes_referencia": "2025-11",
+      "resultado": 7817.54
+    },
+    {
+      "aluguel_calculado": 4939.41,
+      "faturamento": 23040.97,
+      "mes_referencia": "2025-12",
+      "resultado": 19757.63
+    },
+    {
+      "aluguel_calculado": 5208.61,
+      "faturamento": 24296.73,
+      "mes_referencia": "2026-01",
+      "resultado": 20834.45
+    },
+    {
+      "aluguel_calculado": 5224.56,
+      "faturamento": 24371.11,
+      "mes_referencia": "2026-02",
+      "resultado": 20898.23
+    },
+    {
+      "aluguel_calculado": 8576.67,
+      "faturamento": 40007.79,
+      "mes_referencia": "2026-03",
+      "resultado": 34306.68
+    },
+    {
+      "aluguel_calculado": 8474.17,
+      "faturamento": 39529.64,
+      "mes_referencia": "2026-04",
+      "resultado": 33896.67
+    }
+  ],
+  "oka": [],
+  "park_tower": [
+    {
+      "aluguel_calculado": 346.21,
+      "faturamento": 504.68,
+      "mes_referencia": "2022-01",
+      "resultado": 432.76
+    },
+    {
+      "aluguel_calculado": 872.66,
+      "faturamento": 1272.1,
+      "mes_referencia": "2022-02",
+      "resultado": 1090.83
+    },
+    {
+      "aluguel_calculado": 1640.92,
+      "faturamento": 2392.01,
+      "mes_referencia": "2022-03",
+      "resultado": 2051.15
+    },
+    {
+      "aluguel_calculado": 1413.16,
+      "faturamento": 2060.0,
+      "mes_referencia": "2022-04",
+      "resultado": 1766.45
+    },
+    {
+      "aluguel_calculado": 1521.2,
+      "faturamento": 2217.5,
+      "mes_referencia": "2022-05",
+      "resultado": 1901.51
+    },
+    {
+      "aluguel_calculado": 2048.86,
+      "faturamento": 2986.67,
+      "mes_referencia": "2022-06",
+      "resultado": 2561.07
+    },
+    {
+      "aluguel_calculado": 2616.19,
+      "faturamento": 3813.69,
+      "mes_referencia": "2022-07",
+      "resultado": 3270.24
+    },
+    {
+      "aluguel_calculado": 2539.92,
+      "faturamento": 3702.5,
+      "mes_referencia": "2022-08",
+      "resultado": 3174.89
+    },
+    {
+      "aluguel_calculado": 2653.11,
+      "faturamento": 3867.5,
+      "mes_referencia": "2022-09",
+      "resultado": 3316.38
+    },
+    {
+      "aluguel_calculado": 2716.56,
+      "faturamento": 3960.0,
+      "mes_referencia": "2022-10",
+      "resultado": 3395.7
+    },
+    {
+      "aluguel_calculado": 2747.43,
+      "faturamento": 4005.0,
+      "mes_referencia": "2022-11",
+      "resultado": 3434.29
+    },
+    {
+      "aluguel_calculado": 2116.31,
+      "faturamento": 3085.0,
+      "mes_referencia": "2022-12",
+      "resultado": 2645.39
+    },
+    {
+      "aluguel_calculado": 1339.41,
+      "faturamento": 1952.5,
+      "mes_referencia": "2023-01",
+      "resultado": 1674.27
+    },
+    {
+      "aluguel_calculado": 1420.02,
+      "faturamento": 2070.0,
+      "mes_referencia": "2023-02",
+      "resultado": 1775.03
+    },
+    {
+      "aluguel_calculado": 2271.33,
+      "faturamento": 3310.97,
+      "mes_referencia": "2023-03",
+      "resultado": 2839.16
+    },
+    {
+      "aluguel_calculado": 2946.71,
+      "faturamento": 4295.5,
+      "mes_referencia": "2023-04",
+      "resultado": 3683.39
+    },
+    {
+      "aluguel_calculado": 3361.68,
+      "faturamento": 4900.41,
+      "mes_referencia": "2023-05",
+      "resultado": 4202.1
+    },
+    {
+      "aluguel_calculado": 3551.02,
+      "faturamento": 5176.41,
+      "mes_referencia": "2023-06",
+      "resultado": 4438.77
+    },
+    {
+      "aluguel_calculado": 4020.74,
+      "faturamento": 5861.13,
+      "mes_referencia": "2023-07",
+      "resultado": 5025.92
+    },
+    {
+      "aluguel_calculado": 4671.93,
+      "faturamento": 6810.4,
+      "mes_referencia": "2023-08",
+      "resultado": 5839.92
+    },
+    {
+      "aluguel_calculado": 3714.69,
+      "faturamento": 5415.0,
+      "mes_referencia": "2023-09",
+      "resultado": 4643.36
+    },
+    {
+      "aluguel_calculado": 5076.97,
+      "faturamento": 7400.83,
+      "mes_referencia": "2023-10",
+      "resultado": 6346.21
+    },
+    {
+      "aluguel_calculado": 5760.0,
+      "faturamento": 8396.5,
+      "mes_referencia": "2023-11",
+      "resultado": 7200.0
+    },
+    {
+      "aluguel_calculado": 5354.23,
+      "faturamento": 7805.0,
+      "mes_referencia": "2023-12",
+      "resultado": 6692.79
+    },
+    {
+      "aluguel_calculado": 6716.72,
+      "faturamento": 9791.14,
+      "mes_referencia": "2024-01",
+      "resultado": 8395.9
+    },
+    {
+      "aluguel_calculado": 6327.86,
+      "faturamento": 9224.29,
+      "mes_referencia": "2024-02",
+      "resultado": 7909.83
+    },
+    {
+      "aluguel_calculado": 7423.21,
+      "faturamento": 10821.0,
+      "mes_referencia": "2024-03",
+      "resultado": 9279.01
+    },
+    {
+      "aluguel_calculado": 9449.65,
+      "faturamento": 13775.0,
+      "mes_referencia": "2024-04",
+      "resultado": 11812.06
+    },
+    {
+      "aluguel_calculado": 7933.25,
+      "faturamento": 11564.5,
+      "mes_referencia": "2024-05",
+      "resultado": 9916.56
+    },
+    {
+      "aluguel_calculado": 7827.95,
+      "faturamento": 11411.0,
+      "mes_referencia": "2024-06",
+      "resultado": 9784.93
+    },
+    {
+      "aluguel_calculado": 9197.46,
+      "faturamento": 13407.38,
+      "mes_referencia": "2024-07",
+      "resultado": 11496.83
+    },
+    {
+      "aluguel_calculado": 9937.79,
+      "faturamento": 14486.57,
+      "mes_referencia": "2024-08",
+      "resultado": 12422.23
+    },
+    {
+      "aluguel_calculado": 10217.51,
+      "faturamento": 14894.33,
+      "mes_referencia": "2024-09",
+      "resultado": 12771.89
+    },
+    {
+      "aluguel_calculado": 11091.93,
+      "faturamento": 16169.0,
+      "mes_referencia": "2024-10",
+      "resultado": 13864.92
+    },
+    {
+      "aluguel_calculado": 10813.4,
+      "faturamento": 15762.97,
+      "mes_referencia": "2024-11",
+      "resultado": 13516.75
+    },
+    {
+      "aluguel_calculado": 9692.84,
+      "faturamento": 14129.5,
+      "mes_referencia": "2024-12",
+      "resultado": 12116.05
+    },
+    {
+      "aluguel_calculado": 10451.58,
+      "faturamento": 15235.54,
+      "mes_referencia": "2025-01",
+      "resultado": 13064.48
+    },
+    {
+      "aluguel_calculado": 10796.36,
+      "faturamento": 15738.14,
+      "mes_referencia": "2025-02",
+      "resultado": 13495.46
+    },
+    {
+      "aluguel_calculado": 11832.53,
+      "faturamento": 17248.59,
+      "mes_referencia": "2025-03",
+      "resultado": 14790.67
+    },
+    {
+      "aluguel_calculado": 13066.82,
+      "faturamento": 19047.84,
+      "mes_referencia": "2025-04",
+      "resultado": 16333.52
+    },
+    {
+      "aluguel_calculado": 12358.63,
+      "faturamento": 18015.5,
+      "mes_referencia": "2025-05",
+      "resultado": 15448.29
+    },
+    {
+      "aluguel_calculado": 12322.39,
+      "faturamento": 17962.67,
+      "mes_referencia": "2025-06",
+      "resultado": 15402.99
+    },
+    {
+      "aluguel_calculado": 14097.17,
+      "faturamento": 20549.81,
+      "mes_referencia": "2025-07",
+      "resultado": 17621.46
+    },
+    {
+      "aluguel_calculado": 12911.25,
+      "faturamento": 18821.06,
+      "mes_referencia": "2025-08",
+      "resultado": 16139.06
+    },
+    {
+      "aluguel_calculado": 12743.97,
+      "faturamento": 18577.21,
+      "mes_referencia": "2025-09",
+      "resultado": 15929.96
+    },
+    {
+      "aluguel_calculado": 12859.56,
+      "faturamento": 18745.72,
+      "mes_referencia": "2025-10",
+      "resultado": 16074.45
+    },
+    {
+      "aluguel_calculado": 12385.36,
+      "faturamento": 18054.46,
+      "mes_referencia": "2025-11",
+      "resultado": 15481.7
+    },
+    {
+      "aluguel_calculado": 11574.1,
+      "faturamento": 16871.87,
+      "mes_referencia": "2025-12",
+      "resultado": 14467.63
+    },
+    {
+      "aluguel_calculado": 12016.57,
+      "faturamento": 17516.86,
+      "mes_referencia": "2026-01",
+      "resultado": 15020.71
+    },
+    {
+      "aluguel_calculado": 11044.31,
+      "faturamento": 16099.57,
+      "mes_referencia": "2026-02",
+      "resultado": 13805.38
+    },
+    {
+      "aluguel_calculado": 15535.38,
+      "faturamento": 22646.33,
+      "mes_referencia": "2026-03",
+      "resultado": 19419.23
+    },
+    {
+      "aluguel_calculado": 13554.78,
+      "faturamento": 19759.16,
+      "mes_referencia": "2026-04",
+      "resultado": 16943.48
+    }
+  ],
+  "patio_maiojama": [
+    {
+      "aluguel_calculado": 41175.64,
+      "extras": {},
+      "faturamento": 78085.24,
+      "mes_referencia": "2021-01",
+      "resultado": 43342.78
+    },
+    {
+      "aluguel_calculado": 29853.28,
+      "extras": {
+        "repasse_outros": 3346.56
+      },
+      "faturamento": 65151.32,
+      "mes_referencia": "2021-02",
+      "resultado": 31424.51
+    },
+    {
+      "aluguel_calculado": 11807.06,
+      "extras": {},
+      "faturamento": 42267.28,
+      "mes_referencia": "2021-03",
+      "resultado": 12428.48
+    },
+    {
+      "aluguel_calculado": 24507.43,
+      "extras": {},
+      "faturamento": 58413.52,
+      "mes_referencia": "2021-04",
+      "resultado": 25797.29
+    },
+    {
+      "aluguel_calculado": 43068.34,
+      "extras": {},
+      "faturamento": 81842.98,
+      "mes_referencia": "2021-05",
+      "resultado": 45335.1
+    },
+    {
+      "aluguel_calculado": 52494.83,
+      "extras": {},
+      "faturamento": 93354.52,
+      "mes_referencia": "2021-06",
+      "resultado": 55257.72
+    },
+    {
+      "aluguel_calculado": 61622.19,
+      "extras": {
+        "repasse_outros": 534.52
+      },
+      "faturamento": 104637.38,
+      "mes_referencia": "2021-07",
+      "resultado": 64865.47
+    },
+    {
+      "aluguel_calculado": 67009.25,
+      "extras": {},
+      "faturamento": 112775.69,
+      "mes_referencia": "2021-08",
+      "resultado": 70536.05
+    },
+    {
+      "aluguel_calculado": 65090.41,
+      "extras": {
+        "repasse_outros": 1394.4
+      },
+      "faturamento": 111531.33,
+      "mes_referencia": "2021-09",
+      "resultado": 68516.22
+    },
+    {
+      "aluguel_calculado": 68757.13,
+      "extras": {
+        "repasse_outros": 2091.6
+      },
+      "faturamento": 116049.37,
+      "mes_referencia": "2021-10",
+      "resultado": 72375.93
+    },
+    {
+      "aluguel_calculado": 63878.78,
+      "extras": {},
+      "faturamento": 109690.01,
+      "mes_referencia": "2021-11",
+      "resultado": 67240.82
+    },
+    {
+      "aluguel_calculado": 67361.79,
+      "extras": {},
+      "faturamento": 115032.09,
+      "mes_referencia": "2021-12",
+      "resultado": 70907.15
+    },
+    {
+      "aluguel_calculado": 44498.74,
+      "extras": {},
+      "faturamento": 86955.59,
+      "mes_referencia": "2022-01",
+      "resultado": 46840.78
+    },
+    {
+      "aluguel_calculado": 49881.71,
+      "extras": {},
+      "faturamento": 94453.12,
+      "mes_referencia": "2022-02",
+      "resultado": 52507.06
+    },
+    {
+      "aluguel_calculado": 85325.38,
+      "extras": {},
+      "faturamento": 136531.11,
+      "mes_referencia": "2022-03",
+      "resultado": 89816.19
+    },
+    {
+      "aluguel_calculado": 85682.15,
+      "extras": {},
+      "faturamento": 137867.78,
+      "mes_referencia": "2022-04",
+      "resultado": 90191.73
+    },
+    {
+      "aluguel_calculado": 89195.02,
+      "extras": {},
+      "faturamento": 141167.42,
+      "mes_referencia": "2022-05",
+      "resultado": 93889.5
+    },
+    {
+      "aluguel_calculado": 82016.84,
+      "extras": {},
+      "faturamento": 132885.19,
+      "mes_referencia": "2022-06",
+      "resultado": 86333.52
+    },
+    {
+      "aluguel_calculado": 94719.75,
+      "extras": {},
+      "faturamento": 147924.72,
+      "mes_referencia": "2022-07",
+      "resultado": 99705.0
+    },
+    {
+      "aluguel_calculado": 98182.91,
+      "extras": {},
+      "faturamento": 153397.02,
+      "mes_referencia": "2022-08",
+      "resultado": 103350.43
+    },
+    {
+      "aluguel_calculado": 86482.89,
+      "extras": {},
+      "faturamento": 138929.9,
+      "mes_referencia": "2022-09",
+      "resultado": 91034.62
+    },
+    {
+      "aluguel_calculado": 89110.41,
+      "extras": {},
+      "faturamento": 142620.1,
+      "mes_referencia": "2022-10",
+      "resultado": 93800.43
+    },
+    {
+      "aluguel_calculado": 84822.12,
+      "extras": {},
+      "faturamento": 136708.05,
+      "mes_referencia": "2022-11",
+      "resultado": 89286.44
+    },
+    {
+      "aluguel_calculado": 87516.57,
+      "extras": {},
+      "faturamento": 139712.5,
+      "mes_referencia": "2022-12",
+      "resultado": 92122.71
+    },
+    {
+      "aluguel_calculado": 73782.49,
+      "extras": {},
+      "faturamento": 122785.37,
+      "mes_referencia": "2023-01",
+      "resultado": 77665.78
+    },
+    {
+      "aluguel_calculado": 66030.09,
+      "extras": {},
+      "faturamento": 113150.38,
+      "mes_referencia": "2023-02",
+      "resultado": 69505.36
+    },
+    {
+      "aluguel_calculado": 106091.12,
+      "extras": {},
+      "faturamento": 162897.02,
+      "mes_referencia": "2023-03",
+      "resultado": 111674.86
+    },
+    {
+      "aluguel_calculado": 77658.98,
+      "extras": {},
+      "faturamento": 130821.97,
+      "mes_referencia": "2023-04",
+      "resultado": 81746.29
+    },
+    {
+      "aluguel_calculado": 96508.8,
+      "extras": {},
+      "faturamento": 153985.36,
+      "mes_referencia": "2023-05",
+      "resultado": 101588.21
+    },
+    {
+      "aluguel_calculado": 83628.21,
+      "extras": {},
+      "faturamento": 138209.07,
+      "mes_referencia": "2023-06",
+      "resultado": 88029.69
+    },
+    {
+      "aluguel_calculado": 97802.6,
+      "extras": {},
+      "faturamento": 155259.67,
+      "mes_referencia": "2023-07",
+      "resultado": 102950.11
+    },
+    {
+      "aluguel_calculado": 103378.95,
+      "extras": {},
+      "faturamento": 162238.83,
+      "mes_referencia": "2023-08",
+      "resultado": 108819.94
+    },
+    {
+      "aluguel_calculado": 90636.82,
+      "extras": {},
+      "faturamento": 146780.26,
+      "mes_referencia": "2023-09",
+      "resultado": 95407.17
+    },
+    {
+      "aluguel_calculado": 100082.41,
+      "extras": {},
+      "faturamento": 157658.14,
+      "mes_referencia": "2023-10",
+      "resultado": 105349.91
+    },
+    {
+      "aluguel_calculado": 101072.81,
+      "extras": {},
+      "faturamento": 160317.43,
+      "mes_referencia": "2023-11",
+      "resultado": 106392.43
+    },
+    {
+      "aluguel_calculado": 98027.26,
+      "extras": {},
+      "faturamento": 156207.94,
+      "mes_referencia": "2023-12",
+      "resultado": 103186.59
+    },
+    {
+      "aluguel_calculado": 72490.57,
+      "extras": {},
+      "faturamento": 125484.96,
+      "mes_referencia": "2024-01",
+      "resultado": 76305.86
+    },
+    {
+      "aluguel_calculado": 70776.1,
+      "extras": {},
+      "faturamento": 122477.01,
+      "mes_referencia": "2024-02",
+      "resultado": 74501.15
+    },
+    {
+      "aluguel_calculado": 101416.76,
+      "extras": {},
+      "faturamento": 160297.95,
+      "mes_referencia": "2024-03",
+      "resultado": 106754.48
+    },
+    {
+      "aluguel_calculado": 114118.76,
+      "extras": {},
+      "faturamento": 176587.56,
+      "mes_referencia": "2024-04",
+      "resultado": 120125.01
+    },
+    {
+      "aluguel_calculado": 68918.79,
+      "extras": {},
+      "faturamento": 105485.69,
+      "mes_referencia": "2024-05",
+      "resultado": 72546.1
+    },
+    {
+      "aluguel_calculado": 119993.4,
+      "extras": {},
+      "faturamento": 168182.76,
+      "mes_referencia": "2024-06",
+      "resultado": 126308.84
+    },
+    {
+      "aluguel_calculado": 124660.8,
+      "extras": {},
+      "faturamento": 173912.27,
+      "mes_referencia": "2024-07",
+      "resultado": 131221.89
+    },
+    {
+      "aluguel_calculado": 137063.15,
+      "extras": {},
+      "faturamento": 190076.56,
+      "mes_referencia": "2024-08",
+      "resultado": 144277.0
+    },
+    {
+      "aluguel_calculado": 122726.35,
+      "extras": {},
+      "faturamento": 172477.3,
+      "mes_referencia": "2024-09",
+      "resultado": 129185.64
+    },
+    {
+      "aluguel_calculado": 136377.31,
+      "extras": {},
+      "faturamento": 189234.65,
+      "mes_referencia": "2024-10",
+      "resultado": 143555.06
+    },
+    {
+      "aluguel_calculado": 122478.41,
+      "extras": {},
+      "faturamento": 172172.94,
+      "mes_referencia": "2024-11",
+      "resultado": 128924.64
+    },
+    {
+      "aluguel_calculado": 115328.09,
+      "extras": {},
+      "faturamento": 163395.5,
+      "mes_referencia": "2024-12",
+      "resultado": 121397.99
+    },
+    {
+      "aluguel_calculado": 105373.46,
+      "extras": {},
+      "faturamento": 151175.61,
+      "mes_referencia": "2025-01",
+      "resultado": 110919.44
+    },
+    {
+      "aluguel_calculado": 107690.28,
+      "extras": {},
+      "faturamento": 154019.64,
+      "mes_referencia": "2025-02",
+      "resultado": 113358.19
+    },
+    {
+      "aluguel_calculado": 116824.02,
+      "extras": {},
+      "faturamento": 165231.84,
+      "mes_referencia": "2025-03",
+      "resultado": 122972.65
+    },
+    {
+      "aluguel_calculado": 124286.55,
+      "extras": {},
+      "faturamento": 174392.53,
+      "mes_referencia": "2025-04",
+      "resultado": 130827.95
+    },
+    {
+      "aluguel_calculado": 123760.22,
+      "extras": {},
+      "faturamento": 173746.43,
+      "mes_referencia": "2025-05",
+      "resultado": 130273.92
+    },
+    {
+      "aluguel_calculado": 117949.85,
+      "extras": {},
+      "faturamento": 166613.86,
+      "mes_referencia": "2025-06",
+      "resultado": 124157.74
+    },
+    {
+      "aluguel_calculado": 129230.19,
+      "extras": {},
+      "faturamento": 180461.14,
+      "mes_referencia": "2025-07",
+      "resultado": 136031.78
+    },
+    {
+      "aluguel_calculado": 124456.29,
+      "extras": {},
+      "faturamento": 175742.26,
+      "mes_referencia": "2025-08",
+      "resultado": 131006.62
+    },
+    {
+      "aluguel_calculado": 125983.9,
+      "extras": {},
+      "faturamento": 177617.49,
+      "mes_referencia": "2025-09",
+      "resultado": 132614.63
+    },
+    {
+      "aluguel_calculado": 129419.82,
+      "extras": {},
+      "faturamento": 181835.29,
+      "mes_referencia": "2025-10",
+      "resultado": 136231.39
+    },
+    {
+      "aluguel_calculado": 116142.07,
+      "extras": {},
+      "faturamento": 165536.07,
+      "mes_referencia": "2025-11",
+      "resultado": 122254.81
+    },
+    {
+      "aluguel_calculado": 113667.5,
+      "extras": {},
+      "faturamento": 162498.39,
+      "mes_referencia": "2025-12",
+      "resultado": 119650.0
+    },
+    {
+      "aluguel_calculado": 96753.78,
+      "extras": {},
+      "faturamento": 141735.81,
+      "mes_referencia": "2026-01",
+      "resultado": 101846.08
+    },
+    {
+      "aluguel_calculado": 81229.63,
+      "extras": {},
+      "faturamento": 122679.01,
+      "mes_referencia": "2026-02",
+      "resultado": 85504.88
+    },
+    {
+      "aluguel_calculado": 119465.0,
+      "extras": {},
+      "faturamento": 169615.16,
+      "mes_referencia": "2026-03",
+      "resultado": 125752.63
+    },
+    {
+      "aluguel_calculado": 120939.13,
+      "extras": {},
+      "faturamento": 171424.75,
+      "mes_referencia": "2026-04",
+      "resultado": 127304.35
+    }
+  ],
+  "patio_real": [
+    {
+      "aluguel_calculado": 47226.69,
+      "extras": {},
+      "faturamento": 89912.26,
+      "mes_referencia": "2021-01",
+      "resultado": 49712.3
+    },
+    {
+      "aluguel_calculado": 34171.28,
+      "extras": {
+        "repasse_outros": 3853.44
+      },
+      "faturamento": 75019.34,
+      "mes_referencia": "2021-02",
+      "resultado": 35969.77
+    },
+    {
+      "aluguel_calculado": 13403.61,
+      "extras": {},
+      "faturamento": 48669.21,
+      "mes_referencia": "2021-03",
+      "resultado": 14109.07
+    },
+    {
+      "aluguel_calculado": 28018.91,
+      "extras": {},
+      "faturamento": 67261.01,
+      "mes_referencia": "2021-04",
+      "resultado": 29493.58
+    },
+    {
+      "aluguel_calculado": 49380.68,
+      "extras": {},
+      "faturamento": 94239.17,
+      "mes_referencia": "2021-05",
+      "resultado": 51979.67
+    },
+    {
+      "aluguel_calculado": 60236.77,
+      "extras": {},
+      "faturamento": 107494.27,
+      "mes_referencia": "2021-06",
+      "resultado": 63407.13
+    },
+    {
+      "aluguel_calculado": 70744.48,
+      "extras": {
+        "repasse_outros": 615.48
+      },
+      "faturamento": 120486.08,
+      "mes_referencia": "2021-07",
+      "resultado": 74467.87
+    },
+    {
+      "aluguel_calculado": 76948.48,
+      "extras": {},
+      "faturamento": 129857.03,
+      "mes_referencia": "2021-08",
+      "resultado": 80998.4
+    },
+    {
+      "aluguel_calculado": 74720.3,
+      "extras": {
+        "repasse_outros": 1605.6
+      },
+      "faturamento": 128424.2,
+      "mes_referencia": "2021-09",
+      "resultado": 78652.95
+    },
+    {
+      "aluguel_calculado": 78941.83,
+      "extras": {
+        "repasse_outros": 2408.4
+      },
+      "faturamento": 133626.55,
+      "mes_referencia": "2021-10",
+      "resultado": 83096.66
+    },
+    {
+      "aluguel_calculado": 73331.68,
+      "extras": {},
+      "faturamento": 126303.98,
+      "mes_referencia": "2021-11",
+      "resultado": 77191.25
+    },
+    {
+      "aluguel_calculado": 77323.82,
+      "extras": {},
+      "faturamento": 132455.2,
+      "mes_referencia": "2021-12",
+      "resultado": 81393.49
+    },
+    {
+      "aluguel_calculado": 50998.13,
+      "extras": {},
+      "faturamento": 100126.14,
+      "mes_referencia": "2022-01",
+      "resultado": 53682.25
+    },
+    {
+      "aluguel_calculado": 57180.81,
+      "extras": {},
+      "faturamento": 108759.27,
+      "mes_referencia": "2022-02",
+      "resultado": 60190.32
+    },
+    {
+      "aluguel_calculado": 97915.33,
+      "extras": {},
+      "faturamento": 157210.52,
+      "mes_referencia": "2022-03",
+      "resultado": 103068.77
+    },
+    {
+      "aluguel_calculado": 98231.29,
+      "extras": {},
+      "faturamento": 158749.65,
+      "mes_referencia": "2022-04",
+      "resultado": 103401.35
+    },
+    {
+      "aluguel_calculado": 102319.13,
+      "extras": {},
+      "faturamento": 162549.05,
+      "mes_referencia": "2022-05",
+      "resultado": 107704.34
+    },
+    {
+      "aluguel_calculado": 94095.18,
+      "extras": {},
+      "faturamento": 153012.38,
+      "mes_referencia": "2022-06",
+      "resultado": 99047.56
+    },
+    {
+      "aluguel_calculado": 108761.21,
+      "extras": {},
+      "faturamento": 170329.85,
+      "mes_referencia": "2022-07",
+      "resultado": 114485.48
+    },
+    {
+      "aluguel_calculado": 112762.58,
+      "extras": {},
+      "faturamento": 176630.99,
+      "mes_referencia": "2022-08",
+      "resultado": 118697.45
+    },
+    {
+      "aluguel_calculado": 99292.99,
+      "extras": {},
+      "faturamento": 159972.64,
+      "mes_referencia": "2022-09",
+      "resultado": 104518.94
+    },
+    {
+      "aluguel_calculado": 102311.26,
+      "extras": {},
+      "faturamento": 164221.76,
+      "mes_referencia": "2022-10",
+      "resultado": 107696.06
+    },
+    {
+      "aluguel_calculado": 97370.26,
+      "extras": {},
+      "faturamento": 157414.26,
+      "mes_referencia": "2022-11",
+      "resultado": 102495.01
+    },
+    {
+      "aluguel_calculado": 100476.18,
+      "extras": {},
+      "faturamento": 160873.77,
+      "mes_referencia": "2022-12",
+      "resultado": 105764.4
+    },
+    {
+      "aluguel_calculado": 84665.6,
+      "extras": {},
+      "faturamento": 141382.8,
+      "mes_referencia": "2023-01",
+      "resultado": 89121.68
+    },
+    {
+      "aluguel_calculado": 75604.91,
+      "extras": {},
+      "faturamento": 130288.48,
+      "mes_referencia": "2023-02",
+      "resultado": 79584.12
+    },
+    {
+      "aluguel_calculado": 121650.55,
+      "extras": {},
+      "faturamento": 187569.88,
+      "mes_referencia": "2023-03",
+      "resultado": 128053.21
+    },
+    {
+      "aluguel_calculado": 88885.09,
+      "extras": {},
+      "faturamento": 150636.66,
+      "mes_referencia": "2023-04",
+      "resultado": 93563.25
+    },
+    {
+      "aluguel_calculado": 110188.11,
+      "extras": {},
+      "faturamento": 177308.45,
+      "mes_referencia": "2023-05",
+      "resultado": 115987.48
+    },
+    {
+      "aluguel_calculado": 95850.4,
+      "extras": {},
+      "faturamento": 159142.64,
+      "mes_referencia": "2023-06",
+      "resultado": 100895.16
+    },
+    {
+      "aluguel_calculado": 112230.03,
+      "extras": {},
+      "faturamento": 178775.77,
+      "mes_referencia": "2023-07",
+      "resultado": 118136.87
+    },
+    {
+      "aluguel_calculado": 118670.17,
+      "extras": {},
+      "faturamento": 186812.0,
+      "mes_referencia": "2023-08",
+      "resultado": 124915.97
+    },
+    {
+      "aluguel_calculado": 104005.15,
+      "extras": {},
+      "faturamento": 169012.04,
+      "mes_referencia": "2023-09",
+      "resultado": 109479.1
+    },
+    {
+      "aluguel_calculado": 114895.01,
+      "extras": {},
+      "faturamento": 181537.52,
+      "mes_referencia": "2023-10",
+      "resultado": 120942.12
+    },
+    {
+      "aluguel_calculado": 116005.57,
+      "extras": {},
+      "faturamento": 184599.58,
+      "mes_referencia": "2023-11",
+      "resultado": 122111.12
+    },
+    {
+      "aluguel_calculado": 112528.59,
+      "extras": {},
+      "faturamento": 179867.67,
+      "mes_referencia": "2023-12",
+      "resultado": 118451.14
+    },
+    {
+      "aluguel_calculado": 82950.95,
+      "extras": {},
+      "faturamento": 144491.29,
+      "mes_referencia": "2024-01",
+      "resultado": 87316.79
+    },
+    {
+      "aluguel_calculado": 80792.2,
+      "extras": {},
+      "faturamento": 141027.74,
+      "mes_referencia": "2024-02",
+      "resultado": 85044.42
+    },
+    {
+      "aluguel_calculado": 116073.13,
+      "extras": {},
+      "faturamento": 184577.16,
+      "mes_referencia": "2024-03",
+      "resultado": 122182.24
+    },
+    {
+      "aluguel_calculado": 130703.93,
+      "extras": {},
+      "faturamento": 203334.04,
+      "mes_referencia": "2024-04",
+      "resultado": 137583.08
+    },
+    {
+      "aluguel_calculado": 79356.98,
+      "extras": {},
+      "faturamento": 121462.87,
+      "mes_referencia": "2024-05",
+      "resultado": 83533.66
+    },
+    {
+      "aluguel_calculado": 138167.49,
+      "extras": {},
+      "faturamento": 193656.23,
+      "mes_referencia": "2024-06",
+      "resultado": 145439.47
+    },
+    {
+      "aluguel_calculado": 143541.83,
+      "extras": {},
+      "faturamento": 200253.55,
+      "mes_referencia": "2024-07",
+      "resultado": 151096.67
+    },
+    {
+      "aluguel_calculado": 157822.57,
+      "extras": {},
+      "faturamento": 218866.13,
+      "mes_referencia": "2024-08",
+      "resultado": 166129.02
+    },
+    {
+      "aluguel_calculado": 141314.28,
+      "extras": {},
+      "faturamento": 198601.23,
+      "mes_referencia": "2024-09",
+      "resultado": 148751.87
+    },
+    {
+      "aluguel_calculado": 157032.85,
+      "extras": {},
+      "faturamento": 217896.69,
+      "mes_referencia": "2024-10",
+      "resultado": 165297.73
+    },
+    {
+      "aluguel_calculado": 141028.78,
+      "extras": {},
+      "faturamento": 198250.76,
+      "mes_referencia": "2024-11",
+      "resultado": 148451.35
+    },
+    {
+      "aluguel_calculado": 132795.46,
+      "extras": {},
+      "faturamento": 188143.88,
+      "mes_referencia": "2024-12",
+      "resultado": 139784.69
+    },
+    {
+      "aluguel_calculado": 121333.07,
+      "extras": {},
+      "faturamento": 174073.12,
+      "mes_referencia": "2025-01",
+      "resultado": 127719.02
+    },
+    {
+      "aluguel_calculado": 124000.8,
+      "extras": {},
+      "faturamento": 177347.92,
+      "mes_referencia": "2025-02",
+      "resultado": 130527.16
+    },
+    {
+      "aluguel_calculado": 134517.96,
+      "extras": {},
+      "faturamento": 190258.35,
+      "mes_referencia": "2025-03",
+      "resultado": 141597.85
+    },
+    {
+      "aluguel_calculado": 143110.79,
+      "extras": {},
+      "faturamento": 200806.55,
+      "mes_referencia": "2025-04",
+      "resultado": 150642.93
+    },
+    {
+      "aluguel_calculado": 142504.74,
+      "extras": {},
+      "faturamento": 200062.59,
+      "mes_referencia": "2025-05",
+      "resultado": 150004.99
+    },
+    {
+      "aluguel_calculado": 135814.31,
+      "extras": {},
+      "faturamento": 191849.7,
+      "mes_referencia": "2025-06",
+      "resultado": 142962.44
+    },
+    {
+      "aluguel_calculado": 148803.2,
+      "extras": {},
+      "faturamento": 207794.32,
+      "mes_referencia": "2025-07",
+      "resultado": 156634.95
+    },
+    {
+      "aluguel_calculado": 143306.21,
+      "extras": {},
+      "faturamento": 202360.71,
+      "mes_referencia": "2025-08",
+      "resultado": 150848.64
+    },
+    {
+      "aluguel_calculado": 145065.19,
+      "extras": {},
+      "faturamento": 204519.97,
+      "mes_referencia": "2025-09",
+      "resultado": 152700.2
+    },
+    {
+      "aluguel_calculado": 149021.53,
+      "extras": {},
+      "faturamento": 209376.6,
+      "mes_referencia": "2025-10",
+      "resultado": 156864.77
+    },
+    {
+      "aluguel_calculado": 133732.69,
+      "extras": {},
+      "faturamento": 190608.66,
+      "mes_referencia": "2025-11",
+      "resultado": 140771.26
+    },
+    {
+      "aluguel_calculado": 130883.32,
+      "extras": {},
+      "faturamento": 187110.89,
+      "mes_referencia": "2025-12",
+      "resultado": 137771.92
+    },
+    {
+      "aluguel_calculado": 111407.79,
+      "extras": {},
+      "faturamento": 163203.53,
+      "mes_referencia": "2026-01",
+      "resultado": 117271.36
+    },
+    {
+      "aluguel_calculado": 93532.31,
+      "extras": {},
+      "faturamento": 141260.33,
+      "mes_referencia": "2026-02",
+      "resultado": 98455.07
+    },
+    {
+      "aluguel_calculado": 137558.93,
+      "extras": {},
+      "faturamento": 195305.59,
+      "mes_referencia": "2026-03",
+      "resultado": 144798.87
+    },
+    {
+      "aluguel_calculado": 139256.33,
+      "extras": {},
+      "faturamento": 197389.25,
+      "mes_referencia": "2026-04",
+      "resultado": 146585.61
+    }
+  ],
+  "praia_de_bellas": [
+    {
+      "aluguel_calculado": 9866.68,
+      "faturamento": 28686.16,
+      "mes_referencia": "2021-01",
+      "resultado": 13155.57
+    },
+    {
+      "aluguel_calculado": 6813.4,
+      "faturamento": 24119.48,
+      "mes_referencia": "2021-02",
+      "resultado": 9084.54
+    },
+    {
+      "aluguel_calculado": 4307.06,
+      "faturamento": 20379.74,
+      "mes_referencia": "2021-03",
+      "resultado": 5742.74
+    },
+    {
+      "aluguel_calculado": 5269.06,
+      "faturamento": 21777.5,
+      "mes_referencia": "2021-04",
+      "resultado": 7025.42
+    },
+    {
+      "aluguel_calculado": 8719.17,
+      "faturamento": 26917.32,
+      "mes_referencia": "2021-05",
+      "resultado": 11625.57
+    },
+    {
+      "aluguel_calculado": 8846.94,
+      "faturamento": 26713.5,
+      "mes_referencia": "2021-06",
+      "resultado": 11395.92
+    },
+    {
+      "aluguel_calculado": 12412.63,
+      "faturamento": 32022.17,
+      "mes_referencia": "2021-07",
+      "resultado": 16150.18
+    },
+    {
+      "aluguel_calculado": 15323.15,
+      "faturamento": 36381.27,
+      "mes_referencia": "2021-08",
+      "resultado": 20030.87
+    },
+    {
+      "aluguel_calculado": 13776.33,
+      "faturamento": 34134.7,
+      "mes_referencia": "2021-09",
+      "resultado": 17968.44
+    },
+    {
+      "aluguel_calculado": 16245.0,
+      "faturamento": 37822.94,
+      "mes_referencia": "2021-10",
+      "resultado": 21260.0
+    },
+    {
+      "aluguel_calculado": 18822.58,
+      "faturamento": 41696.52,
+      "mes_referencia": "2021-11",
+      "resultado": 24696.78
+    },
+    {
+      "aluguel_calculado": 22707.3,
+      "faturamento": 47523.89,
+      "mes_referencia": "2021-12",
+      "resultado": 29876.41
+    },
+    {
+      "aluguel_calculado": 18951.7,
+      "faturamento": 41991.43,
+      "mes_referencia": "2022-01",
+      "resultado": 24868.93
+    },
+    {
+      "aluguel_calculado": 16875.94,
+      "faturamento": 38937.52,
+      "mes_referencia": "2022-02",
+      "resultado": 22101.25
+    },
+    {
+      "aluguel_calculado": 24286.13,
+      "faturamento": 50494.47,
+      "mes_referencia": "2022-03",
+      "resultado": 32381.51
+    },
+    {
+      "aluguel_calculado": 23186.26,
+      "faturamento": 50427.76,
+      "mes_referencia": "2022-04",
+      "resultado": 30915.01
+    },
+    {
+      "aluguel_calculado": 29103.17,
+      "faturamento": 57888.54,
+      "mes_referencia": "2022-05",
+      "resultado": 38804.22
+    },
+    {
+      "aluguel_calculado": 28748.5,
+      "faturamento": 57441.0,
+      "mes_referencia": "2022-06",
+      "resultado": 38331.33
+    },
+    {
+      "aluguel_calculado": 34277.15,
+      "faturamento": 65975.22,
+      "mes_referencia": "2022-07",
+      "resultado": 45702.86
+    },
+    {
+      "aluguel_calculado": 29081.82,
+      "faturamento": 58282.31,
+      "mes_referencia": "2022-08",
+      "resultado": 38775.76
+    },
+    {
+      "aluguel_calculado": 33482.09,
+      "faturamento": 65027.54,
+      "mes_referencia": "2022-09",
+      "resultado": 44642.79
+    },
+    {
+      "aluguel_calculado": 27671.08,
+      "faturamento": 56337.77,
+      "mes_referencia": "2022-10",
+      "resultado": 36894.77
+    },
+    {
+      "aluguel_calculado": 29414.87,
+      "faturamento": 59045.74,
+      "mes_referencia": "2022-11",
+      "resultado": 39219.82
+    },
+    {
+      "aluguel_calculado": 25829.51,
+      "faturamento": 53658.48,
+      "mes_referencia": "2022-12",
+      "resultado": 34439.34
+    },
+    {
+      "aluguel_calculado": 27178.69,
+      "faturamento": 58265.78,
+      "mes_referencia": "2023-01",
+      "resultado": 36238.26
+    },
+    {
+      "aluguel_calculado": 20539.55,
+      "faturamento": 45687.83,
+      "mes_referencia": "2023-02",
+      "resultado": 27386.07
+    },
+    {
+      "aluguel_calculado": 31398.28,
+      "faturamento": 62208.59,
+      "mes_referencia": "2023-03",
+      "resultado": 41864.38
+    },
+    {
+      "aluguel_calculado": 32134.86,
+      "faturamento": 63371.53,
+      "mes_referencia": "2023-04",
+      "resultado": 42846.48
+    },
+    {
+      "aluguel_calculado": 30220.66,
+      "faturamento": 60494.48,
+      "mes_referencia": "2023-05",
+      "resultado": 40294.21
+    },
+    {
+      "aluguel_calculado": 29782.13,
+      "faturamento": 59840.75,
+      "mes_referencia": "2023-06",
+      "resultado": 39709.51
+    },
+    {
+      "aluguel_calculado": 37932.16,
+      "faturamento": 72263.57,
+      "mes_referencia": "2023-07",
+      "resultado": 50576.21
+    },
+    {
+      "aluguel_calculado": 35037.34,
+      "faturamento": 67879.2,
+      "mes_referencia": "2023-08",
+      "resultado": 46716.45
+    },
+    {
+      "aluguel_calculado": 29521.92,
+      "faturamento": 59512.59,
+      "mes_referencia": "2023-09",
+      "resultado": 39362.56
+    },
+    {
+      "aluguel_calculado": 37012.47,
+      "faturamento": 70919.96,
+      "mes_referencia": "2023-10",
+      "resultado": 49349.97
+    },
+    {
+      "aluguel_calculado": 30460.58,
+      "faturamento": 61678.28,
+      "mes_referencia": "2023-11",
+      "resultado": 40614.11
+    },
+    {
+      "aluguel_calculado": 33149.65,
+      "faturamento": 65801.29,
+      "mes_referencia": "2023-12",
+      "resultado": 44199.53
+    },
+    {
+      "aluguel_calculado": 39778.41,
+      "faturamento": 75956.11,
+      "mes_referencia": "2024-01",
+      "resultado": 53037.88
+    },
+    {
+      "aluguel_calculado": 31541.52,
+      "faturamento": 63428.11,
+      "mes_referencia": "2024-02",
+      "resultado": 42055.36
+    },
+    {
+      "aluguel_calculado": 35963.24,
+      "faturamento": 70237.72,
+      "mes_referencia": "2024-03",
+      "resultado": 47950.98
+    },
+    {
+      "aluguel_calculado": 38855.08,
+      "faturamento": 74683.66,
+      "mes_referencia": "2024-04",
+      "resultado": 51806.77
+    },
+    {
+      "aluguel_calculado": 11270.42,
+      "faturamento": 32523.93,
+      "mes_referencia": "2024-05",
+      "resultado": 15027.22
+    },
+    {
+      "aluguel_calculado": 43141.32,
+      "faturamento": 81200.3,
+      "mes_referencia": "2024-06",
+      "resultado": 57521.76
+    },
+    {
+      "aluguel_calculado": 40547.4,
+      "faturamento": 78577.93,
+      "mes_referencia": "2024-07",
+      "resultado": 54063.19
+    },
+    {
+      "aluguel_calculado": 37272.95,
+      "faturamento": 74185.33,
+      "mes_referencia": "2024-08",
+      "resultado": 49697.26
+    },
+    {
+      "aluguel_calculado": 34778.69,
+      "faturamento": 70307.0,
+      "mes_referencia": "2024-09",
+      "resultado": 46371.59
+    },
+    {
+      "aluguel_calculado": 42170.5,
+      "faturamento": 81800.57,
+      "mes_referencia": "2024-10",
+      "resultado": 56227.33
+    },
+    {
+      "aluguel_calculado": 38658.8,
+      "faturamento": 76340.2,
+      "mes_referencia": "2024-11",
+      "resultado": 51545.06
+    },
+    {
+      "aluguel_calculado": 41017.12,
+      "faturamento": 80007.17,
+      "mes_referencia": "2024-12",
+      "resultado": 54689.49
+    },
+    {
+      "aluguel_calculado": 38603.58,
+      "faturamento": 76254.35,
+      "mes_referencia": "2025-01",
+      "resultado": 51471.45
+    },
+    {
+      "aluguel_calculado": 33654.2,
+      "faturamento": 68558.51,
+      "mes_referencia": "2025-02",
+      "resultado": 44872.26
+    },
+    {
+      "aluguel_calculado": 47863.77,
+      "faturamento": 90653.08,
+      "mes_referencia": "2025-03",
+      "resultado": 63818.36
+    },
+    {
+      "aluguel_calculado": 57313.23,
+      "faturamento": 105346.12,
+      "mes_referencia": "2025-04",
+      "resultado": 76417.64
+    },
+    {
+      "aluguel_calculado": 54551.42,
+      "faturamento": 101051.76,
+      "mes_referencia": "2025-05",
+      "resultado": 72735.22
+    },
+    {
+      "aluguel_calculado": 40227.89,
+      "faturamento": 78779.99,
+      "mes_referencia": "2025-06",
+      "resultado": 53637.18
+    },
+    {
+      "aluguel_calculado": 49554.47,
+      "faturamento": 93281.97,
+      "mes_referencia": "2025-07",
+      "resultado": 66072.63
+    },
+    {
+      "aluguel_calculado": 39855.73,
+      "faturamento": 79050.12,
+      "mes_referencia": "2025-08",
+      "resultado": 53140.98
+    },
+    {
+      "aluguel_calculado": 40344.1,
+      "faturamento": 79809.49,
+      "mes_referencia": "2025-09",
+      "resultado": 53792.14
+    },
+    {
+      "aluguel_calculado": 39047.49,
+      "faturamento": 77793.38,
+      "mes_referencia": "2025-10",
+      "resultado": 52063.32
+    },
+    {
+      "aluguel_calculado": 37005.93,
+      "faturamento": 74618.94,
+      "mes_referencia": "2025-11",
+      "resultado": 49341.24
+    },
+    {
+      "aluguel_calculado": 36908.66,
+      "faturamento": 74467.7,
+      "mes_referencia": "2025-12",
+      "resultado": 49211.55
+    },
+    {
+      "aluguel_calculado": 36751.66,
+      "faturamento": 74223.57,
+      "mes_referencia": "2026-01",
+      "resultado": 49002.21
+    },
+    {
+      "aluguel_calculado": 25925.83,
+      "faturamento": 57390.4,
+      "mes_referencia": "2026-02",
+      "resultado": 34567.77
+    },
+    {
+      "aluguel_calculado": 32099.29,
+      "faturamento": 66989.57,
+      "mes_referencia": "2026-03",
+      "resultado": 42799.06
+    },
+    {
+      "aluguel_calculado": 33564.68,
+      "faturamento": 69268.12,
+      "mes_referencia": "2026-04",
+      "resultado": 44752.91
+    }
+  ],
+  "vasco": [
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 5597.94,
+      "mes_referencia": "2021-01",
+      "resultado": -5054.85
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 4953.51,
+      "mes_referencia": "2021-02",
+      "resultado": -5699.28
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 7705.7,
+      "mes_referencia": "2021-03",
+      "resultado": -2947.09
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 5475.99,
+      "mes_referencia": "2021-04",
+      "resultado": -5176.8
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 5398.43,
+      "mes_referencia": "2021-05",
+      "resultado": -5254.36
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 6031.01,
+      "mes_referencia": "2021-06",
+      "resultado": -4621.78
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 6938.36,
+      "mes_referencia": "2021-07",
+      "resultado": -3714.43
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 7776.17,
+      "mes_referencia": "2021-08",
+      "resultado": -2876.62
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 7850.72,
+      "mes_referencia": "2021-09",
+      "resultado": -2802.07
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 7931.82,
+      "mes_referencia": "2021-10",
+      "resultado": -2720.97
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 7110.0,
+      "mes_referencia": "2021-11",
+      "resultado": -3542.79
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 9920.81,
+      "mes_referencia": "2021-12",
+      "resultado": -731.98
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 6958.12,
+      "mes_referencia": "2022-01",
+      "resultado": -3694.67
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 7325.78,
+      "mes_referencia": "2022-02",
+      "resultado": -3327.01
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 9116.93,
+      "mes_referencia": "2022-03",
+      "resultado": -1535.86
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 8150.97,
+      "mes_referencia": "2022-04",
+      "resultado": -2501.82
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 8690.91,
+      "mes_referencia": "2022-05",
+      "resultado": -1961.88
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 10909.0,
+      "mes_referencia": "2022-06",
+      "resultado": -4611.75
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 9528.38,
+      "mes_referencia": "2022-07",
+      "resultado": -5992.37
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 11431.79,
+      "mes_referencia": "2022-08",
+      "resultado": -4088.96
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 11708.0,
+      "mes_referencia": "2022-09",
+      "resultado": -3812.75
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 11272.63,
+      "mes_referencia": "2022-10",
+      "resultado": -4248.12
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 10630.11,
+      "mes_referencia": "2022-11",
+      "resultado": -4890.64
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 9214.59,
+      "mes_referencia": "2022-12",
+      "resultado": -6306.16
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 8483.94,
+      "mes_referencia": "2023-01",
+      "resultado": -7036.81
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 7269.63,
+      "mes_referencia": "2023-02",
+      "resultado": -8251.12
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 12484.38,
+      "mes_referencia": "2023-03",
+      "resultado": -3036.37
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 10008.52,
+      "mes_referencia": "2023-04",
+      "resultado": -5512.23
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 10638.42,
+      "mes_referencia": "2023-05",
+      "resultado": -4882.33
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 10860.54,
+      "mes_referencia": "2023-06",
+      "resultado": -4660.21
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 9673.98,
+      "mes_referencia": "2023-07",
+      "resultado": -5846.77
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 9889.5,
+      "mes_referencia": "2023-08",
+      "resultado": -5631.25
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 7440.5,
+      "mes_referencia": "2023-09",
+      "resultado": -8080.25
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 8867.27,
+      "mes_referencia": "2023-10",
+      "resultado": -6653.48
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 13225.04,
+      "mes_referencia": "2023-11",
+      "resultado": -2295.71
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 8437.0,
+      "mes_referencia": "2023-12",
+      "resultado": -7083.75
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 7011.55,
+      "mes_referencia": "2024-01",
+      "resultado": -8509.2
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 8066.09,
+      "mes_referencia": "2024-02",
+      "resultado": -7454.66
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 10815.56,
+      "mes_referencia": "2024-03",
+      "resultado": -5253.94
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 14794.45,
+      "mes_referencia": "2024-04",
+      "resultado": -1275.05
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 10419.8,
+      "mes_referencia": "2024-05",
+      "resultado": -5649.7
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 13324.12,
+      "mes_referencia": "2024-06",
+      "resultado": -2745.38
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 15122.25,
+      "mes_referencia": "2024-07",
+      "resultado": -947.25
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 14784.39,
+      "mes_referencia": "2024-08",
+      "resultado": -1285.11
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 13221.58,
+      "mes_referencia": "2024-09",
+      "resultado": -2847.92
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 15523.14,
+      "mes_referencia": "2024-10",
+      "resultado": -546.36
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 14285.99,
+      "mes_referencia": "2024-11",
+      "resultado": -1783.51
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 11843.28,
+      "mes_referencia": "2024-12",
+      "resultado": -4226.22
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 11586.39,
+      "mes_referencia": "2025-01",
+      "resultado": -4483.11
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 12404.79,
+      "mes_referencia": "2025-02",
+      "resultado": -3664.71
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 13675.62,
+      "mes_referencia": "2025-03",
+      "resultado": -2393.88
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 15216.29,
+      "mes_referencia": "2025-04",
+      "resultado": -1412.42
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 13680.49,
+      "mes_referencia": "2025-05",
+      "resultado": -2948.22
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 11936.42,
+      "mes_referencia": "2025-06",
+      "resultado": -4692.29
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 15347.94,
+      "mes_referencia": "2025-07",
+      "resultado": -1280.77
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 15808.82,
+      "mes_referencia": "2025-08",
+      "resultado": -819.89
+    },
+    {
+      "aluguel_calculado": 131.3,
+      "faturamento": 16830.71,
+      "mes_referencia": "2025-09",
+      "resultado": 202.0
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 13796.01,
+      "mes_referencia": "2025-10",
+      "resultado": -2832.7
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 14423.83,
+      "mes_referencia": "2025-11",
+      "resultado": -2204.88
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 15005.1,
+      "mes_referencia": "2025-12",
+      "resultado": -1623.61
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 12899.82,
+      "mes_referencia": "2026-01",
+      "resultado": -3728.89
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 10156.34,
+      "mes_referencia": "2026-02",
+      "resultado": -6472.37
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 13931.59,
+      "mes_referencia": "2026-03",
+      "resultado": -2697.12
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 13319.92,
+      "mes_referencia": "2026-04",
+      "resultado": -3308.79
+    }
+  ],
+  "viva_open_mall": [
+    {
+      "aluguel_calculado": 34007.92,
+      "faturamento": 161238.2,
+      "mes_referencia": "2023-04",
+      "resultado": 79857.52
+    },
+    {
+      "aluguel_calculado": 34991.39,
+      "faturamento": 158701.21,
+      "mes_referencia": "2023-05",
+      "resultado": 76460.46
+    },
+    {
+      "aluguel_calculado": 18890.34,
+      "faturamento": 136794.13,
+      "mes_referencia": "2023-06",
+      "resultado": 57518.05
+    },
+    {
+      "aluguel_calculado": 21384.76,
+      "faturamento": 140029.16,
+      "mes_referencia": "2023-07",
+      "resultado": 60452.66
+    },
+    {
+      "aluguel_calculado": 38051.93,
+      "faturamento": 163110.82,
+      "mes_referencia": "2023-08",
+      "resultado": 80061.1
+    },
+    {
+      "aluguel_calculado": 31178.91,
+      "faturamento": 153642.65,
+      "mes_referencia": "2023-09",
+      "resultado": 71975.19
+    },
+    {
+      "aluguel_calculado": 52175.15,
+      "faturamento": 182625.0,
+      "mes_referencia": "2023-10",
+      "resultado": 96676.65
+    },
+    {
+      "aluguel_calculado": 42803.76,
+      "faturamento": 180924.67,
+      "mes_referencia": "2023-11",
+      "resultado": 85651.48
+    },
+    {
+      "aluguel_calculado": 38793.43,
+      "faturamento": 165710.02,
+      "mes_referencia": "2023-12",
+      "resultado": 80933.44
+    },
+    {
+      "aluguel_calculado": 7351.23,
+      "faturamento": 123340.28,
+      "mes_referencia": "2024-01",
+      "resultado": 43942.62
+    },
+    {
+      "aluguel_calculado": 5357.36,
+      "faturamento": 123764.04,
+      "mes_referencia": "2024-02",
+      "resultado": 41596.89
+    },
+    {
+      "aluguel_calculado": 76264.41,
+      "faturamento": 219544.99,
+      "mes_referencia": "2024-03",
+      "resultado": 125016.95
+    },
+    {
+      "aluguel_calculado": 86493.33,
+      "faturamento": 232408.01,
+      "mes_referencia": "2024-04",
+      "resultado": 137050.98
+    },
+    {
+      "aluguel_calculado": 21395.84,
+      "faturamento": 144780.33,
+      "mes_referencia": "2024-05",
+      "resultado": 60465.69
+    },
+    {
+      "aluguel_calculado": 92795.33,
+      "faturamento": 242174.95,
+      "mes_referencia": "2024-06",
+      "resultado": 144465.1
+    },
+    {
+      "aluguel_calculado": 65556.54,
+      "faturamento": 203938.23,
+      "mes_referencia": "2024-07",
+      "resultado": 112419.46
+    },
+    {
+      "aluguel_calculado": 86387.33,
+      "faturamento": 233657.55,
+      "mes_referencia": "2024-08",
+      "resultado": 136926.27
+    },
+    {
+      "aluguel_calculado": 72561.56,
+      "faturamento": 213759.33,
+      "mes_referencia": "2024-09",
+      "resultado": 120660.66
+    },
+    {
+      "aluguel_calculado": 97391.53,
+      "faturamento": 247932.87,
+      "mes_referencia": "2024-10",
+      "resultado": 149872.39
+    },
+    {
+      "aluguel_calculado": 74227.25,
+      "faturamento": 215323.74,
+      "mes_referencia": "2024-11",
+      "resultado": 122620.3
+    },
+    {
+      "aluguel_calculado": 56914.75,
+      "faturamento": 191602.0,
+      "mes_referencia": "2024-12",
+      "resultado": 102252.64
+    },
+    {
+      "aluguel_calculado": 23736.27,
+      "faturamento": 146935.23,
+      "mes_referencia": "2025-01",
+      "resultado": 63219.14
+    },
+    {
+      "aluguel_calculado": 32836.08,
+      "faturamento": 161487.55,
+      "mes_referencia": "2025-02",
+      "resultado": 73924.8
+    },
+    {
+      "aluguel_calculado": 54539.4,
+      "faturamento": 197155.31,
+      "mes_referencia": "2025-03",
+      "resultado": 102438.54
+    },
+    {
+      "aluguel_calculado": 83599.98,
+      "faturamento": 239879.27,
+      "mes_referencia": "2025-04",
+      "resultado": 136627.46
+    },
+    {
+      "aluguel_calculado": 90363.24,
+      "faturamento": 245685.54,
+      "mes_referencia": "2025-05",
+      "resultado": 144584.23
+    },
+    {
+      "aluguel_calculado": 66125.36,
+      "faturamento": 213766.33,
+      "mes_referencia": "2025-06",
+      "resultado": 116069.09
+    },
+    {
+      "aluguel_calculado": 69254.67,
+      "faturamento": 216545.81,
+      "mes_referencia": "2025-07",
+      "resultado": 119750.62
+    },
+    {
+      "aluguel_calculado": 78892.49,
+      "faturamento": 230567.98,
+      "mes_referencia": "2025-08",
+      "resultado": 131089.23
+    },
+    {
+      "aluguel_calculado": 85105.73,
+      "faturamento": 238936.39,
+      "mes_referencia": "2025-09",
+      "resultado": 138398.92
+    },
+    {
+      "aluguel_calculado": 92346.32,
+      "faturamento": 248799.47,
+      "mes_referencia": "2025-10",
+      "resultado": 146917.27
+    },
+    {
+      "aluguel_calculado": 85450.95,
+      "faturamento": 239083.26,
+      "mes_referencia": "2025-11",
+      "resultado": 138805.08
+    },
+    {
+      "aluguel_calculado": 64138.33,
+      "faturamento": 210082.71,
+      "mes_referencia": "2025-12",
+      "resultado": 113731.4
+    }
+  ],
+  "viva_trindade": [
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 8479.11,
+      "mes_referencia": "2025-05",
+      "resultado": -11915.66
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 15572.01,
+      "mes_referencia": "2025-06",
+      "resultado": -8096.2
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 20211.06,
+      "mes_referencia": "2025-07",
+      "resultado": -30236.61
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 20764.85,
+      "mes_referencia": "2025-08",
+      "resultado": -16131.89
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 24072.62,
+      "mes_referencia": "2025-09",
+      "resultado": -12630.45
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 25825.82,
+      "mes_referencia": "2025-10",
+      "resultado": -11216.3
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 29938.24,
+      "mes_referencia": "2025-11",
+      "resultado": -7731.43
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 42445.82,
+      "mes_referencia": "2025-12",
+      "resultado": 3113.86
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 46979.21,
+      "mes_referencia": "2026-01",
+      "resultado": -5524.03
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 37039.04,
+      "mes_referencia": "2026-02",
+      "resultado": -14183.91
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 38583.46,
+      "mes_referencia": "2026-03",
+      "resultado": -12561.67
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 33558.35,
+      "mes_referencia": "2026-04",
+      "resultado": -9630.64
+    }
+  ],
+  "w_tower_caxias": [
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 5108.93,
+      "mes_referencia": "2021-02",
+      "resultado": -17382.9
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 15208.4,
+      "mes_referencia": "2021-03",
+      "resultado": -9698.58
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 14649.0,
+      "mes_referencia": "2021-04",
+      "resultado": -10109.56
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 16134.36,
+      "mes_referencia": "2021-05",
+      "resultado": -8980.52
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 14890.23,
+      "mes_referencia": "2021-06",
+      "resultado": -12898.08
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 26527.57,
+      "mes_referencia": "2021-07",
+      "resultado": -6147.81
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 23158.23,
+      "mes_referencia": "2021-08",
+      "resultado": -7181.74
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 22595.0,
+      "mes_referencia": "2021-09",
+      "resultado": -7104.8
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 23996.66,
+      "mes_referencia": "2021-10",
+      "resultado": -5840.03
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 25805.29,
+      "mes_referencia": "2021-11",
+      "resultado": -1092.8
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 25346.0,
+      "mes_referencia": "2021-12",
+      "resultado": -3043.32
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 24229.09,
+      "mes_referencia": "2022-01",
+      "resultado": -2222.45
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 22056.78,
+      "mes_referencia": "2022-02",
+      "resultado": -3940.36
+    },
+    {
+      "aluguel_calculado": 535.56,
+      "faturamento": 29610.2,
+      "mes_referencia": "2022-03",
+      "resultado": 669.45
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 30162.74,
+      "mes_referencia": "2022-04",
+      "resultado": -4094.45
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 29363.39,
+      "mes_referencia": "2022-05",
+      "resultado": -4737.67
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 33044.56,
+      "mes_referencia": "2022-06",
+      "resultado": -1363.89
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 30723.56,
+      "mes_referencia": "2022-07",
+      "resultado": -3822.26
+    },
+    {
+      "aluguel_calculado": 1500.57,
+      "faturamento": 31076.02,
+      "mes_referencia": "2022-08",
+      "resultado": 1875.71
+    },
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 27743.84,
+      "mes_referencia": "2022-09",
+      "resultado": -974.45
+    },
+    {
+      "aluguel_calculado": 5470.67,
+      "faturamento": 36810.33,
+      "mes_referencia": "2022-10",
+      "resultado": 6838.34
+    },
+    {
+      "aluguel_calculado": 2776.07,
+      "faturamento": 32885.15,
+      "mes_referencia": "2022-11",
+      "resultado": 3470.09
+    },
+    {
+      "aluguel_calculado": 6281.13,
+      "faturamento": 37982.87,
+      "mes_referencia": "2022-12",
+      "resultado": 7851.41
+    },
+    {
+      "aluguel_calculado": 2460.67,
+      "faturamento": 32212.41,
+      "mes_referencia": "2023-01",
+      "resultado": 3075.84
+    },
+    {
+      "aluguel_calculado": 2207.33,
+      "faturamento": 33251.65,
+      "mes_referencia": "2023-02",
+      "resultado": 2759.16
+    },
+    {
+      "aluguel_calculado": 3520.55,
+      "faturamento": 35390.81,
+      "mes_referencia": "2023-03",
+      "resultado": 4400.69
+    },
+    {
+      "aluguel_calculado": 2576.84,
+      "faturamento": 34067.86,
+      "mes_referencia": "2023-04",
+      "resultado": 3221.05
+    },
+    {
+      "aluguel_calculado": 4747.72,
+      "faturamento": 37298.13,
+      "mes_referencia": "2023-05",
+      "resultado": 5934.65
+    },
+    {
+      "aluguel_calculado": 6131.9,
+      "faturamento": 39361.12,
+      "mes_referencia": "2023-06",
+      "resultado": 7664.87
+    },
+    {
+      "aluguel_calculado": 5135.21,
+      "faturamento": 38316.32,
+      "mes_referencia": "2023-07",
+      "resultado": 6419.02
+    },
+    {
+      "aluguel_calculado": 7363.82,
+      "faturamento": 41414.79,
+      "mes_referencia": "2023-08",
+      "resultado": 9204.77
+    },
+    {
+      "aluguel_calculado": 6745.92,
+      "faturamento": 40534.58,
+      "mes_referencia": "2023-09",
+      "resultado": 8432.4
+    },
+    {
+      "aluguel_calculado": 8836.14,
+      "faturamento": 43649.62,
+      "mes_referencia": "2023-10",
+      "resultado": 11045.18
+    },
+    {
+      "aluguel_calculado": 9818.55,
+      "faturamento": 45070.27,
+      "mes_referencia": "2023-11",
+      "resultado": 12273.19
+    },
+    {
+      "aluguel_calculado": 6905.54,
+      "faturamento": 41180.92,
+      "mes_referencia": "2023-12",
+      "resultado": 8631.93
+    },
+    {
+      "aluguel_calculado": 11366.88,
+      "faturamento": 48225.76,
+      "mes_referencia": "2024-01",
+      "resultado": 14208.6
+    },
+    {
+      "aluguel_calculado": 6166.03,
+      "faturamento": 40873.68,
+      "mes_referencia": "2024-02",
+      "resultado": 7707.54
+    },
+    {
+      "aluguel_calculado": 8114.26,
+      "faturamento": 43522.64,
+      "mes_referencia": "2024-03",
+      "resultado": 10142.82
+    },
+    {
+      "aluguel_calculado": 6009.29,
+      "faturamento": 46986.82,
+      "mes_referencia": "2024-04",
+      "resultado": 7511.61
+    },
+    {
+      "aluguel_calculado": 3926.64,
+      "faturamento": 44698.57,
+      "mes_referencia": "2024-05",
+      "resultado": 4908.3
+    },
+    {
+      "aluguel_calculado": 3614.77,
+      "faturamento": 44786.35,
+      "mes_referencia": "2024-06",
+      "resultado": 4518.46
+    },
+    {
+      "aluguel_calculado": 5986.65,
+      "faturamento": 47521.57,
+      "mes_referencia": "2024-07",
+      "resultado": 7483.31
+    },
+    {
+      "aluguel_calculado": 9514.53,
+      "faturamento": 46318.38,
+      "mes_referencia": "2024-08",
+      "resultado": 11893.16
+    },
+    {
+      "aluguel_calculado": 12322.88,
+      "faturamento": 50328.57,
+      "mes_referencia": "2024-09",
+      "resultado": 15403.6
+    },
+    {
+      "aluguel_calculado": 9738.21,
+      "faturamento": 46489.75,
+      "mes_referencia": "2024-10",
+      "resultado": 12172.76
+    },
+    {
+      "aluguel_calculado": 8731.6,
+      "faturamento": 45089.69,
+      "mes_referencia": "2024-11",
+      "resultado": 10914.5
+    },
+    {
+      "aluguel_calculado": 5604.2,
+      "faturamento": 41743.03,
+      "mes_referencia": "2024-12",
+      "resultado": 7005.25
+    },
+    {
+      "aluguel_calculado": 5170.85,
+      "faturamento": 40869.83,
+      "mes_referencia": "2025-01",
+      "resultado": 6463.56
+    },
+    {
+      "aluguel_calculado": 5427.82,
+      "faturamento": 41204.98,
+      "mes_referencia": "2025-02",
+      "resultado": 6784.78
+    },
+    {
+      "aluguel_calculado": 7133.35,
+      "faturamento": 43606.29,
+      "mes_referencia": "2025-03",
+      "resultado": 8916.69
+    },
+    {
+      "aluguel_calculado": 6732.26,
+      "faturamento": 49741.86,
+      "mes_referencia": "2025-04",
+      "resultado": 8415.32
+    },
+    {
+      "aluguel_calculado": 5268.31,
+      "faturamento": 48576.07,
+      "mes_referencia": "2025-05",
+      "resultado": 6585.39
+    },
+    {
+      "aluguel_calculado": 5644.32,
+      "faturamento": 48980.34,
+      "mes_referencia": "2025-06",
+      "resultado": 7055.39
+    },
+    {
+      "aluguel_calculado": 6320.06,
+      "faturamento": 50100.18,
+      "mes_referencia": "2025-07",
+      "resultado": 7900.08
+    },
+    {
+      "aluguel_calculado": 12272.6,
+      "faturamento": 52023.34,
+      "mes_referencia": "2025-08",
+      "resultado": 15340.75
+    },
+    {
+      "aluguel_calculado": 12140.56,
+      "faturamento": 52379.02,
+      "mes_referencia": "2025-09",
+      "resultado": 15175.7
+    },
+    {
+      "aluguel_calculado": 13820.13,
+      "faturamento": 55155.13,
+      "mes_referencia": "2025-10",
+      "resultado": 17275.17
+    },
+    {
+      "aluguel_calculado": 13091.29,
+      "faturamento": 53807.42,
+      "mes_referencia": "2025-11",
+      "resultado": 16364.12
+    },
+    {
+      "aluguel_calculado": 10439.95,
+      "faturamento": 51223.45,
+      "mes_referencia": "2025-12",
+      "resultado": 13049.93
+    },
+    {
+      "aluguel_calculado": 9353.01,
+      "faturamento": 49193.73,
+      "mes_referencia": "2026-01",
+      "resultado": 11691.26
+    },
+    {
+      "aluguel_calculado": 7169.7,
+      "faturamento": 45418.73,
+      "mes_referencia": "2026-02",
+      "resultado": 8962.13
+    },
+    {
+      "aluguel_calculado": 18619.82,
+      "faturamento": 62334.57,
+      "mes_referencia": "2026-03",
+      "resultado": 23274.77
+    },
+    {
+      "aluguel_calculado": 12780.51,
+      "faturamento": 61161.61,
+      "mes_referencia": "2026-04",
+      "resultado": 15975.64
+    }
+  ]
+}
