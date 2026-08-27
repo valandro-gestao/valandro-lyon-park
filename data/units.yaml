@@ -19,6 +19,7 @@ unidades:
     tipo_relatorio: com_eventos
     tipo_calculo: COM_FAIXAS
     tem_base_taxa_cobranca: true
+    tem_receita_selos: true
     ponto_equilibrio: 44394.80
     aliquota_imposto: 0.1425
     taxa_cobranca: 0.015
@@ -171,20 +172,24 @@ unidades:
     contratante: "In 1183"
     ativo: true
     inicio: "2021-06-01"
-    tipo_calculo: COM_ALIQUOTA_CUMUL
+    # v1.1.1: corrigido de COM_ALIQUOTA_CUMUL para COM_ALIQUOTA — a Memória de
+    # Cálculo e a planilha histórica real (5 anos) confirmam que esta unidade
+    # nunca teve compensação de prejuízo acumulado entre meses. O "adicional_fixo"
+    # (R$1.353, "Aquisição Equipamentos") também foi removido: é informativo,
+    # não entra em Resultado, Aluguel ou Saldo em nenhum dos 60 meses reais
+    # verificados.
+    tipo_calculo: COM_ALIQUOTA
     tem_faturamento_carregadores: true
     tem_investimentos: true
     ponto_equilibrio: 27377.58
     percentual_aluguel: 0.70
     aliquota_imposto: 0.1425
-    adicional_fixo: 1353.0
     reajuste_mes: 6
     reajuste_indice: IGPM
     custos_variaveis:
       investimentos: 0.0
-    prejuizo_acumulado_inicial: 0.0
     relatorio:
-      linhas: [faturamento, fat_carregadores, aliquota, subtotal, pe, resultado, prejuizo, aluguel, adicional, investimentos, saldo_a_pagar]
+      linhas: [faturamento, fat_carregadores, aliquota, subtotal, pe, resultado, aluguel, investimentos, saldo_a_pagar]
 
   - id: medcenter
     nome: Medcenter
@@ -196,6 +201,10 @@ unidades:
     aliquota_imposto: 0.1425
     despesas_fixas: 42332.29
     percentual_operador: 0.15
+    # v1.1.1: 75% até 06/2026, 85% a partir de 07/2026 — a vigência histórica
+    # é tratada em parametros_vigentes (ver scripts/corrigir_percentual_medcenter.py),
+    # não neste valor. Este YAML reflete o percentual vigente atual (85%),
+    # usado apenas como ponto de partida em ambientes sem banco já seedado.
     percentual_contratante: 0.85
     parcela_fixa: 80000.0
     reajuste_mes: 7
@@ -372,6 +381,11 @@ unidades:
       condominio: 0.0
       iptu: 0.0
       energia_eletrica: 0.0
+    custos_variaveis:
+      seguranca: 0.0
+      internet: 0.0
+      sistemas_voip: 0.0
+      perto: 0.0
     relatorio:
       linhas: [faturamento, aliquota, receita_liquida, despesas_fixas, custos, resultado, resultado_operador, resultado_contratante, parcela_fixa, saldo_a_pagar]
 

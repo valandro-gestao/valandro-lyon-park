@@ -289,6 +289,28 @@ div[data-testid="stButton"] button[kind="secondary"] {
 </style>
 """
 
+# ── UX de campos numéricos: primeiro clique seleciona todo o conteúdo ────────
+# Streamlit não expõe essa opção nativamente. O componente roda num iframe
+# same-origin, então o listener é anexado em window.parent.document — evento
+# delegado (focusin) para cobrir também campos renderizados depois deste
+# primeiro carregamento, sem precisar reinjetar a cada rerun. Não altera
+# nenhuma regra de cálculo; é puramente uma melhoria de digitação.
+_NUMBER_SELECT_JS = """
+<script>
+(function() {
+  var doc = window.parent.document;
+  if (doc.__vdNumberSelectAttached) return;
+  doc.__vdNumberSelectAttached = true;
+  doc.addEventListener('focusin', function(e) {
+    var el = e.target;
+    if (el && el.tagName === 'INPUT' && el.closest('[data-testid="stNumberInput"]')) {
+      el.select();
+    }
+  });
+})();
+</script>
+"""
+
 
 def _load_valandro_logo_uri() -> str:
     """Mesma marca usada no Login — identidade consistente entre telas."""
@@ -392,6 +414,9 @@ def _custo_label(k: str) -> str:
         "agua": "Água",
         "internet": "Internet",
         "manutencao_equipamentos": "Manutenção Equip.",
+        "seguranca": "Segurança",
+        "sistemas_voip": "Sistemas VOIP",
+        "perto": "Perto",
     }
     return labels.get(k, k.replace("_", " ").title())
 
@@ -439,6 +464,75 @@ def _get_params_competencia(uid: str, mes_ref: str) -> dict:
     return params
 
 
+# ─── rascunho de trabalho (persistência de estado antes da aprovação) ───────
+# Sprint v1.1.1, item 1: os campos de entrada de uma unidade devem sobreviver
+# à navegação, ao fechamento da sessão e à reabertura — sem criar um novo
+# status de workflow. "Salvar estado" é automático a cada rerender; "Aprovar"
+# continua sendo a única ação que persiste parâmetros vigentes/lançamentos.
+
+_CHAVES_PATIO = [
+    "fat_patio", "fp_midia", "fp_eq", "fp_lona",
+    "fp_rec_car", "fp_energia", "fp_inv_car", "fp_saldo_car",
+    "fp_cond_r", "fp_cond_m", "fp_iptu_m",
+]
+
+
+def _chaves_estado_unidade(uid: str, u: dict) -> list[str]:
+    """Lista as chaves de session_state que compõem o estado de entrada de
+    uma unidade simples. Precisa refletir exatamente os widgets criados em
+    _inputs_parametros — mantidas juntas de propósito."""
+    tc = u.get("tipo_calculo", "")
+    chaves = [f"fat_{uid}"]
+    if u.get("tem_faturamento_carregadores"):
+        chaves.append(f"fat_car_{uid}")
+    if u.get("tem_receita_selos"):
+        chaves.append(f"selos_{uid}")
+    pe_default = float(u.get("ponto_equilibrio", 0.0))
+    has_pe = (pe_default > 0 or tc in (
+        "COM_ALIQUOTA", "COM_ALIQUOTA_CUMUL", "COM_ALIQUOTA_SPLIT",
+        "COM_FAIXAS", "PERCENTUAL_SIMPLES", "COM_ALIQUOTA_REPASSE_DUPLO",
+    )) and tc != "PATIO_MANUTENCAO"
+    if has_pe:
+        chaves.append(f"pe_{uid}")
+    if u.get("tem_base_taxa_cobranca"):
+        chaves.append(f"base_tc_{uid}")
+    for k in (u.get("custos_mensais") or {}):
+        chaves.append(f"custo_{uid}_{k}")
+    for k in (u.get("custos_variaveis") or {}):
+        chaves.append(f"cv_{uid}_{k}")
+    return chaves
+
+
+def _restaurar_rascunho(uid: str, mes_ref: str, chaves: list[str]):
+    """Restaura o rascunho salvo (models.carregar_rascunho_unidade) sempre que
+    a tela é aberta numa nova sessão ou a competência muda dentro da mesma
+    sessão. Se não houver rascunho (ex.: acabou de ser limpo por uma
+    aprovação), as chaves são removidas para que os widgets voltem a usar o
+    valor vigente (YAML + DB de parâmetros) como padrão — que é exatamente o
+    valor usado na aprovação, no caso de reabertura."""
+    from app.models import carregar_rascunho_unidade
+    marker = f"_draft_ctx_{uid}"
+    if st.session_state.get(marker) == mes_ref:
+        return
+    for k in chaves:
+        st.session_state.pop(k, None)
+    draft = carregar_rascunho_unidade(uid, mes_ref)
+    if draft:
+        for k, v in draft.items():
+            if k in chaves:
+                st.session_state[k] = v
+    st.session_state[marker] = mes_ref
+
+
+def _salvar_rascunho(uid: str, mes_ref: str, chaves: list[str]):
+    """Persiste o valor atual de cada chave — chamado ao final de toda
+    renderização dos parâmetros, ou seja, a cada alteração de campo."""
+    from app.models import salvar_rascunho_unidade
+    estado = {k: st.session_state[k] for k in chaves if k in st.session_state}
+    if estado:
+        salvar_rascunho_unidade(uid, mes_ref, estado)
+
+
 def _params_anteriores(uid: str, mes_ref: str) -> dict:
     """Parâmetros vigentes na competência anterior."""
     ano, mes = int(mes_ref[:4]), int(mes_ref[5:7])
@@ -453,6 +547,7 @@ def _params_anteriores(uid: str, mes_ref: str) -> dict:
 
 def tela_fechamento(mes_ref: str):
     st.markdown(_CSS, unsafe_allow_html=True)
+    st_html(_NUMBER_SELECT_JS, height=0)
     _init_state()
 
     if st.session_state.get("selected_unit"):
@@ -735,6 +830,14 @@ def _tela_detalhe(mes_ref: str):
     # Carrega parâmetros vigentes (DB > YAML)
     u = get_unit_com_params(uid, mes_ref)
 
+    # Restaura o rascunho de trabalho (ou limpa, se não houver, para cair no
+    # valor vigente) antes de qualquer widget ser criado — ver item 1 da
+    # sprint v1.1.1.
+    if is_patio:
+        _restaurar_rascunho("patio", mes_ref, _CHAVES_PATIO)
+    else:
+        _restaurar_rascunho(uid, mes_ref, _chaves_estado_unidade(uid, u))
+
     report_uids = _report_uids_of(uid)
     statuses = [run.get(r, {}).get("status", "pendente") for r in report_uids]
     status = _pior_status(statuses)
@@ -890,14 +993,16 @@ def _inputs_parametros(uid: str, u: dict, mes_ref: str,
     tc = u.get("tipo_calculo", "")
     custos_extras: dict = {}
 
-    # Faturamento (+ Faturamento Carregadores, quando aplicável, na mesma linha
-    # — melhor aproveitamento horizontal, sem criar uma segunda coluna macro)
+    # Faturamento (+ Faturamento Carregadores ou Receita de Selos, quando
+    # aplicável, na mesma linha — melhor aproveitamento horizontal, sem criar
+    # uma segunda coluna macro)
     tem_fat_car = bool(u.get("tem_faturamento_carregadores"))
+    tem_selos = bool(u.get("tem_receita_selos"))
     fat_val = st.session_state.get(
         f"fat_{uid}",
         st.session_state.get("faturamentos", {}).get(uid, fat_importado or 0.0),
     )
-    f1, f2 = st.columns(2) if tem_fat_car else (st.container(), None)
+    f1, f2 = st.columns(2) if (tem_fat_car or tem_selos) else (st.container(), None)
     with f1:
         fat = st.number_input(
             "Faturamento (R$)",
@@ -914,6 +1019,19 @@ def _inputs_parametros(uid: str, u: dict, mes_ref: str,
             )
             if fat_car > 0:
                 custos_extras["fat_carregadores"] = fat_car
+    elif tem_selos:
+        with f2:
+            # Fiergs: soma-se ao faturamento antes do restante do cálculo —
+            # a memória de cálculo mostra a composição explícita, nunca soma
+            # silenciosamente (item 3 da sprint v1.1.1).
+            receita_selos = st.number_input(
+                "Receita de Selos (R$)",
+                min_value=0.0, step=100.0, format="%.2f",
+                value=float(st.session_state.get(f"selos_{uid}", 0.0)),
+                key=f"selos_{uid}",
+            )
+            if receita_selos > 0:
+                custos_extras["receita_selos"] = receita_selos
 
     # Ponto de Equilíbrio (+ Base Cálculo Taxa de Cobrança, quando ambos
     # existem, na mesma linha)
@@ -995,6 +1113,10 @@ def _inputs_parametros(uid: str, u: dict, mes_ref: str,
                 if diff:
                     st.markdown(f'<div class="vd-param-diff">{diff}</div>', unsafe_allow_html=True)
                 custos_extras[k] = val
+
+    # Rascunho de trabalho: persiste o estado atual de todos os campos acima
+    # a cada rerender — ou seja, a cada alteração feita pela operadora.
+    _salvar_rascunho(uid, mes_ref, _chaves_estado_unidade(uid, u))
 
     return fat, pe_override, custos_extras
 
@@ -1088,6 +1210,11 @@ def _barra_decisao_final(mes_ref: str, uid: str, r, resultados: dict, unit_run: 
                             if params:
                                 salvar_parametros(uid, mes_ref, params, alterado_por="aprovacao")
                             rm.mark_approved(mes_ref, uid)
+                            # A partir daqui, os parâmetros vigentes (aprovados)
+                            # são a fonte de verdade — o rascunho de trabalho
+                            # desta competência não é mais necessário.
+                            from app.models import limpar_rascunho_unidade
+                            limpar_rascunho_unidade(uid, mes_ref)
                             st.session_state.selected_unit = None
                             st.rerun()
                         except Exception as e:
@@ -1268,6 +1395,9 @@ def _detalhe_patio(uid: str, u: dict, mes_ref: str,
             cond_mj = st.number_input("Condomínio", min_value=0.0, step=10.0, format="%.2f", key="fp_cond_m")
             iptu_mj = st.number_input("IPTU",       min_value=0.0, step=10.0, format="%.2f", key="fp_iptu_m")
 
+    # Rascunho de trabalho do Pátio — mesmo mecanismo das unidades simples.
+    _salvar_rascunho("patio", mes_ref, _CHAVES_PATIO)
+
     with col_r:
         st.markdown('<p class="section-title">Resultado</p>', unsafe_allow_html=True)
         r = resultados.get("patio")
@@ -1285,25 +1415,76 @@ def _detalhe_patio(uid: str, u: dict, mes_ref: str,
             if fat <= 0:
                 st.error("Informe o faturamento.")
             else:
-                try:
-                    extras = {
-                        "receitas_midia": midia,
-                        "outros_custos_midia": {"investimentos_equipamentos": eq, "troca_de_lona": lona},
-                        "receita_carregadores": rec_car,
-                        "custo_energia_carregadores": en,
-                        "investimento_inicial_carregadores": inv_car,
-                        "saldo_carregadores": saldo_car,
-                        "custos_variaveis_real": {"condominio": cond_real},
-                        "custos_variaveis_maiojama": {"condominio": cond_mj, "iptu": iptu_mj},
-                    }
-                    resultado = calcular("patio", mes_ref, fat, extras_patio=extras)
-                    _salvar_resultado_session("patio", fat, resultado)
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"Erro: {e}")
+                extras = {
+                    "receitas_midia": midia,
+                    "outros_custos_midia": {"investimentos_equipamentos": eq, "troca_de_lona": lona},
+                    "receita_carregadores": rec_car,
+                    "custo_energia_carregadores": en,
+                    "investimento_inicial_carregadores": inv_car,
+                    "saldo_carregadores": saldo_car,
+                    "custos_variaveis_real": {"condominio": cond_real},
+                    "custos_variaveis_maiojama": {"condominio": cond_mj, "iptu": iptu_mj},
+                }
+                status_real = rm.get_unit_run(mes_ref, "patio_real")["status"]
+                status_maiojama = rm.get_unit_run(mes_ref, "patio_maiojama")["status"]
+                if _patio_precisa_confirmar_recalculo(status_real, status_maiojama):
+                    _dialog_confirmar_recalculo_patio(mes_ref, fat, extras, status_real, status_maiojama)
+                else:
+                    _executar_calculo_patio(mes_ref, fat, extras)
 
     st.divider()
     _barra_acoes_patio(mes_ref, resultados, run)
+
+
+def _patio_precisa_confirmar_recalculo(status_real: str, status_maiojama: str) -> bool:
+    """True quando recalcular o Pátio afetaria silenciosamente um contratante
+    já aprovado — os campos compartilhados (faturamento total, outros
+    serviços, carregadores) alimentam o cálculo de REAL e MAIOJAMA ao mesmo
+    tempo, mesmo que só um deles tenha sido reaberto."""
+    return status_real == "aprovado" or status_maiojama == "aprovado"
+
+
+def _patio_deve_limpar_rascunho(status_real: str, status_maiojama: str) -> bool:
+    """O rascunho sintético 'patio' só é limpo quando os DOIS contratantes
+    estiverem aprovados na competência — se apenas um estiver, o outro ainda
+    pode precisar dos mesmos campos compartilhados para ser calculado/aprovado."""
+    return status_real == "aprovado" and status_maiojama == "aprovado"
+
+
+def _executar_calculo_patio(mes_ref: str, fat: float, extras: dict):
+    try:
+        resultado = calcular("patio", mes_ref, fat, extras_patio=extras)
+        _salvar_resultado_session("patio", fat, resultado)
+        st.rerun()
+    except Exception as e:
+        st.error(f"Erro: {e}")
+
+
+@st.dialog("Confirmar recálculo do Pátio")
+def _dialog_confirmar_recalculo_patio(mes_ref: str, fat: float, extras: dict,
+                                       status_real: str, status_maiojama: str):
+    """Não recalcula silenciosamente: avisa explicitamente que os campos
+    compartilhados do Pátio também alimentam o cálculo do contratante já
+    aprovado, antes de prosseguir."""
+    aprovados = []
+    if status_real == "aprovado":
+        aprovados.append("REAL")
+    if status_maiojama == "aprovado":
+        aprovados.append("MAIOJAMA")
+    nomes = " e ".join(aprovados)
+    st.write(
+        f"**{nomes}** já está aprovado nesta competência. Os campos compartilhados "
+        "(faturamento total, outros serviços, carregadores) alimentam o cálculo dos "
+        f"dois contratantes ao mesmo tempo — recalcular agora também recalcula os "
+        f"valores de {nomes}, mesmo que não tenha sido reaberto."
+    )
+    c1, c2 = st.columns(2)
+    with c1:
+        if st.button("Cancelar", use_container_width=True):
+            st.rerun()
+    with c2:
+        if st.button("Recalcular mesmo assim", type="primary", use_container_width=True):
+            _executar_calculo_patio(mes_ref, fat, extras)
 
 
 def _barra_acoes_patio(mes_ref: str, resultados: dict, run: dict):
@@ -1350,6 +1531,17 @@ def _barra_acoes_patio(mes_ref: str, resultados: dict, run: dict):
                             rm.generate_report(mes_ref, sub_uid, split_r,
                                                patio_split_id=split_id, patio_resultado=r_patio)
                             rm.mark_approved(mes_ref, sub_uid)
+                            # Limpa o rascunho compartilhado só quando REAL e
+                            # MAIOJAMA já estiverem os dois aprovados nesta
+                            # competência — enquanto só um estiver, o outro
+                            # ainda pode precisar dos mesmos campos.
+                            outro_uid = "patio_maiojama" if sub_uid == "patio_real" else "patio_real"
+                            outro_status = rm.get_unit_run(mes_ref, outro_uid)["status"]
+                            status_real = "aprovado" if sub_uid == "patio_real" else outro_status
+                            status_maiojama = "aprovado" if sub_uid == "patio_maiojama" else outro_status
+                            if _patio_deve_limpar_rascunho(status_real, status_maiojama):
+                                from app.models import limpar_rascunho_unidade
+                                limpar_rascunho_unidade("patio", mes_ref)
                             st.rerun()
                         except Exception as e:
                             st.error(str(e))
@@ -1393,8 +1585,27 @@ def _mostrar_resultado_unit(r: ResultadoUnidade):
             col.metric(lbl, val)
 
     # DRE resumida
+    receita_selos = extras.get("receita_selos", 0.0)
+    fat_carregadores = extras.get("fat_carregadores", 0.0)
     rows = []
-    if r.subtotal and r.subtotal != r.faturamento:
+    if receita_selos:
+        # Fiergs: composição explícita — nunca soma silenciosamente.
+        rows.append(("Faturamento", _fmt(r.faturamento - receita_selos)))
+        rows.append(("Receita de Selos", _fmt(receita_selos)))
+        rows.append(("Receita Bruta", _fmt(r.faturamento)))
+        if r.subtotal and r.subtotal != r.faturamento:
+            rows.append(("(-) Impostos / ISS", _fmt(r.faturamento - r.subtotal)))
+            rows.append(("Subtotal", _fmt(r.subtotal)))
+    elif fat_carregadores:
+        # In 1183: Total Faturamento = Estacionamento + Carregadores — mesma
+        # composição explícita já usada no PDF (_prestacao_padrao).
+        rows.append(("Faturamento Estacionamento", _fmt(r.faturamento - fat_carregadores)))
+        rows.append(("(+) Faturamento Carregadores", _fmt(fat_carregadores)))
+        rows.append(("Total Faturamento", _fmt(r.faturamento)))
+        if r.subtotal and r.subtotal != r.faturamento:
+            rows.append(("(-) Impostos / ISS", _fmt(r.faturamento - r.subtotal)))
+            rows.append(("Subtotal", _fmt(r.subtotal)))
+    elif r.subtotal and r.subtotal != r.faturamento:
         rows.append(("Receita Bruta", _fmt(r.faturamento)))
         rows.append(("(-) Impostos / ISS", _fmt(r.faturamento - r.subtotal)))
         rows.append(("Subtotal", _fmt(r.subtotal)))
@@ -1418,13 +1629,14 @@ def _mostrar_resultado_unit(r: ResultadoUnidade):
 
 
 def _mostrar_resultado_patio(r: ResultadoPatio):
-    col_r, col_m = st.columns(2)
-    with col_r:
-        st.caption("**REAL (53,52%)**")
-        _mostrar_resultado_unit(r.real)
-    with col_m:
-        st.caption("**MAIOJAMA (46,48%)**")
-        _mostrar_resultado_unit(r.maiojama)
+    # Um contratante abaixo do outro — evita a rolagem horizontal que a
+    # exibição lado a lado forçava dentro da coluna de resultado (item 7 da
+    # sprint v1.1.1). Nenhuma regra de cálculo foi alterada, só o layout.
+    st.caption("**REAL (53,52%)**")
+    _mostrar_resultado_unit(r.real)
+    st.divider()
+    st.caption("**MAIOJAMA (46,48%)**")
+    _mostrar_resultado_unit(r.maiojama)
     if r.outros_servicos:
         os_d = r.outros_servicos
         st.caption(f"Outros Serviços: resultado {_fmt(os_d.get('resultado',0))} | repasse {_fmt(os_d.get('repasse_total',0))}")

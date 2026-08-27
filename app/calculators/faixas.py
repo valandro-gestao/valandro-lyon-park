@@ -22,11 +22,18 @@ def calcular_com_faixas(cfg: dict, mes: str, faturamento: float,
     pe = pe_override if pe_override is not None else cfg.get("ponto_equilibrio", 0.0)
     faixas = cfg["faixas"]
 
-    # Base de cálculo da taxa de cobrança: pode ser um campo separado ou o faturamento bruto
-    base_taxa_cob = float((custos_extras or {}).get("base_calculo_taxa_cobranca", faturamento))
+    # Receita de Selos (Fiergs): soma-se ao faturamento antes do restante do
+    # cálculo. Mantida separada em `extras` para a memória de cálculo exibir
+    # a composição explícita (Faturamento + Receita de Selos = Receita Bruta),
+    # em vez de somar silenciosamente.
+    receita_selos = float((custos_extras or {}).get("receita_selos", 0.0))
+    receita_bruta = round(faturamento + receita_selos, 2)
+
+    # Base de cálculo da taxa de cobrança: pode ser um campo separado ou a receita bruta
+    base_taxa_cob = float((custos_extras or {}).get("base_calculo_taxa_cobranca", receita_bruta))
     taxa_cob_valor = round(base_taxa_cob * taxa_cob_pct, 2)
 
-    subtotal = round(faturamento * (1 - aliq) - taxa_cob_valor, 2)
+    subtotal = round(receita_bruta * (1 - aliq) - taxa_cob_valor, 2)
 
     # Custos mensais fixos (condomínio, IPTU, energia — ex: Ekos, OKA)
     custos = {}
@@ -36,7 +43,7 @@ def calcular_com_faixas(cfg: dict, mes: str, faturamento: float,
     for k, v in (cfg.get("custos_variaveis") or {}).items():
         custos[k] = float(custos_extras.get(k, v) if custos_extras else v)
     # Custos extras dinâmicos (eventos etc.)
-    _excluir = {"base_calculo_taxa_cobranca", "ponto_equilibrio_override"}
+    _excluir = {"base_calculo_taxa_cobranca", "ponto_equilibrio_override", "receita_selos"}
     for k, v in (custos_extras or {}).items():
         if k not in custos and k not in _excluir and v:
             custos[k] = float(v)
@@ -70,11 +77,13 @@ def calcular_com_faixas(cfg: dict, mes: str, faturamento: float,
         "taxa_cobranca_valor": taxa_cob_valor,
         "faixas_detalhe": faixas_detalhe,
     }
+    if receita_selos:
+        extras["receita_selos"] = receita_selos
 
     return ResultadoUnidade(
         unidade_id=cfg["id"],
         mes_referencia=mes,
-        faturamento=faturamento,
+        faturamento=receita_bruta,
         aliquota_imposto=aliq,
         subtotal=subtotal,
         ponto_equilibrio=pe,

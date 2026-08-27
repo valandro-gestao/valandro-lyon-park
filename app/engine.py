@@ -130,10 +130,11 @@ def seed_saldos_iniciais():
     from app.models import get_db
     init_db()
     saldos = {
+        # in_1183 removido (v1.1.1): a unidade não usa mais COM_ALIQUOTA_CUMUL
+        # e não tem mecanismo de prejuízo acumulado — ver data/units.yaml.
         "mw_tristeza": -632029.12,
         "ilp": 0.0,
         "dom_pedro": -171239.32,
-        "in_1183": 0.0,
         "viva_trindade": -149050.05,
         "anitta_mall": 0.0,
     }

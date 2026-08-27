@@ -34,13 +34,22 @@ def calcular_com_aliquota(cfg: dict, mes: str, faturamento: float,
     pe = pe_override if pe_override is not None else cfg.get("ponto_equilibrio", 0.0)
     aliq = cfg.get("aliquota_imposto", 0.0)
     pct = cfg.get("percentual_aluguel", 0.0)
-    subtotal = round(faturamento * (1 - aliq), 2)
+
+    # Faturamento pode incluir carregadores (In 1183: Total Faturamento =
+    # Estacionamento + Carregadores, conforme Memória de Cálculo). Não afeta
+    # unidades que não usam esse campo — fat_carregadores é 0.0 por padrão.
+    fat_carregadores = float((custos_extras or {}).get("fat_carregadores", 0.0))
+    faturamento_total = faturamento + fat_carregadores
+
+    subtotal = round(faturamento_total * (1 - aliq), 2)
     resultado = round(max(subtotal - pe, 0.0), 2)
     aluguel = round(resultado * pct, 2)
 
     extras: dict = {}
+    if fat_carregadores:
+        extras["fat_carregadores"] = fat_carregadores
 
-    # Investimentos (FK e similares): dedução do aluguel → saldo_a_pagar
+    # Investimentos (FK, In 1183 e similares): dedução do aluguel → saldo_a_pagar
     investimentos = float((custos_extras or {}).get("investimentos", 0.0))
     if investimentos == 0.0:
         investimentos = float((cfg.get("custos_variaveis") or {}).get("investimentos", 0.0))
@@ -51,7 +60,7 @@ def calcular_com_aliquota(cfg: dict, mes: str, faturamento: float,
     return ResultadoUnidade(
         unidade_id=cfg["id"],
         mes_referencia=mes,
-        faturamento=faturamento,
+        faturamento=faturamento_total,
         aliquota_imposto=aliq,
         subtotal=subtotal,
         ponto_equilibrio=pe,

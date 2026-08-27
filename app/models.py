@@ -38,6 +38,11 @@ _PARAM_META: dict[str, tuple[str, str]] = {
     "faixas_aluguel":                           ("json",       "Faixas de Aluguel"),
     "splits":                                   ("json",       "Splits de Resultado"),
     "repasses":                                 ("json",       "Repasses Contratuais"),
+    # Custos variáveis — Viva Open Mall (v1.1.1)
+    "custos_variaveis.seguranca":                ("moeda",      "Segurança"),
+    "custos_variaveis.internet":                 ("moeda",      "Internet"),
+    "custos_variaveis.sistemas_voip":            ("moeda",      "Sistemas VOIP"),
+    "custos_variaveis.perto":                    ("moeda",      "Perto"),
 }
 
 
@@ -133,6 +138,19 @@ def init_db():
 
             CREATE INDEX IF NOT EXISTS idx_params_unit_comp
                 ON parametros_vigentes (unidade_id, parametro, competencia_inicio);
+
+            -- Rascunho de trabalho (v1.1.1): estado bruto dos campos de entrada
+            -- de uma unidade, salvo a cada alteração, antes da aprovação.
+            -- Não afeta lançamentos, saldos acumulados nem parâmetros vigentes.
+            -- Salvar estado != aprovar: este rascunho é apenas o trabalho em
+            -- andamento da operadora, limpo quando a unidade é aprovada.
+            CREATE TABLE IF NOT EXISTS rascunhos_unidade (
+                unidade_id TEXT NOT NULL,
+                mes_referencia TEXT NOT NULL,
+                dados_json TEXT NOT NULL,
+                atualizado_em TEXT DEFAULT (datetime('now')),
+                PRIMARY KEY (unidade_id, mes_referencia)
+            );
         """)
         # Migration: adiciona colunas em DBs criados antes desta versão
         for col in ("tipo_dado TEXT", "descricao TEXT"):
@@ -447,6 +465,49 @@ def get_lancamentos_mes(mes_referencia: str) -> list[dict]:
             (mes_referencia,)
         ).fetchall()
         return [dict(r) for r in rows]
+
+
+# ─── rascunho de trabalho (persistência de estado antes da aprovação) ────────
+
+def salvar_rascunho_unidade(unidade_id: str, mes_ref: str, dados: dict):
+    """
+    Persiste o estado bruto dos campos de entrada de uma unidade (faturamento,
+    parâmetros, custos etc.), chamado a cada rerender da tela de detalhe.
+    Não toca lançamentos, saldos acumulados ou parâmetros vigentes — é apenas
+    o trabalho em andamento da operadora antes de aprovar.
+    """
+    with get_db() as conn:
+        conn.execute("""
+            INSERT INTO rascunhos_unidade (unidade_id, mes_referencia, dados_json, atualizado_em)
+            VALUES (?, ?, ?, datetime('now'))
+            ON CONFLICT(unidade_id, mes_referencia)
+            DO UPDATE SET dados_json=excluded.dados_json, atualizado_em=excluded.atualizado_em
+        """, (unidade_id, mes_ref, json.dumps(dados, ensure_ascii=False)))
+
+
+def carregar_rascunho_unidade(unidade_id: str, mes_ref: str) -> dict | None:
+    """Retorna o último rascunho salvo para a unidade/competência, ou None."""
+    with get_db() as conn:
+        row = conn.execute(
+            "SELECT dados_json FROM rascunhos_unidade WHERE unidade_id=? AND mes_referencia=?",
+            (unidade_id, mes_ref)
+        ).fetchone()
+    if not row:
+        return None
+    try:
+        return json.loads(row["dados_json"])
+    except (json.JSONDecodeError, TypeError):
+        return None
+
+
+def limpar_rascunho_unidade(unidade_id: str, mes_ref: str):
+    """Remove o rascunho após a aprovação — os parâmetros vigentes passam a
+    ser a fonte de verdade a partir daqui (memória operacional)."""
+    with get_db() as conn:
+        conn.execute(
+            "DELETE FROM rascunhos_unidade WHERE unidade_id=? AND mes_referencia=?",
+            (unidade_id, mes_ref)
+        )
 
 
 def get_historico_anual(unidade_id: str) -> list[dict]:

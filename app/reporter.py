@@ -145,6 +145,9 @@ _CUSTO_LABELS: dict[str, str] = {
     "instalacoes":      "Manutenção Instalações",
     "investimentos_equipamentos": "Investimentos / Equipamentos",
     "troca_de_lona":    "Troca de Lona",
+    "seguranca":        "Segurança",
+    "sistemas_voip":    "Sistemas VOIP",
+    "perto":            "Perto",
 }
 
 
@@ -226,7 +229,7 @@ def _prestacao_padrao(r: ResultadoUnidade, cfg: dict) -> Prestacao:
                                       taxa_admin, "total"))
     else:
         linhas.append(LinhaPrestacao("Repasse", repasse, "total"))
-        # Dedução pós-repasse: investimentos (FK, In 1183) ou fundo_recomposicao (W Tower)
+        # Dedução pós-repasse: investimentos (FK) ou fundo_recomposicao (W Tower)
         for campo, label in (("investimentos", "(-) Investimentos"),
                               ("fundo_recomposicao", "(-) Fundo de Recomposição")):
             if extras.get(campo):
@@ -244,8 +247,15 @@ def _prestacao_faixas(r: ResultadoUnidade, cfg: dict) -> Prestacao:
     taxa_cob_pct = extras.get("taxa_cobranca", 0.0)
     taxa_cob_valor = extras.get("taxa_cobranca_valor", 0.0)
     base_taxa_cob = extras.get("base_taxa_cobranca", r.faturamento)
+    receita_selos = extras.get("receita_selos", 0.0)
 
-    linhas.append(LinhaPrestacao("Receita Bruta", r.faturamento, "subtotal"))
+    if receita_selos:
+        # Fiergs: composição explícita — nunca soma silenciosamente.
+        linhas.append(LinhaPrestacao("Faturamento", r.faturamento - receita_selos, "subtotal"))
+        linhas.append(LinhaPrestacao("(+) Receita de Selos", receita_selos, "normal"))
+        linhas.append(LinhaPrestacao("Receita Bruta", r.faturamento, "subtotal"))
+    else:
+        linhas.append(LinhaPrestacao("Receita Bruta", r.faturamento, "subtotal"))
     if aliq:
         imposto_valor = round(r.faturamento * aliq, 2)
         linhas.append(LinhaPrestacao(f"(-) Impostos ({aliq*100:.2f}%)", -imposto_valor, "deducao"))
