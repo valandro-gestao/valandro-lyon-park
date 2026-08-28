@@ -1,0 +1,152 @@
+{
+  "a_schneider": [
+    {
+      "aluguel_calculado": 16480.93,
+      "faturamento": 50085.86,
+      "mes_referencia": "2026-05",
+      "resultado": 29965.33
+    }
+  ],
+  "anitta_mall": [
+    {
+      "aluguel_calculado": 5356.38,
+      "faturamento": 31290.19,
+      "mes_referencia": "2026-05",
+      "resultado": 11229.47
+    }
+  ],
+  "axis": [
+    {
+      "aluguel_calculado": 22662.39,
+      "faturamento": 53874.85,
+      "mes_referencia": "2026-05",
+      "resultado": 32374.85
+    }
+  ],
+  "dom_pedro": [
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 11091.17,
+      "mes_referencia": "2026-05",
+      "resultado": -1523.73
+    }
+  ],
+  "ekos": [],
+  "fiergs": [
+    {
+      "aluguel_calculado": 79750.85,
+      "faturamento": 171662.0,
+      "mes_referencia": "2026-05",
+      "resultado": 93824.54
+    }
+  ],
+  "fk": [
+    {
+      "aluguel_calculado": 18873.8,
+      "faturamento": 45005.54,
+      "mes_referencia": "2026-05",
+      "resultado": 23592.25
+    }
+  ],
+  "ilp": [
+    {
+      "aluguel_calculado": 26668.66,
+      "faturamento": 72673.94,
+      "mes_referencia": "2026-05",
+      "resultado": 35558.21
+    }
+  ],
+  "in_1183": [
+    {
+      "aluguel_calculado": 30529.38,
+      "faturamento": 81659.77,
+      "mes_referencia": "2026-05",
+      "resultado": 43613.4
+    }
+  ],
+  "medcenter": [],
+  "monza": [
+    {
+      "aluguel_calculado": 38250.0,
+      "faturamento": 108385.82,
+      "mes_referencia": "2026-05",
+      "resultado": 108385.82
+    }
+  ],
+  "mw_tristeza": [
+    {
+      "aluguel_calculado": 563.46,
+      "faturamento": 36155.54,
+      "mes_referencia": "2026-05",
+      "resultado": 704.33
+    }
+  ],
+  "nl_2800": [
+    {
+      "aluguel_calculado": 7925.88,
+      "faturamento": 36972.03,
+      "mes_referencia": "2026-05",
+      "resultado": 31703.52
+    }
+  ],
+  "oka": [],
+  "park_tower": [
+    {
+      "aluguel_calculado": 16085.76,
+      "faturamento": 23448.63,
+      "mes_referencia": "2026-05",
+      "resultado": 20107.2
+    }
+  ],
+  "patio_maiojama": [
+    {
+      "aluguel_calculado": 123858.38,
+      "extras": {},
+      "faturamento": 175008.29,
+      "mes_referencia": "2026-05",
+      "resultado": 130377.24
+    }
+  ],
+  "patio_real": [
+    {
+      "aluguel_calculado": 142617.74,
+      "extras": {},
+      "faturamento": 201515.58,
+      "mes_referencia": "2026-05",
+      "resultado": 150123.94
+    }
+  ],
+  "praia_de_bellas": [
+    {
+      "aluguel_calculado": 33509.52,
+      "faturamento": 72097.79,
+      "mes_referencia": "2026-05",
+      "resultado": 44679.35
+    }
+  ],
+  "vasco": [
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 13021.85,
+      "mes_referencia": "2026-05",
+      "resultado": -3606.86
+    }
+  ],
+  "viva_open_mall": [],
+  "viva_trindade": [
+    {
+      "aluguel_calculado": 0.0,
+      "faturamento": 36010.05,
+      "mes_referencia": "2026-05",
+      "resultado": -9205.11
+    }
+  ],
+  "w_tower_caxias": [
+    {
+      "aluguel_calculado": 10023.95,
+      "faturamento": 57598.92,
+      "mes_referencia": "2026-05",
+      "resultado": 12529.94
+    }
+  ]
+}

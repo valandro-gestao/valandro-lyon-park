@@ -1242,7 +1242,7 @@ def _secao_historico_unificada(uid: str, unit_run: dict):
     apenas reunidos visualmente."""
     import pandas as pd
 
-    with st.expander("Histórico", expanded=False):
+    with st.expander("Histórico", expanded=False, key=f"vd-expander-hist-{uid}"):
         # ── Versões desta competência (workflow: gerar/revisar/aprovar) ─────
         st.markdown('<p class="vd-hist-sub">Versões desta competência</p>', unsafe_allow_html=True)
         tc1, tc2, tc3 = st.columns(3)
@@ -1328,10 +1328,15 @@ def _secao_historico_unificada(uid: str, unit_run: dict):
 
         dre_linhas = _build_dre_rows(lancamentos)
 
+        # Colunas do mais recente para o mais antigo (uso operacional) — só a
+        # ordem de exibição muda; _build_dre_rows acima continua decidindo
+        # quais linhas/custos aparecem a partir da ordem cronológica original.
+        lancamentos_recente_primeiro = list(reversed(lancamentos))
+
         rows = []
         for label, fn in dre_linhas:
             row = {"Indicador": label}
-            for l in lancamentos:
+            for l in lancamentos_recente_primeiro:
                 row[_mes_label(l["mes_ref"])] = fn(l)
             rows.append(row)
 
@@ -1556,6 +1561,11 @@ def _barra_acoes_patio(mes_ref: str, resultados: dict, run: dict):
                             except Exception as e:
                                 st.error(str(e))
 
+        # Histórico independente por contratante — mesma seção que qualquer
+        # outra unidade usa (_detalhe_simples já chama isto); o Pátio nunca
+        # chamava, então "Competências anteriores" nunca aparecia aqui.
+        _secao_historico_unificada(sub_uid, ur)
+
         st.divider()
 
 
@@ -1628,18 +1638,56 @@ def _mostrar_resultado_unit(r: ResultadoUnidade):
         )
 
 
+def _memoria_outros_servicos_patio(os_d: dict, split_id: str):
+    """Memória de cálculo de Outros Serviços — mesma estrutura do PDF
+    (reporter.py _build_patio): cada etapa explícita, sem combinar as duas
+    incidências (repasse 50% do resultado + rateio do contratante) numa
+    única linha. Fórmula inalterada — só a apresentação."""
+    import pandas as pd
+
+    rep_key = "repasse_real" if split_id == "real" else "repasse_maiojama"
+    nome_curto = "REAL" if split_id == "real" else "MAIOJAMA"
+    pct_rateio_str = "53,52%" if split_id == "real" else "46,48%"
+
+    receitas_midia = os_d.get("receitas_midia", 0.0)
+    subtotal = os_d.get("subtotal", 0.0)
+    despesas = sum((os_d.get("despesas") or {}).values())
+
+    rows = [
+        ("Receita de Mídias", _fmt(receitas_midia)),
+        ("(-) Impostos (14,25%)", _fmt(-(receitas_midia - subtotal))),
+        ("Subtotal", _fmt(subtotal)),
+        ("(-) Despesas", _fmt(-despesas)),
+        ("Resultado", _fmt(os_d.get("resultado", 0.0))),
+        ("Repasse 50%", _fmt(os_d.get("repasse_total", 0.0))),
+        (f"Rateio {nome_curto} ({pct_rateio_str})", _fmt(os_d.get(rep_key, 0.0))),
+    ]
+    st.caption("**Outros Serviços**")
+    st.dataframe(
+        pd.DataFrame(rows, columns=["", "Valor"]),
+        hide_index=True, use_container_width=True,
+        column_config={
+            "": st.column_config.TextColumn("", width="large"),
+            "Valor": st.column_config.TextColumn("Valor", width="medium"),
+        },
+    )
+
+
 def _mostrar_resultado_patio(r: ResultadoPatio):
     # Um contratante abaixo do outro — evita a rolagem horizontal que a
     # exibição lado a lado forçava dentro da coluna de resultado (item 7 da
     # sprint v1.1.1). Nenhuma regra de cálculo foi alterada, só o layout.
+    tem_outros = bool(r.outros_servicos and r.outros_servicos.get("receitas_midia", 0))
+
     st.caption("**REAL (53,52%)**")
     _mostrar_resultado_unit(r.real)
+    if tem_outros:
+        _memoria_outros_servicos_patio(r.outros_servicos, "real")
     st.divider()
     st.caption("**MAIOJAMA (46,48%)**")
     _mostrar_resultado_unit(r.maiojama)
-    if r.outros_servicos:
-        os_d = r.outros_servicos
-        st.caption(f"Outros Serviços: resultado {_fmt(os_d.get('resultado',0))} | repasse {_fmt(os_d.get('repasse_total',0))}")
+    if tem_outros:
+        _memoria_outros_servicos_patio(r.outros_servicos, "maiojama")
     if r.carregadores:
         c = r.carregadores
         st.caption(f"Carregadores: resultado {_fmt(c.get('resultado',0))} | repasse {_fmt(c.get('repasse_total',0))}")

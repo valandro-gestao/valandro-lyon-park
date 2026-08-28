@@ -61,6 +61,29 @@ def _get_lancamentos_ultimos_12(unidade_id: str, mes_ref: str) -> list[dict]:
     return [{"mes": r["mes_referencia"], **json.loads(r["resultado_json"])} for r in rows]
 
 
+def _com_mes_atual(lancamentos: list[dict], resultado, mes_ref: str) -> list[dict]:
+    """Garante que a competência sendo processada apareça no comparativo
+    mesmo quando ainda não foi salva em `lancamentos`.
+
+    Isso acontece sempre que o PDF é gerado antes da aprovação ("Gerar PDF"
+    não chama salvar_lancamento — só "Aprovar" chama, e o faz antes de gerar
+    o relatório). Nesse caso, `_get_lancamentos_ultimos_12` busca os 12
+    meses corretos (mes_ref + 11 anteriores), mas o próprio mes_ref ainda
+    não existe no banco — resultando em, no máximo, 11 linhas, mesmo
+    havendo histórico suficiente para 12. Não é um problema na consulta:
+    é a competência atual que ainda não foi persistida.
+
+    Se mes_ref já estiver presente (aprovação, ou reabertura já recalculada
+    e salva), não faz nada — o valor do banco nunca é substituído pelo
+    rascunho em memória.
+    """
+    if any(l["mes"] == mes_ref for l in lancamentos):
+        return lancamentos
+    atual = {"mes": mes_ref, **resultado.__dict__}
+    combinados = lancamentos + [atual]
+    return sorted(combinados, key=lambda l: l["mes"], reverse=True)[:12]
+
+
 def _comparativo_12m(lancamentos: list[dict]) -> list[ComparativoMes]:
     result = []
     for i, l in enumerate(lancamentos):
@@ -442,6 +465,7 @@ def build_report_data(resultado, mes_ref: str,
     )
 
     lancamentos = _get_lancamentos_ultimos_12(resultado.unidade_id, mes_ref)
+    lancamentos = _com_mes_atual(lancamentos, resultado, mes_ref)
     comparativo = _comparativo_12m(lancamentos)
     n_meses = len(lancamentos)
 
@@ -508,6 +532,7 @@ def _build_patio(r: ResultadoPatio, split_id: str, mes_ref: str, hoje: str) -> R
     )
 
     lancamentos = _get_lancamentos_ultimos_12(split_r.unidade_id, mes_ref)
+    lancamentos = _com_mes_atual(lancamentos, split_r, mes_ref)
     comparativo = _comparativo_12m(lancamentos)
     n_meses_split = len(lancamentos)
 
@@ -539,6 +564,8 @@ def _build_patio(r: ResultadoPatio, split_id: str, mes_ref: str, hoje: str) -> R
     os_data = r.outros_servicos
     if os_data and os_data.get("receitas_midia", 0):
         rep_key = "repasse_real" if split_id == "real" else "repasse_maiojama"
+        nome_curto = "REAL" if split_id == "real" else "MAIOJAMA"
+        pct_rateio_str = "53,52%" if split_id == "real" else "46,48%"
         bloco_os = BlocoReceita(
             titulo="Outros Serviços — Mídias",
             linhas=[
@@ -551,8 +578,12 @@ def _build_patio(r: ResultadoPatio, split_id: str, mes_ref: str, hoje: str) -> R
             ],
             repasse_label=f"Repasse 50% ({split_nome})",
         )
-        bloco_os.linhas.append(LinhaPrestacao(
-            f"Repasse 50% ({split_nome})", os_data[rep_key], "total"))
+        # Mesma fórmula de sempre (patio.py: repasse_total = resultado × 50%;
+        # valor do contratante = repasse_total × percentual de rateio) — as
+        # duas incidências continuam em etapas explícitas, mas a última linha
+        # já traz o rótulo do rateio e o valor final juntos.
+        bloco_os.linhas.append(LinhaPrestacao("Repasse 50%", os_data["repasse_total"], "normal"))
+        bloco_os.linhas.append(LinhaPrestacao(f"Rateio {nome_curto} ({pct_rateio_str})", os_data[rep_key], "total"))
         blocos.append(bloco_os)
 
     car = r.carregadores

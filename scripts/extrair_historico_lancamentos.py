@@ -46,13 +46,46 @@ import openpyxl
 EXCEL = os.path.expanduser("~/Downloads/Lyon - Dados para Relatórios.xlsx")
 SAIDA = os.path.join(os.path.dirname(__file__), "..", "migrations", "data", "historico_lancamentos.json")
 
-# Corte: a partir daqui o histórico já é alimentado pela própria ferramenta
-# (lancamentos já tem linhas reais desde 2026-05). Extraído mesmo assim —
-# a migração decide o que já existe — mas não vamos além do que a planilha
-# efetivamente tem.
+# MES_CORTE é um limite EXCLUSIVO: toda competência >= MES_CORTE é descartada
+# por este script (comparação de string "AAAA-MM", então o próprio mês do
+# corte também é descartado, não só os posteriores a ele).
+#
+# A suposição original era "a partir de MES_CORTE, lancamentos já é
+# alimentado pela própria ferramenta, para toda unidade" — isso NÃO é
+# garantido por unidade: em 2026-08 descobrimos que várias unidades (ex.
+# In 1183) não tinham nenhum lançamento real em 2026-05, então essa
+# competência ficou de fora tanto da planilha quanto do bootstrap da
+# migração 0002, e o comparativo do PDF não alcançava 12 meses.
+#
+# Correção: NÃO mude este valor nem a lógica abaixo para "consertar" isso —
+# migrations/data/historico_lancamentos.json já foi publicado pela migração
+# 0002 e não deve ser regenerado (ver migrations/0002_bootstrap_historico_lancamentos.py).
+# O backfill da competência que ficou de fora é feito à parte, por
+# scripts/extrair_maio_2026.py + migrations/0004_backfill_maio_2026.py,
+# reaproveitando os mapeamentos de coluna deste arquivo com o parâmetro
+# `apenas_mes` das funções de extração abaixo — sem alterar o que já foi
+# extraído para as competências anteriores a MES_CORTE.
 MES_CORTE = "2026-05"
 
 COL_MES = 1  # coluna B em todas as abas "mês em linha"
+
+
+def _deve_incluir(mes_referencia: str | None, apenas_mes: str | None) -> bool:
+    """Decide se uma competência entra na extração.
+
+    - `apenas_mes` é None (uso normal, default): inclui tudo que for
+      estritamente anterior a MES_CORTE — comportamento idêntico ao
+      original, preservado para não alterar o que a migração 0002 já usa.
+    - `apenas_mes` definido: inclui SOMENTE essa competência exata, ignorando
+      MES_CORTE — usado pelo backfill pontual de uma competência específica
+      que ficou de fora (ex.: 2026-05), sem reabrir o corte para todo o
+      restante do histórico.
+    """
+    if mes_referencia is None:
+        return False
+    if apenas_mes is not None:
+        return mes_referencia == apenas_mes
+    return mes_referencia < MES_CORTE
 
 
 def _mes_ref(data) -> str | None:
@@ -114,7 +147,8 @@ MAPA_LINHA_RESULTADO_DERIVADO = {
 }
 
 
-def _extrair_linha(wb, aba, col_fat, rot_fat, col_res, rot_res, col_al1, rot_al1, col_al2, rot_al2):
+def _extrair_linha(wb, aba, col_fat, rot_fat, col_res, rot_res, col_al1, rot_al1, col_al2, rot_al2,
+                    apenas_mes=None):
     if aba not in wb.sheetnames:
         return [], [f"aba '{aba}' não encontrada"]
     ws = wb[aba]
@@ -131,7 +165,7 @@ def _extrair_linha(wb, aba, col_fat, rot_fat, col_res, rot_res, col_al1, rot_al1
     registros = []
     for row in ws.iter_rows(min_row=4, values_only=True):
         mes = _mes_ref(row[COL_MES] if len(row) > COL_MES else None)
-        if mes is None or mes >= MES_CORTE:
+        if not _deve_incluir(mes, apenas_mes):
             continue
         fat = _num(row[col_fat]) if col_fat < len(row) else None
         if fat is None or fat == 0:
@@ -149,7 +183,8 @@ def _extrair_linha(wb, aba, col_fat, rot_fat, col_res, rot_res, col_al1, rot_al1
     return registros, []
 
 
-def _extrair_linha_resultado_derivado(wb, aba, col_fat, rot_fat, col_res_fonte, rot_res_fonte, col_alug, rot_alug):
+def _extrair_linha_resultado_derivado(wb, aba, col_fat, rot_fat, col_res_fonte, rot_res_fonte, col_alug, rot_alug,
+                                       apenas_mes=None):
     if aba not in wb.sheetnames:
         return [], [f"aba '{aba}' não encontrada"]
     ws = wb[aba]
@@ -167,7 +202,7 @@ def _extrair_linha_resultado_derivado(wb, aba, col_fat, rot_fat, col_res_fonte, 
     registros = []
     for row in ws.iter_rows(min_row=4, values_only=True):
         mes = _mes_ref(row[COL_MES] if len(row) > COL_MES else None)
-        if mes is None or mes >= MES_CORTE:
+        if not _deve_incluir(mes, apenas_mes):
             continue
         fat = _num(row[col_fat]) if col_fat < len(row) else None
         if fat is None or fat == 0:
@@ -199,7 +234,7 @@ MESES_PT = ["janeiro", "fevereiro", "março", "abril", "maio", "junho",
             "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"]
 
 
-def _extrair_transposto(wb, aba, row_fat, rot_fat, row_res, rot_res, row_alug, rot_alug):
+def _extrair_transposto(wb, aba, row_fat, rot_fat, row_res, rot_res, row_alug, rot_alug, apenas_mes=None):
     if aba not in wb.sheetnames:
         return [], [f"aba '{aba}' não encontrada"]
     ws = wb[aba]
@@ -238,7 +273,7 @@ def _extrair_transposto(wb, aba, row_fat, rot_fat, row_res, rot_res, row_alug, r
         if fat is None or fat == 0:
             continue
         mes_referencia = f"{ano_col:04d}-{mes_num:02d}"
-        if mes_referencia >= MES_CORTE:
+        if not _deve_incluir(mes_referencia, apenas_mes):
             continue
         resultado = _num(res_row[col_idx]) if col_idx < len(res_row) else None
         aluguel = _floor0(_num(alug_row[col_idx])) if col_idx < len(alug_row) else 0.0
@@ -262,7 +297,7 @@ _PATIO_COLS = {
 }
 
 
-def _extrair_patio(wb):
+def _extrair_patio(wb, apenas_mes=None):
     aba = "Patio"
     if aba not in wb.sheetnames:
         msg = f"aba '{aba}' não encontrada"
@@ -281,7 +316,7 @@ def _extrair_patio(wb):
     saida = {"patio_real": [], "patio_maiojama": []}
     for row in ws.iter_rows(min_row=4, values_only=True):
         mes = _mes_ref(row[COL_MES] if len(row) > COL_MES else None)
-        if mes is None or mes >= MES_CORTE:
+        if not _deve_incluir(mes, apenas_mes):
             continue
 
         fat_real = _num(row[c["fat_real"]]) if len(row) > c["fat_real"] else None
