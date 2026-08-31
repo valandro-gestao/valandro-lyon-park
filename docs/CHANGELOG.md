@@ -114,6 +114,57 @@ Primeira versão em produção. Cobre o ciclo completo de fechamento mensal das 
 
 ---
 
+## [1.1.1] - 2026-08-27 — Homologação Operacional e Robustez da Plataforma
+
+### Added
+
+- Persistência automática de rascunhos por competência.
+- Receita de Selos para a unidade Fiergs.
+- Novos custos variáveis da unidade Viva Open.
+- Infraestrutura de migrations SQLite.
+
+### Changed
+
+- Correção do cálculo da unidade IN 1183 conforme a memória de cálculo oficial.
+- Correção da vigência histórica do percentual de repasse do Medcenter.
+- Persistência dos dados ao sair e retornar para uma unidade.
+- Seleção automática do conteúdo dos campos numéricos ao receber foco.
+- Ajustes operacionais identificados durante a primeira homologação com a operadora.
+
+### Infrastructure
+
+- Criação do runner de migrations.
+- Migration `0001_corrigir_percentual_medcenter`.
+- Ajustes de empacotamento Docker para suportar scripts e migrations em produção.
+
+---
+
+## [1.1.2] - 2026-08-28 — Histórico e Consolidação dos Relatórios
+
+### Added
+
+- Restauração do histórico mensal legado (~5 anos, desde 2021) para alimentar o comparativo de 12 meses dos PDFs — antes disponível apenas no histórico anual.
+- Histórico operacional independente para Pátio REAL e Pátio MAIOJAMA, na tela de unidade — antes inexistente para o Pátio.
+- Memória de cálculo de Outros Serviços (Pátio) detalhada por etapa — Resultado, Repasse 50% e Rateio por contratante com o valor final, em vez de um único valor combinado.
+
+### Changed
+
+- Comparativo mensal do PDF corrigido para considerar a competência atual mesmo antes da aprovação (antes, "Gerar PDF" sem aprovação prévia podia mostrar 11 meses ou menos, mesmo havendo histórico suficiente para 12).
+- Histórico operacional da unidade (tela e CSV exportado) reordenado: competência mais recente primeiro, mais antiga por último.
+- Layout do Pátio corrigido para largura total — memória de cálculo de REAL e MAIOJAMA deixa de ficar restrita à largura de uma coluna estreita.
+- Memória de Outros Serviços consistente entre tela e PDF, com a mesma estrutura de etapas nos dois.
+- Nenhuma alteração de regra de cálculo, rateio ou aprovação além das correções já homologadas nesta versão.
+
+### Infrastructure
+
+- Estrutura própria de migrations (`migrations/`), com executor idempotente e registro de aplicação em `schema_migrations` — não substitui nem antecipa Alembic (reservado para a migração a Supabase em v2.0.0).
+- `migrations/0002_bootstrap_historico_lancamentos.py` — bootstrap do histórico mensal em `lancamentos`, a partir de um arquivo de dados versionado (`migrations/data/historico_lancamentos.json`) extraído da planilha histórica original.
+- `migrations/0003_corrigir_historico_wtower.py` — correção do histórico anual do W-Tower Caxias (`historico_anual`), cuja importação original usava a coluna de IPTU em vez do repasse real.
+- `migrations/0004_backfill_maio_2026.py` — backfill pontual da competência 2026-05 para unidades que não tinham lançamento real nem foram cobertas pelo bootstrap inicial, sem sobrescrever nenhum lançamento real já existente.
+- Scripts de extração (`scripts/extrair_historico_lancamentos.py`, `scripts/extrair_maio_2026.py`) — uso local e pontual, não fazem parte do runtime da aplicação.
+
+---
+
 ## Próxima versão
 
 Próxima versão planejada: v1.2.0 — Workflow.

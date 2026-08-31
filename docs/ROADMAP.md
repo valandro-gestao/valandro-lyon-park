@@ -1,7 +1,7 @@
 # ROADMAP — Lyon Park Fechamento Mensal
 
 **Produto:** Gerador de Relatórios Lyon Park  
-**Versão atual:** 1.1.0  
+**Versão atual:** 1.1.2  
 **Padrão de versões:** [Semantic Versioning 2.0.0](https://semver.org)  
 **Referência arquitetural:** [PADRAO_TECNOLOGICO_VALANDRO.md](./PADRAO_TECNOLOGICO_VALANDRO.md)
 
@@ -18,18 +18,22 @@ Este documento descreve a estratégia de evolução do Lyon Park como **produto*
 
 **Princípio central:** nenhuma versão pode interromper o fechamento mensal das 23 unidades. Qualquer entrega que ameace isso está mal escalonada e deve ser redimensionada.
 
+**Ordem de prioridade deste roadmap:** operação real → autonomia da operadora → automação do trabalho manual → evolução arquitetural. Ver [Princípios que guiam este roadmap](#princípios-que-guiam-este-roadmap).
+
 ---
 
 ## Linha do tempo
 
 ```
-ago/2026   v1.0.0  Produção              — lançado em 12/08/2026
-           v1.1.0  Consolidação          — lançado em 14/08/2026
-           v1.2.0  Operação Assistida
-           v1.3.0  Workflow
-           v1.4.0  Parametrização
+ago/2026   v1.0.0  Produção                           — concluída em 12/08/2026
+           v1.1.0  Consolidação Operacional           — concluída em 14/08/2026
+           v1.1.1  Homologação e Robustez             — concluída em 27/08/2026
+           v1.1.2  Histórico e Consolidação           — concluída em 28/08/2026
+           v1.2.0  Autonomia Operacional               — próxima versão
+set/2026   ·       Marco: fechamento de ago/2026 100% pela ferramenta
+           v1.3.0  Automação de Entradas e Fechamento
+           v1.4.0  Workflow
            v1.5.0  Analytics
-           v1.6.0  Automações Operacionais
 2027+      v2.0.0  Migração Supabase (MAJOR)
            v2.1.0  Perfis e Auditoria
            v2.2.0  API REST
@@ -41,6 +45,7 @@ ago/2026   v1.0.0  Produção              — lançado em 12/08/2026
 
 ## v1.0.0 — Produção
 **Lançamento:** 15/08/2026
+**Status:** Concluída.
 
 ### Problema que resolve
 A Lyon Park precisava de um sistema para fechar mensalmente 23 unidades com contratos distintos — cada uma com sua própria fórmula de cálculo, parâmetros e formato de relatório — e gerar os PDFs de prestação de contas para envio aos contratantes. Antes deste sistema, esse trabalho era feito manualmente em planilhas.
@@ -74,6 +79,7 @@ Perfis de usuário, tela de parametrização, Supabase, API REST, testes automat
 
 ## v1.1.0 — Consolidação Operacional
 **Lançamento:** 14/08/2026
+**Status:** Concluída.
 
 ### Problema que resolve
 A v1.0.0 era funcionalmente completa, mas a interface herdou os padrões visuais padrão do Streamlit sem identidade. Qualquer novo desenvolvimento produziria telas inconsistentes entre si. Antes de evoluir funcionalmente o produto, era necessário estabelecer a linguagem visual como referência estável.
@@ -99,93 +105,189 @@ Cabeçalho com mesma identidade do Dashboard. Parâmetros à esquerda, resultado
 `docs/03_DESIGN_LANGUAGE.md` com princípios permanentes, regras consolidadas, tokens CSS oficiais, decisão de tipografia e hierarquia de identidade de marca.
 
 ### Fora do escopo desta versão
-Comparativo com mês anterior, alertas de parâmetro, logs operacionais estruturados, correções de bugs de cálculo. Esses itens passam para v1.2.0.
+Comparativo com mês anterior, alertas de parâmetro, logs operacionais estruturados, correções de bugs de cálculo. Esses itens passam para versões seguintes.
 
 ### Por que esta versão veio antes das melhorias operacionais
 Estabelecer o Design Language primeiro evita que cada nova funcionalidade crie seus próprios padrões visuais ad hoc. Com a linguagem estabelecida, toda tela futura tem uma referência clara — e o custo de manter consistência visual cai progressivamente.
 
 ---
 
-## v1.2.0 — Operação Assistida
-
-> **Nota de sequência:** esta versão corresponde ao que era originalmente descrito como v1.1.0 no plano inicial. A v1.1.0 foi ocupada pela Consolidação Operacional (Design Language), deslocando as versões seguintes em um número.
+## v1.1.1 — Homologação Operacional e Robustez da Plataforma
+**Lançamento:** 27/08/2026
+**Status:** Concluída.
 
 ### Problema que resolve
-As primeiras competências reais em produção são as mais arriscadas. A operadora aprende o sistema, o sistema encontra seus primeiros edge cases reais, e a Valandro precisa conseguir diagnosticar problemas rapidamente. O sistema faz o trabalho, mas não auxilia a operadora a ter confiança de que está fazendo certo.
+A primeira rodada de homologação real com a operadora expôs problemas que só aparecem em uso operacional de verdade: dados digitados se perdiam ao sair de uma unidade antes de aprovar, um cálculo de repasse divergia do contrato real (In 1183), a vigência histórica de um percentual estava incorreta desde o início (Medcenter), e a operadora perdia tempo apagando o valor de campos numéricos antes de digitar um novo. Nenhum desses problemas é arquitetural, mas todos afetam a confiança da operadora no sistema.
 
 ### Valor entregue
-A operadora consegue detectar erros antes de aprovar — não depois. Um número inesperado é sinalizado antes de virar PDF. A Valandro consegue diagnosticar o que aconteceu em produção sem precisar acessar o servidor manualmente.
+A operadora deixa de perder trabalho digitado ao navegar entre unidades. Duas unidades passam a calcular exatamente o que o contrato determina. A base para corrigir dados históricos com segurança — migrations versionadas e idempotentes — passa a existir no projeto, preparando o terreno para a v1.1.2.
 
-### Principais funcionalidades
+### O que foi entregue
 
-**Comparativo automático com o mês anterior**
-Antes de aprovar, a operadora vê lado a lado o resultado atual e o do mês anterior para a mesma unidade. Variações grandes ficam visíveis antes de qualquer aprovação.
+**Persistência automática de rascunhos por competência**  
+Qualquer campo alterado numa unidade é salvo automaticamente, por competência, antes da aprovação. Sair da unidade ou perder a sessão não apaga mais o trabalho em andamento. Aprovar continua sendo uma ação separada — salvar estado não é aprovar.
 
-**Alerta de parâmetro fora do padrão**
-Se um valor editável difere significativamente do último aprovado (ex: ponto de equilíbrio alterado em mais de 20%), o sistema exibe um aviso antes de calcular. Evita aprovações por erro de digitação.
+**Correção do cálculo do In 1183**  
+Investigação contra a Memória de Cálculo oficial e a planilha histórica real (5 anos) identificou que a unidade estava configurada com um mecanismo de prejuízo acumulado que o contrato nunca previu, além de um valor informativo (R$1.353, "Aquisição de Equipamentos") sendo somado indevidamente ao repasse. Corrigida para `COM_ALIQUOTA`, sem compensação de prejuízo — conforme o contrato.
 
-**Variação percentual no bloco de histórico do PDF**
-O bloco de comparativo mensal do relatório passa a exibir a variação `%` mês a mês.
+**Correção da vigência histórica do Medcenter**  
+O percentual de repasse ao contratante estava seedado como 85% desde 2020, quando o valor contratual correto era 75% até junho/2026. Corrigido via vigência por competência (`parametros_vigentes`), preservando os relatórios já aprovados.
 
-**Log estruturado das ações operacionais**
-Importação de planilha, cálculo, aprovação, reabertura e geração de PDF passam a gerar entradas de log visíveis no painel do Render. Diagnóstico remoto de problemas passa a ser possível sem acesso ao servidor.
+**Receita de Selos (Fiergs) e novos custos variáveis (Viva Open)**  
+Fiergs passa a somar a Receita de Selos ao faturamento antes do cálculo, com a composição explícita na memória de cálculo. Viva Open passa a ter os custos variáveis Segurança, Internet, Sistemas VOIP e Perto — rubricas já rastreadas pela operadora fora do sistema.
 
-**Correções pós-launch**
-Bugs e ajustes de UX identificados nos primeiros fechamentos reais.
+**Seleção automática do conteúdo dos campos numéricos**  
+O primeiro clique em qualquer campo numérico da aplicação seleciona todo o conteúdo, permitindo sobrescrever diretamente em vez de apagar dígito por dígito.
 
-### Por que está aqui
-O sistema é usado em produção, mas sem alertas e sem comparativo não é possível detectar facilmente um número errado antes de aprovar. Esta versão resolve isso.
+**Infraestrutura de migrations SQLite**  
+Estrutura própria (`migrations/`) com executor idempotente e registro de aplicação — base técnica reaproveitada por todas as correções de dado histórico da v1.1.2.
+
+### Fora do escopo desta versão
+Tela de cadastro de unidades, tela de parametrização administrativa, vigência de parâmetros configurável pela operadora. Esses itens ficam para v1.2.0 — Autonomia Operacional.
 
 ---
 
-## v1.3.0 — Workflow
+## v1.1.2 — Histórico e Consolidação dos Relatórios
+**Lançamento:** 28/08/2026
+**Status:** Concluída.
+
+### Problema que resolve
+O comparativo de 12 meses do PDF só existia, na prática, para os poucos meses fechados pela própria ferramenta desde o lançamento — o histórico anterior ao Lyon Reports nunca tinha sido restaurado nesse nível de detalhe, e por isso o relatório mostrava "histórico insuficiente" mesmo quando a unidade tinha anos de dados reais na planilha original. Separadamente, o comparativo também faltava um mês mesmo quando havia histórico suficiente, sempre que o PDF era gerado antes da aprovação. O Pátio não tinha histórico visível na tela, e a memória de cálculo de Outros Serviços escondia duas incidências (repasse e rateio) num único número.
+
+### Valor entregue
+O comparativo mensal do PDF passa a mostrar até 12 competências reais para praticamente todas as unidades, incluindo a competência sendo fechada no momento — não apenas o que foi fechado pela ferramenta desde agosto/2026. O Pátio ganha histórico operacional independente por contratante, como qualquer outra unidade. A memória de Outros Serviços fica auditável, com cada etapa do cálculo visível — na tela e no PDF, de forma consistente.
+
+### O que foi entregue
+
+**Bootstrap do histórico mensal legado**  
+Aproximadamente 5 anos de dados mensais (faturamento, resultado, repasse), extraídos da planilha histórica original e restaurados via migrations — nunca por uma funcionalidade de importação exposta ao usuário. Cobre praticamente todas as unidades ativas, com exceção de Medcenter e Viva Open Mall (a planilha original não tem dados mensais para elas depois de dez/2025).
+
+**Histórico mensal de até 12 meses nos PDFs**  
+Consequência direta do bootstrap: o comparativo mensal do relatório passa a exibir a janela completa sempre que houver histórico suficiente, sem precisar esperar meses de uso real da ferramenta para se preencher.
+
+**Correção do comparativo para a competência atual**  
+O comparativo agora inclui a competência sendo processada mesmo antes da aprovação (quando o lançamento ainda não foi salvo no banco) — sem nunca substituir um valor já aprovado e salvo.
+
+**Histórico operacional do Pátio REAL e MAIOJAMA**  
+A tela de unidade do Pátio passa a mostrar "Competências anteriores" de forma independente para cada contratante, como qualquer outra unidade — antes essa seção nem aparecia.
+
+**Ordem do histórico do mês mais recente para o mais antigo**  
+Tanto na tela quanto no CSV exportado, a competência mais recente passa a ser a primeira coluna.
+
+**Correção do histórico anual do W-Tower Caxias**  
+A importação original usava a coluna de IPTU em vez da coluna de repasse real — o valor de aluguel do histórico anual estava incorreto desde o primeiro seed. Corrigido via migration dedicada, sem misturar com o bootstrap mensal.
+
+**Backfill de maio/2026**  
+Corrigida uma suposição do processo de bootstrap que presumia, incorretamente, que toda unidade já tinha maio/2026 gerado pela própria ferramenta. Uma migration separada preenche apenas as unidades que realmente ficaram sem essa competência, sem tocar em nenhum lançamento real já existente.
+
+**Refinamentos da memória de cálculo do Pátio**  
+Layout de REAL e MAIOJAMA corrigido para largura total, e a memória de Outros Serviços passa a mostrar cada etapa (Resultado → Repasse 50% → Rateio por contratante com o valor final), igual na tela e no PDF.
+
+### Fora do escopo desta versão
+Qualquer alteração de regra de cálculo, rateio ou aprovação além das correções já homologadas nesta versão e na v1.1.1.
+
+---
+
+## v1.2.0 — Autonomia Operacional
+
+### Problema que resolve
+Hoje, qualquer alteração contratual — um percentual de repasse renegociado, uma nova unidade, uma rubrica de custo nova — exige que a equipe de desenvolvimento edite YAML ou banco diretamente. A v1.1.1 já corrigiu dois casos reais desse tipo (In 1183, Medcenter) através de migrations pontuais; isso resolveu o sintoma, mas não o problema estrutural: a operadora depende de desenvolvimento para qualquer ajuste operacional de rotina, mesmo os mais simples.
+
+### Valor entregue
+A equipe da Valandro — e, no médio prazo, a própria gestão da Lyon Park — passa a cadastrar unidades novas, ativar/desativar unidades, e ajustar parâmetros contratuais (percentuais, alíquotas, ponto de equilíbrio, rubricas de custo) diretamente pela interface, com histórico completo de quem alterou o quê e quando. Uma alteração contratual deixa de exigir uma migration ou um deploy.
+
+### Principais funcionalidades
+
+**Tela de cadastro de unidades**  
+Cadastro de novas unidades e ativação/desativação das existentes, sem editar `data/units.yaml` diretamente. Seleção do modelo de cálculo a partir dos tipos já existentes (`COM_ALIQUOTA`, `COM_ALIQUOTA_CUMUL`, `COM_FAIXAS` etc.) — criar um novo *tipo* de calculadora continua sendo trabalho de desenvolvimento, fora do escopo desta funcionalidade.
+
+**Tela de parâmetros por unidade**  
+Lista todos os parâmetros vigentes de uma unidade com o componente de edição adequado ao tipo — construída sobre os metadados `tipo_dado` e `descricao` já armazenados em `parametros_vigentes` desde a v1.0.0, sem mapeamento adicional de código.
+
+**Vigência de parâmetros por competência**  
+Toda alteração feita pela tela abre uma nova vigência a partir da competência escolhida, preservando o histórico anterior — o mesmo mecanismo que hoje só é acionado manualmente via migration (como foi feito para o Medcenter na v1.1.1) passa a estar disponível para qualquer parâmetro, sem exigir intervenção de desenvolvimento.
+
+**Alteração de percentuais de repasse, alíquotas e ponto de equilíbrio**  
+Os três ajustes contratuais mais recorrentes passam a ser rotina operacional, não mais exceção tratada por migration pontual.
+
+**Rubricas de custo parametrizáveis**  
+Inclusão e manutenção de novos custos mensais ou variáveis por unidade pela própria tela. **O campo de despesa solicitado para a Fiergs durante a homologação (v1.1.1) fica reservado para esta capacidade** — não deve virar uma nova exceção hardcoded no código; deve ser o primeiro caso real de uso desta tela.
+
+**Histórico e auditoria das alterações de parâmetros**  
+Para cada parâmetro, visualização de quais valores foram usados, em qual período, e quem alterou — reaproveitando a trilha de auditoria que a tabela `parametros_vigentes` já mantém desde a v1.0.0.
+
+### Por que esta é a próxima versão
+Depois de duas versões de correções pontuais de homologação (v1.1.1) e de restauração de histórico (v1.1.2), o padrão que mais se repete é a dependência de desenvolvimento para mudanças que são, na essência, operacionais — não técnicas. Resolver isso antes de investir em automações (v1.3.0) ou em arquitetura (v2.0.0) segue a ordem de prioridade deste roadmap: operação real, depois autonomia da operadora, depois automação, depois evolução arquitetural.
+
+---
+
+## Marco operacional — Fechamento de agosto/2026
+
+> **Fechamento completo da competência agosto/2026 utilizando exclusivamente a ferramenta** — importação, cálculo, revisão, aprovação, geração dos PDFs e histórico, do início ao fim, sem etapa manual paralela.
+
+Este marco não é uma versão — é a validação operacional definitiva do fluxo completo entregue entre a v1.0.0 e a v1.1.2. Enquanto ele não acontece, qualquer automação do fluxo de entrada (v1.3.0) seria prematura: automatizar uma etapa que ainda não foi validada manualmente de ponta a ponta esconde problemas em vez de eliminá-los. Por isso a v1.3.0 — Automação de Entradas e Fechamento é sequenciada explicitamente depois deste marco, não antes.
+
+---
+
+## v1.3.0 — Automação de Entradas e Fechamento
+
+> **Pré-requisito:** só entra em desenvolvimento depois do marco operacional de agosto/2026 (fechamento completo de uma competência real, ponta a ponta, só com a ferramenta).
+
+### Problema que resolve
+Mesmo com o sistema funcionando bem e a operadora com autonomia sobre os parâmetros (v1.2.0), ainda existem etapas manuais no início de cada fechamento: alguém digita o faturamento de cada unidade a partir de uma planilha ou sistema externo, e depois cada PDF aprovado precisa ser entregue manualmente ao contratante correspondente. São tarefas repetitivas, previsíveis e sujeitas a erro de digitação — exatamente o tipo de trabalho que deve ser eliminado primeiro, antes de qualquer investimento em arquitetura.
+
+### Valor entregue
+A operadora deixa de digitar faturamento manualmente para as unidades cuja fonte de dados permite integração direta. O fechamento chega mais próximo de pronto, com o trabalho humano concentrado em revisar e aprovar — não em transcrever números.
+
+### Principais funcionalidades, em ordem de prioridade
+
+**Integração com a API Aucon para faturamento**  
+Prioridade máxima desta versão: eliminar a digitação manual de faturamento nas unidades cuja fonte é o sistema Aucon, substituindo a importação de planilha por leitura direta via API.
+
+**Eliminação da digitação manual de faturamento**  
+Extensão do mesmo princípio às demais unidades, na medida em que cada fonte de dados permitir — não depende de uma única integração para começar a entregar valor.
+
+**Automação das demais entradas, quando possível**  
+Eventos, mídias e demais planilhas hoje importadas manualmente entram no mesmo princípio, avaliadas caso a caso conforme a fonte real de dados disponível.
+
+**Geração automática de relatórios**  
+Ao fechar a competência com as entradas já automatizadas, os PDFs de todas as unidades são gerados automaticamente com os parâmetros vigentes — a operadora recebe o fechamento pré-calculado.
+
+**Notificações e entregas automáticas**  
+Ao aprovar um relatório, o PDF é enviado automaticamente ao contratante correspondente. Elimina a etapa manual de download e envio.
+
+### Por que antes de Workflow, Analytics e da migração Supabase
+Estas funcionalidades eliminam trabalho manual repetitivo da operadora todo mês — valor direto e imediato. Workflow e Analytics agregam rastreabilidade e visibilidade gerencial, mas não eliminam trabalho manual existente. A migração Supabase entrega valor à plataforma Valandro, não à operadora diretamente. A ordem de prioridade deste roadmap — operação real, autonomia, automação, arquitetura — coloca esta versão à frente das três.
+
+### Nota técnica
+A integração com a API Aucon e as demais automações podem exigir recursos adicionais no Render (cron jobs, workers em background). A escolha técnica de cada automação é feita no momento da implementação, avaliando a fonte real dos dados de cada unidade.
+
+---
+
+## v1.4.0 — Workflow
 
 ### Problema que resolve
 O workflow de aprovação atual é funcional mas pouco rastreável. Quando um relatório é reaberto não fica registrado o motivo. Quando um resultado muda após uma reabertura não é fácil comparar o que mudou. Isso gera insegurança — especialmente quando o contratante questiona um valor.
 
 ### Valor entregue
-Cada decisão tomada no processo de fechamento passa a ter um registro rastreável: quem aprovou, quando, com quais parâmetros, e por que reabriu. O PDF passa a ser auto-explicativo — o contratante recebe não apenas o resultado, mas a memória do cálculo que o produziu.
+Cada decisão tomada no processo de fechamento passa a ter um registro rastreável: quem aprovou, quando, com quais parâmetros, e por que reabriu.
 
 ### Principais funcionalidades
 
-**Motivo obrigatório ao reabrir**
+**Motivo obrigatório ao reabrir**  
 Hoje a reabertura é imediata. A partir desta versão, o operador registra o motivo antes de reabrir um relatório aprovado. O motivo é salvo no histórico e exibido na linha do tempo da unidade.
 
-**Comparativo de versões ao recalcular**
+**Comparativo de versões ao recalcular**  
 Ao recalcular após reabertura, o sistema exibe as diferenças numéricas entre a versão aprovada e o novo cálculo antes de aprovar novamente. A operadora decide com visibilidade, não com fé.
 
-**Memória de cálculo no PDF**
-O relatório passa a incluir, em seção dedicada, todos os parâmetros utilizados no cálculo: faturamento, ponto de equilíbrio, custos, alíquotas, resultado, aluguel. Se o contratante questionar um número, a memória está no documento.
+**Registro de aprovações com timestamp e usuário**  
+Cada aprovação passa a registrar data, hora e responsável no banco. Base técnica para a trilha de auditoria completa que vem em v2.1.0.
 
-**Registro de aprovações com timestamp e usuário**
-Cada aprovação passa a registrar data, hora e responsável no banco. Base técnica para a trilha de auditoria completa que vem em versões futuras.
-
-### Por que está antes de Parametrização
-O workflow é usado todo mês pela operadora. A parametrização é usada ocasionalmente pela equipe da Valandro. O impacto do workflow na rotina operacional é muito maior — e ele resolve o problema de rastreabilidade que já aparece no primeiro mês de uso real.
-
----
-
-## v1.4.0 — Parametrização
-
-### Problema que resolve
-Hoje, qualquer ajuste de parâmetro operacional (ponto de equilíbrio, percentual de aluguel, custos mensais) exige que a equipe da Valandro acesse o banco de dados diretamente ou edite o YAML. Isso cria dependência técnica para operações que deveriam ser rotineiras — especialmente quando um contrato é renegociado.
-
-### Valor entregue
-A equipe da Valandro passa a ajustar parâmetros operacionais diretamente pela UI, sem acesso ao banco ou ao código. Alterações ficam registradas com data e responsável. O histórico completo de cada parâmetro fica acessível — é possível saber exatamente qual era o ponto de equilíbrio da A. Schneider em março de 2025.
-
-### Principais funcionalidades
-
-**Tela de parametrização por unidade**  
-Lista todos os parâmetros vigentes de uma unidade com o componente de edição adequado ao tipo: campo monetário para `ponto_equilibrio`, percentual para `aliquota_imposto`, tabela editável para `faixas`. Construída sobre os metadados `tipo_dado` e `descricao` já armazenados no banco — sem nenhum mapeamento adicional de código.
-
-**Histórico de vigências por parâmetro**  
-Para cada parâmetro, visualização da linha do tempo: quais valores foram usados, em qual período, e quem alterou. Permite auditar qualquer divergência com o contratante.
-
-**Exportação do histórico de parâmetros**  
-Download CSV/Excel com o histórico completo de parâmetros de uma unidade. Útil para conferência contratual e auditoria externa.
+### Já parcialmente entregue
+A memória de cálculo no PDF — que originalmente fazia parte do escopo desta versão — já foi entregue nas versões v1.1.1 e v1.1.2: o relatório mostra faturamento, ponto de equilíbrio, custos, alíquotas, resultado e repasse em etapas explícitas, incluindo casos antes combinados numa única linha (In 1183, Outros Serviços do Pátio). O que resta aqui é o rastreamento do *processo* de aprovação, não a memória do cálculo em si.
 
 ### Por que está aqui
-Esta versão usa infraestrutura que já existe — o banco armazena `tipo_dado` e `descricao` desde v1.0.0. O custo de implementação é baixo e a dependência atual da equipe de desenvolvimento para ajustes operacionais é um gargalo real. Mas o impacto na rotina mensal da operadora é menor do que o workflow, por isso vem depois.
+Esta versão organiza a rastreabilidade do processo de aprovação — um ganho de confiança operacional importante, mas que pressupõe a autonomia de parametrização (v1.2.0) e a automação de entradas (v1.3.0) já entregues.
 
 ---
 
@@ -219,41 +321,11 @@ Os dados para esta versão já existem no banco desde v1.0.0. O custo técnico �
 
 ---
 
-## v1.6.0 — Automações Operacionais
-
-### Problema que resolve
-Mesmo com o sistema funcionando bem, ainda existem etapas manuais no início e no fim de cada fechamento: alguém precisa baixar a planilha de faturamento, importar manualmente, e depois enviar cada PDF ao contratante correspondente. São tarefas repetitivas, previsíveis e sem valor agregado — exatamente o tipo de trabalho que deve ser eliminado.
-
-### Valor entregue
-A operadora passa a receber o fechamento pronto — ou quase pronto — sem precisar executar etapas mecânicas. A planilha é capturada automaticamente. Os PDFs são enviados sem intervenção manual. O trabalho humano fica concentrado onde realmente importa: revisar, ajustar parâmetros quando necessário e aprovar.
-
-### Principais funcionalidades
-
-**Captura automática da planilha de faturamento**  
-Integração com a fonte de dados onde a planilha de faturamento é disponibilizada mensalmente (email, Google Drive, SharePoint ou equivalente). O sistema detecta o arquivo, valida o formato e importa sem intervenção manual.
-
-**Geração automática dos PDFs ao fechar o mês**  
-Ao início de cada competência, o sistema gera automaticamente os PDFs de todas as unidades com os parâmetros vigentes. A operadora recebe o fechamento pré-calculado e faz apenas as correções necessárias antes de aprovar.
-
-**Envio automático dos relatórios aprovados**  
-Ao aprovar um relatório, o PDF é enviado automaticamente ao contratante correspondente por email. Elimina a etapa manual de download, composição de email e envio.
-
-**Agendamento mensal do fechamento**  
-Cron job que dispara automaticamente o início do processo de fechamento na data configurada de cada competência. A operadora recebe uma notificação de que o fechamento está disponível para revisão.
-
-### Por que está antes da migração Supabase
-Estas funcionalidades entregam valor direto e imediato à operadora — reduzem horas de trabalho manual todo mês. A migração para Supabase entrega valor à plataforma Valandro, não à operadora diretamente. Seguindo a ordem de prioridade correta: primeiro o usuário, depois a arquitetura.
-
-### Nota técnica
-Algumas automações desta versão podem exigir recursos adicionais no Render (cron jobs, workers em background) ou integrações externas (Gmail API, Google Drive API). A escolha técnica de cada automação é feita no momento da implementação, avaliando a fonte real dos dados da Lyon Park.
-
----
-
 ## v2.0.0 — Migração para Supabase
 **Esta é a única versão MAJOR prevista.**
 
 ### Problema que resolve
-A v1.0.0 foi lançada com SQLite e Render Persistent Disk para cumprir o prazo de 15/08/2026 — uma decisão deliberada e correta. Com a operação estabilizada e as principais funcionalidades de produto entregues, é o momento de adequar a infraestrutura ao padrão Valandro: banco gerenciado, storage gerenciado e autenticação centralizada.
+A v1.0.0 foi lançada com SQLite e Render Persistent Disk para cumprir o prazo de 15/08/2026 — uma decisão deliberada e correta. Com a operação estabilizada, a operadora com autonomia sobre parâmetros e as entradas manuais mais repetitivas automatizadas, é o momento de adequar a infraestrutura ao padrão Valandro: banco gerenciado, storage gerenciado e autenticação centralizada.
 
 ### Valor entregue
 A operação passa a rodar sobre infraestrutura mais robusta, escalável e alinhada com o restante do portfólio Valandro. O backup do banco passa a ser gerenciado pelo Supabase. O armazenamento de PDFs e planilhas passa a ter redundância e acesso controlado. A autenticação passa a suportar múltiplos usuários com perfis distintos.
@@ -331,7 +403,7 @@ O Lyon Park deixa de ser um sistema isolado e passa a ser parte do ecossistema d
 O escopo exato desta versão é definido com base nas necessidades reais identificadas durante a operação das versões anteriores. Candidatos atuais:
 - Integração com o Gerador de DRE Valandro (compartilhamento de resultados de fechamento)
 - Webhook para notificações externas (Slack, email) ao aprovar um relatório
-- Leitura automática de faturamentos via API de sistema externo (se disponível)
+- Leitura automática de faturamentos via API de sistema externo (se disponível, além da integração Aucon já entregue em v1.3.0)
 
 ---
 
@@ -358,7 +430,7 @@ Fluxo completo automatizado: importar planilha → calcular → aprovar → veri
 Repositório renomeado para `valandro-lyonpark`. Branches de feature (`feature/*`) e release (`release/*`). Documentação de contribuição.
 
 ### Nota sobre antecipação de testes
-As Memórias de Cálculo aprovadas pelos contratantes já existem. É possível — e desejável — criar testes unitários das calculadoras ainda durante a linha 1.x, à medida que bugs sejam encontrados nos primeiros fechamentos reais. Esses testes não esperam a v3.0.0 para existir: eles são criados progressivamente e incorporados à suíte completa nesta versão. O que a v3.0.0 formaliza é a cobertura ampla, o CI/CD e a proteção automática da branch principal.
+As Memórias de Cálculo aprovadas pelos contratantes já existem. É possível — e desejável — criar testes unitários das calculadoras ainda durante a linha 1.x, à medida que bugs sejam encontrados nos primeiros fechamentos reais (como já aconteceu na v1.1.1, com o In 1183, validado diretamente contra a Memória de Cálculo e a planilha histórica). Esses testes não esperam a v3.0.0 para existir: eles são criados progressivamente e incorporados à suíte completa nesta versão. O que a v3.0.0 formaliza é a cobertura ampla, o CI/CD e a proteção automática da branch principal.
 
 ---
 
@@ -375,12 +447,22 @@ Itens identificados, com valor claro, mas sem priorização formal ainda. Serão
 | Backup automático antes de cada competência | Proteção contra corrupção de dados no início do fechamento | Segurança |
 | Exportação consolidada multi-unidade | Visão agregada do fechamento para relatório gerencial | Médio |
 
+### Refinamento visual (backlog, sem prioridade maior que v1.2.0)
+
+Ajustes visuais pontuais identificados em uso real ou em reunião de validação — não representam mudança arquitetural nem de regra de cálculo, por isso não ocupam uma versão própria.
+
+| Item | Problema que resolve | Impacto estimado |
+|---|---|---|
+| Revisão final do layout dos PDFs após feedback do proprietário da Lyon Park | Ajuste de leitura/apresentação do relatório entregue ao contratante | Baixo |
+| Possível remoção ou revisão das colunas de variação percentual do comparativo | Feedback direto sobre a leitura do bloco de comparativo mensal | Baixo |
+| Outros ajustes visuais identificados na reunião de validação | A consolidar conforme a reunião definir escopo | A definir |
+
 ---
 
 ## Princípios que guiam este roadmap
 
 **1. Usuário antes de arquitetura.**  
-Funcionalidades que entregam valor direto à operadora têm prioridade sobre evoluções de plataforma. É por isso que Analytics e Automações (v1.4 e v1.5) vêm antes da migração Supabase (v2.0).
+Funcionalidades que entregam valor direto à operadora têm prioridade sobre evoluções de plataforma. É por isso que Autonomia Operacional, Automação de Entradas e Analytics (v1.2, v1.3 e v1.5) vêm antes da migração Supabase (v2.0).
 
 **2. A operação de fechamento mensal nunca para.**  
 Nenhuma versão — incluindo a MAJOR — pode deixar as 23 unidades sem fechamento. Migrações acontecem com rollback documentado e validação prévia em produção.
@@ -389,11 +471,14 @@ Nenhuma versão — incluindo a MAJOR — pode deixar as 23 unidades sem fechame
 A operadora não precisa saber que houve uma nova versão para continuar fechando normalmente. Funcionalidades novas são aditivas.
 
 **4. Calculadoras são intocáveis sem evidência.**  
-Qualquer alteração em uma calculadora é validada manualmente contra a Memória de Cálculo aprovada antes de ir para produção. A partir da v3.0.0, essa validação é automatizada.
+Qualquer alteração em uma calculadora é validada manualmente contra a Memória de Cálculo aprovada antes de ir para produção — como foi feito para o In 1183 na v1.1.1. A partir da v3.0.0, essa validação é automatizada.
 
 **5. O roadmap serve ao negócio, não o contrário.**  
 Seguindo o princípio 1.2 do padrão Valandro: se um prazo real ou uma necessidade operacional entrar em conflito com a sequência prevista, o roadmap é ajustado — não a operação.
 
+**6. Automação só depois de validação manual completa.**  
+Nenhum fluxo é automatizado antes de ter rodado de ponta a ponta, manualmente, pela ferramenta, pelo menos uma vez em produção real (ver [Marco operacional — Fechamento de agosto/2026](#marco-operacional--fechamento-de-agosto2026)). Automatizar um processo ainda não validado esconde problemas em vez de eliminá-los.
+
 ---
 
-*Última atualização: 12/08/2026*
+*Última atualização: 28/08/2026*
