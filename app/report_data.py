@@ -49,6 +49,12 @@ class Prestacao:
 @dataclass
 class LinhaHistoricoAnual:
     ano: int
+    ano_label: str
+    # ano_label: rótulo pronto para exibição — "2025" quando o ano tem as 12
+    # competências, "2024 (10 meses)" / "2026 (1 mês)" quando é parcial (ver
+    # app/reporter.py _formatar_ano_label). O template exibe ano_label, nunca
+    # ano puro — mesmo padrão de competencia/competencia_label já usado em
+    # UnidadeInfo e ComparativoMes.
     valores: dict
     # valores: {"Faturamento": 100.0, "Resultado": None, ...} — chaveado
     # pelo mesmo rótulo que aparece em Historico.colunas, na mesma ordem.

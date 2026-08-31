@@ -149,12 +149,35 @@ _HISTORICO_ANUAL_COLUNAS = [
 ]
 
 
+def _formatar_ano_label(ano: int, quantidade_meses: int | None) -> str:
+    """"2025" quando o ano tem as 12 competências; "2024 (10 meses)" /
+    "2026 (1 mês)" quando é parcial. `quantidade_meses` vem pronto de
+    `historico_anual.dados_json` (gravado pela migration 0006) — não é
+    recalculado aqui a partir de `lancamentos`.
+
+    `quantidade_meses is None` significa um registro legado que a 0006 não
+    reconstruiu (nenhum lançamento correspondente em `lancamentos` — ver
+    seu docstring: nunca apaga esses registros). Nesse caso NUNCA se supõe
+    12 meses — não há evidência disso. O rótulo fica "{ano} (—)": neutro,
+    não declara uma contagem que não temos como confirmar."""
+    if quantidade_meses is None:
+        return f"{ano} (—)"
+    if quantidade_meses >= 12:
+        return str(ano)
+    unidade = "mês" if quantidade_meses == 1 else "meses"
+    return f"{ano} ({quantidade_meses} {unidade})"
+
+
 def _historico_anual(unidade_id: str) -> Historico:
     """Visão gerencial sintética — não a memória completa da prestação de
     contas. Colunas são sempre as mesmas três (Faturamento, Resultado,
     Repasse); quando a base histórica da unidade não tiver Resultado ou
     Repasse para um ano, o valor fica None e o template exibe '—' — nunca
-    preenche com outro indicador só para não deixar a célula vazia."""
+    preenche com outro indicador só para não deixar a célula vazia.
+
+    `historico_anual` é um cache/agregado derivado de `lancamentos` (fonte
+    de verdade mensal — ver migration 0006); esta função só lê o cache, não
+    recalcula nada a partir dos lançamentos mensais."""
     raw = get_historico_anual(unidade_id)
     if not raw:
         return Historico(colunas=[], linhas=[])
@@ -162,6 +185,7 @@ def _historico_anual(unidade_id: str) -> Historico:
     linhas = [
         LinhaHistoricoAnual(
             ano=e["ano"],
+            ano_label=_formatar_ano_label(e["ano"], e.get("quantidade_meses")),
             valores={label: e.get(campo) for campo, label in _HISTORICO_ANUAL_COLUNAS},
         )
         for e in sorted(raw, key=lambda x: x["ano"])

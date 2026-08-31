@@ -139,7 +139,7 @@
     <tbody>
       {% for linha in historico.linhas %}
       <tr>
-        <td>{{ linha.ano }}</td>
+        <td>{{ linha.ano_label }}</td>
         {% for col in historico.colunas %}
         <td>{{ linha.valores[col] | fmt_br if linha.valores[col] is not none else '—' }}</td>
         {% endfor %}
