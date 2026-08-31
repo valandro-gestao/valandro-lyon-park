@@ -23,32 +23,19 @@
 <!-- ╔══════════════════════════════╗ -->
 <!-- ║  2. CARDS PRINCIPAIS         ║ -->
 <!-- ╚══════════════════════════════╝ -->
-{# Variação do mês atual vs. mês anterior está no primeiro item do comparativo #}
-{% set mes_atual = comparativo_12m[0] if comparativo_12m else none %}
+{# Cards mostram apenas os valores principais da competência — sem
+   comparativo com outro mês (decisão de layout aprovada pelo proprietário
+   da Lyon). O comparativo continua disponível na seção de Histórico. #}
 <div class="cards">
 
   <div class="card">
     <div class="card-label">Faturamento</div>
     <div class="card-value">R$ {{ cards.faturamento | fmt_br }}</div>
-    {% if mes_atual and mes_atual.variacao_faturamento is not none %}
-      {% if mes_atual.variacao_faturamento >= 0 %}
-        <div class="card-variation pos">▲ {{ mes_atual.variacao_faturamento | fmt_pct }} vs. mês anterior</div>
-      {% else %}
-        <div class="card-variation neg">▼ {{ mes_atual.variacao_faturamento | abs | fmt_pct }} vs. mês anterior</div>
-      {% endif %}
-    {% endif %}
   </div>
 
   <div class="card">
     <div class="card-label">Resultado da Operação</div>
     <div class="card-value">R$ {{ cards.resultado | fmt_br }}</div>
-    {% if mes_atual and mes_atual.variacao_resultado is not none %}
-      {% if mes_atual.variacao_resultado >= 0 %}
-        <div class="card-variation pos">▲ {{ mes_atual.variacao_resultado | abs | fmt_pct }} vs. mês anterior</div>
-      {% else %}
-        <div class="card-variation neg">▼ {{ mes_atual.variacao_resultado | abs | fmt_pct }} vs. mês anterior</div>
-      {% endif %}
-    {% endif %}
   </div>
 
   <div class="card destaque">
@@ -96,9 +83,9 @@
       <tr>
         <th>Mês</th>
         <th>Faturamento</th>
-        <th>Var.</th>
+        <th>Var. YoY</th>
         <th>Resultado</th>
-        <th>Var.</th>
+        <th>Var. YoY</th>
         <th>Repasse</th>
       </tr>
     </thead>
@@ -137,24 +124,24 @@
 <!-- ╔══════════════════════════════╗ -->
 <!-- ║  5. HISTÓRICO ANUAL          ║ -->
 <!-- ╚══════════════════════════════╝ -->
-{% if historico.anos %}
+{% if historico.linhas %}
 <div class="section no-break">
   <div class="section-title">Histórico Anual</div>
   <table class="table-hist">
     <thead>
       <tr>
-        <th>Indicador</th>
-        {% for ano in historico.anos %}
-        <th>{{ ano }}</th>
+        <th>Ano</th>
+        {% for col in historico.colunas %}
+        <th>{{ col }}</th>
         {% endfor %}
       </tr>
     </thead>
     <tbody>
-      {% for ind in historico.indicadores %}
+      {% for linha in historico.linhas %}
       <tr>
-        <td>{{ ind.label }}</td>
-        {% for v in ind.valores %}
-        <td>{{ v | fmt_br if v is not none else '—' }}</td>
+        <td>{{ linha.ano }}</td>
+        {% for col in historico.colunas %}
+        <td>{{ linha.valores[col] | fmt_br if linha.valores[col] is not none else '—' }}</td>
         {% endfor %}
       </tr>
       {% endfor %}

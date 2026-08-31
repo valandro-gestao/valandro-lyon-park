@@ -132,6 +132,8 @@ body {
   display: flex;
   gap: 4mm;
   margin-bottom: var(--spacing-lg);
+  break-inside: avoid;
+  page-break-inside: avoid;
 }
 
 .card {
@@ -206,6 +208,8 @@ body {
   border-bottom: 1.5px solid var(--color-primary-mid);
   padding-bottom: 1.5mm;
   margin-bottom: var(--spacing-sm);
+  break-after: avoid;
+  page-break-after: avoid;
 }
 
 /* ── PRESTAÇÃO DE CONTAS (DRE) ──────────────────────────────────── */
@@ -406,5 +410,16 @@ body {
 }
 
 /* ── UTILITÁRIOS ────────────────────────────────────────────────── */
-.page-break   { page-break-before: always; }
-.no-break     { page-break-inside: avoid; }
+.page-break   { page-break-before: always; break-before: page; }
+.no-break     { page-break-inside: avoid; break-inside: avoid; }
+
+/* Protege cada linha de tabela contra corte entre páginas — permite
+   que a tabela inteira atravesse páginas, mas nunca corta uma linha
+   no meio. */
+.dre tr,
+.table-comp tr,
+.table-hist tr,
+.table-eventos tr {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}

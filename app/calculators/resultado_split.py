@@ -16,7 +16,7 @@ def calcular_resultado_split(cfg: dict, mes: str, faturamento: float,
                               custos_extras: dict = None,
                               **kwargs) -> ResultadoUnidade:
     aliq = cfg.get("aliquota_imposto", 0.0)
-    despesas_fixas = cfg.get("despesas_fixas", 0.0)
+    despesas_fixas = float((custos_extras or {}).get("despesas_fixas", cfg.get("despesas_fixas", 0.0)))
     pct_op = cfg.get("percentual_operador", 0.15)
     pct_cont = cfg.get("percentual_contratante", 0.85)
     parcela_fixa = cfg.get("parcela_fixa", 0.0)
@@ -30,7 +30,7 @@ def calcular_resultado_split(cfg: dict, mes: str, faturamento: float,
     for k, v in (cfg.get("custos_variaveis") or {}).items():
         custos[k] = float(custos_extras.get(k, v) if custos_extras else v)
     for k, v in (custos_extras or {}).items():
-        if k not in custos and v:
+        if k not in custos and k != "despesas_fixas" and v:
             custos[k] = float(v)
     total_custos = sum(custos.values())
 

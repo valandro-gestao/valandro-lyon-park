@@ -494,6 +494,8 @@ def _chaves_estado_unidade(uid: str, u: dict) -> list[str]:
     )) and tc != "PATIO_MANUTENCAO"
     if has_pe:
         chaves.append(f"pe_{uid}")
+    if tc == "RESULTADO_SPLIT":
+        chaves.append(f"despesas_fixas_{uid}")
     if u.get("tem_base_taxa_cobranca"):
         chaves.append(f"base_tc_{uid}")
     for k in (u.get("custos_mensais") or {}):
@@ -1073,6 +1075,22 @@ def _inputs_parametros(uid: str, u: dict, mes_ref: str,
                 help=f"Aplica-se {u.get('taxa_cobranca', 0)*100:.1f}%",
             )
             custos_extras["base_calculo_taxa_cobranca"] = base_tc
+
+    # Despesas Fixas (RESULTADO_SPLIT — Medcenter, Viva Open Mall) — editável
+    # por competência, com o valor vigente em cfg como padrão. Conceito
+    # distinto de Ponto de Equilíbrio: não usar esse nome aqui.
+    if tc == "RESULTADO_SPLIT":
+        despesas_fixas_default = float(u.get("despesas_fixas", 0.0))
+        despesas_fixas_val = st.number_input(
+            "Despesas Fixas (R$)",
+            min_value=0.0, step=100.0, format="%.2f",
+            value=float(st.session_state.get(f"despesas_fixas_{uid}", despesas_fixas_default)),
+            key=f"despesas_fixas_{uid}",
+        )
+        custos_extras["despesas_fixas"] = despesas_fixas_val
+        diff = _diff_html("despesas_fixas")
+        if diff:
+            st.markdown(f'<div class="vd-param-diff">{diff}</div>', unsafe_allow_html=True)
 
     # Custos mensais
     custos_mensais = u.get("custos_mensais") or {}
@@ -1915,6 +1933,8 @@ def _coletar_params_usados(uid: str, u_cfg: dict,
     _extrair_editaveis(u_cfg, params)
     if pe_override is not None:
         params["ponto_equilibrio"] = pe_override
+    if "despesas_fixas" in custos_extras:
+        params["despesas_fixas"] = custos_extras["despesas_fixas"]
     for k in u_cfg.get("custos_mensais") or {}:
         if k in custos_extras:
             params[f"custos_mensais.{k}"] = custos_extras[k]

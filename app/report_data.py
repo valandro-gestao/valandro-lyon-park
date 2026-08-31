@@ -47,10 +47,26 @@ class Prestacao:
 
 
 @dataclass
+class LinhaHistoricoAnual:
+    ano: int
+    valores: dict
+    # valores: {"Faturamento": 100.0, "Resultado": None, ...} — chaveado
+    # pelo mesmo rótulo que aparece em Historico.colunas, na mesma ordem.
+
+
+@dataclass
 class Historico:
-    anos: list[int]
-    indicadores: list[dict]
-    # indicadores: [{"label": "Faturamento", "valores": [100, 200, 300]}]
+    """Histórico anual — anos em linha, indicadores em coluna (layout
+    definido para não crescer horizontalmente conforme novos anos surgem).
+    Visão gerencial sintética: `colunas` é sempre o mesmo trio — Faturamento,
+    Resultado e Repasse —, os mesmos conceitos dos cards principais. Nunca
+    inclui indicador específico de calculadora (Receita Líquida, Ponto de
+    Equilíbrio, impostos etc. ficam só na Prestação de Contas da
+    competência). Quando a unidade não tiver o dado para um ano, o valor
+    fica `None` — o template exibe '—' em vez de inventar ou substituir por
+    outro campo."""
+    colunas: list[str]
+    linhas: list[LinhaHistoricoAnual]
 
 
 @dataclass

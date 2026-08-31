@@ -6,7 +6,7 @@ import json
 from datetime import date, datetime
 from app.report_data import (
     ReportData, UnidadeInfo, Cards, ComparativoMes,
-    LinhaPrestacao, Prestacao, Historico,
+    LinhaPrestacao, Prestacao, Historico, LinhaHistoricoAnual,
     BlocoReceita, BlocoEventos, EventoCompetencia, ResumoEvento,
 )
 from app.models import ResultadoUnidade, get_lancamentos_mes, get_historico_anual, get_db
@@ -38,25 +38,30 @@ def _pct_var(atual: float, anterior: float) -> float | None:
     return round((atual - anterior) / abs(anterior) * 100, 1)
 
 
-def _get_lancamentos_ultimos_12(unidade_id: str, mes_ref: str) -> list[dict]:
+def _get_lancamentos_periodo(unidade_id: str, mes_ref: str, meses: int = 24) -> list[dict]:
+    """Busca até `meses` competências terminando em `mes_ref` (inclusive).
+    Padrão de 24: os 12 meses exibidos no comparativo mais os 12 meses
+    correspondentes um ano antes de cada um — necessários para a
+    comparação YoY em _comparativo_12m, sem depender de uma segunda
+    consulta por linha exibida."""
     ano, mes = int(mes_ref[:4]), int(mes_ref[5:7])
-    meses = []
-    for i in range(12):
+    candidatos = []
+    for i in range(meses):
         m = mes - i
         a = ano
         while m <= 0:
             m += 12
             a -= 1
-        meses.append(f"{a}-{m:02d}")
+        candidatos.append(f"{a}-{m:02d}")
 
     with get_db() as conn:
-        placeholders = ",".join("?" * len(meses))
+        placeholders = ",".join("?" * len(candidatos))
         rows = conn.execute(f"""
             SELECT mes_referencia, resultado_json
             FROM lancamentos
             WHERE unidade_id=? AND mes_referencia IN ({placeholders})
             ORDER BY mes_referencia DESC
-        """, [unidade_id] + meses).fetchall()
+        """, [unidade_id] + candidatos).fetchall()
 
     return [{"mes": r["mes_referencia"], **json.loads(r["resultado_json"])} for r in rows]
 
@@ -67,26 +72,41 @@ def _com_mes_atual(lancamentos: list[dict], resultado, mes_ref: str) -> list[dic
 
     Isso acontece sempre que o PDF é gerado antes da aprovação ("Gerar PDF"
     não chama salvar_lancamento — só "Aprovar" chama, e o faz antes de gerar
-    o relatório). Nesse caso, `_get_lancamentos_ultimos_12` busca os 12
-    meses corretos (mes_ref + 11 anteriores), mas o próprio mes_ref ainda
-    não existe no banco — resultando em, no máximo, 11 linhas, mesmo
-    havendo histórico suficiente para 12. Não é um problema na consulta:
-    é a competência atual que ainda não foi persistida.
+    o relatório). Nesse caso, `_get_lancamentos_periodo` busca as
+    competências corretas, mas o próprio mes_ref ainda não existe no banco.
+    Não é um problema na consulta: é a competência atual que ainda não foi
+    persistida.
 
     Se mes_ref já estiver presente (aprovação, ou reabertura já recalculada
     e salva), não faz nada — o valor do banco nunca é substituído pelo
-    rascunho em memória.
+    rascunho em memória. Não trunca a lista — quem decide quantas linhas
+    exibir é _comparativo_12m, que também precisa do restante (meses do
+    ano anterior) para a comparação YoY.
     """
     if any(l["mes"] == mes_ref for l in lancamentos):
         return lancamentos
     atual = {"mes": mes_ref, **resultado.__dict__}
-    combinados = lancamentos + [atual]
-    return sorted(combinados, key=lambda l: l["mes"], reverse=True)[:12]
+    return sorted(lancamentos + [atual], key=lambda l: l["mes"], reverse=True)
 
 
 def _comparativo_12m(lancamentos: list[dict]) -> list[ComparativoMes]:
+    """Monta as até 12 linhas exibidas no comparativo mensal do PDF,
+    comparando cada competência com o MESMO MÊS DO ANO ANTERIOR (YoY) —
+    não com o mês imediatamente anterior.
+
+    `lancamentos` deve conter, além das competências exibidas, as
+    competências correspondentes um ano antes de cada uma (fornecidas por
+    _get_lancamentos_periodo com meses=24) — usadas só como referência de
+    comparação, nunca como linha própria do comparativo exibido.
+
+    Quando a competência do ano anterior não existir, a variação fica
+    `None` — nunca inventa comparação com outro mês.
+    """
+    por_mes = {l["mes"]: l for l in lancamentos}
+    exibidas = sorted(lancamentos, key=lambda l: l["mes"], reverse=True)[:12]
+
     result = []
-    for i, l in enumerate(lancamentos):
+    for l in exibidas:
         fat = l.get("faturamento", 0.0)
         res = l.get("resultado", 0.0)
         repasse = l.get("aluguel_calculado", 0.0)
@@ -94,10 +114,12 @@ def _comparativo_12m(lancamentos: list[dict]) -> list[ComparativoMes]:
         if isinstance(extras, dict):
             repasse += extras.get("repasse_outros", 0.0)
 
-        if i + 1 < len(lancamentos):
-            prev = lancamentos[i + 1]
-            var_fat = _pct_var(fat, prev.get("faturamento", 0.0))
-            var_res = _pct_var(res, prev.get("resultado", 0.0))
+        ano_str, mes_str = l["mes"].split("-")
+        mes_ano_anterior = f"{int(ano_str) - 1}-{mes_str}"
+        anterior = por_mes.get(mes_ano_anterior)
+        if anterior is not None:
+            var_fat = _pct_var(fat, anterior.get("faturamento", 0.0))
+            var_res = _pct_var(res, anterior.get("resultado", 0.0))
         else:
             var_fat = None
             var_res = None
@@ -114,43 +136,41 @@ def _comparativo_12m(lancamentos: list[dict]) -> list[ComparativoMes]:
     return result
 
 
-def _historico_anual(unidade_id: str, linhas_cfg: list[str]) -> Historico:
+# Colunas fixas do Histórico Anual, na ordem em que aparecem — layout
+# "Ano | Faturamento | Resultado | Repasse" (anos em linha, para não
+# crescer horizontalmente a cada ano novo). Sempre os mesmos três
+# indicadores, nos mesmos conceitos dos cards principais — não varia por
+# tipo de calculadora e não é substituído por outro indicador quando
+# ausente (ver _historico_anual).
+_HISTORICO_ANUAL_COLUNAS = [
+    ("faturamento",       "Faturamento"),
+    ("resultado",         "Resultado"),
+    ("aluguel_calculado", "Repasse"),
+]
+
+
+def _historico_anual(unidade_id: str) -> Historico:
+    """Visão gerencial sintética — não a memória completa da prestação de
+    contas. Colunas são sempre as mesmas três (Faturamento, Resultado,
+    Repasse); quando a base histórica da unidade não tiver Resultado ou
+    Repasse para um ano, o valor fica None e o template exibe '—' — nunca
+    preenche com outro indicador só para não deixar a célula vazia."""
     raw = get_historico_anual(unidade_id)
     if not raw:
-        return Historico(anos=[], indicadores=[])
+        return Historico(colunas=[], linhas=[])
 
-    anos = [e["ano"] for e in raw]
-    label_map = {
-        "faturamento":  "Faturamento",
-        "subtotal":     "Receita Líquida",
-        "resultado":    "Resultado",
-        "aluguel":      "Repasse",
-        "aluguel_calculado": "Repasse",
-        "prejuizo":     "Prejuízo Acumulado",
-        "ponto_equilibrio": "Ponto de Equilíbrio",
-    }
-    campo_map = {
-        "faturamento": "faturamento",
-        "subtotal":    "subtotal",
-        "resultado":   "resultado",
-        "aluguel":     "aluguel_calculado",
-        "prejuizo":    "prejuizo_acumulado_entrada",
-        "pe":          "ponto_equilibrio",
-    }
+    linhas = [
+        LinhaHistoricoAnual(
+            ano=e["ano"],
+            valores={label: e.get(campo) for campo, label in _HISTORICO_ANUAL_COLUNAS},
+        )
+        for e in sorted(raw, key=lambda x: x["ano"])
+    ]
 
-    indicadores = []
-    seen = set()
-    for cfg_key in linhas_cfg:
-        campo = campo_map.get(cfg_key, cfg_key)
-        label = label_map.get(cfg_key, cfg_key.replace("_", " ").title())
-        if label in seen:
-            continue
-        seen.add(label)
-        valores = [e.get(campo) for e in raw]
-        if any(v is not None and v != 0 for v in valores):
-            indicadores.append({"label": label, "valores": valores})
-
-    return Historico(anos=anos, indicadores=indicadores)
+    return Historico(
+        colunas=[label for _, label in _HISTORICO_ANUAL_COLUNAS],
+        linhas=linhas,
+    )
 
 
 _CUSTO_LABELS: dict[str, str] = {
@@ -445,7 +465,6 @@ def build_report_data(resultado, mes_ref: str,
     cfg = get_unit(resultado.unidade_id)
     tipo_rel = cfg.get("tipo_relatorio", "padrao")
     tipo_cal = cfg.get("tipo_calculo", "")
-    linhas_cfg = cfg.get("relatorio", {}).get("linhas", [])
 
     repasse = resultado.aluguel_calculado + (resultado.extras or {}).get("repasse_outros", 0.0)
 
@@ -464,10 +483,10 @@ def build_report_data(resultado, mes_ref: str,
         repasse=repasse,
     )
 
-    lancamentos = _get_lancamentos_ultimos_12(resultado.unidade_id, mes_ref)
+    lancamentos = _get_lancamentos_periodo(resultado.unidade_id, mes_ref)
     lancamentos = _com_mes_atual(lancamentos, resultado, mes_ref)
     comparativo = _comparativo_12m(lancamentos)
-    n_meses = len(lancamentos)
+    n_meses = len(comparativo)
 
     import sys
     print(f"[reporter] {resultado.unidade_id}/{mes_ref}: {n_meses} mês(es) no comparativo",
@@ -486,7 +505,7 @@ def build_report_data(resultado, mes_ref: str,
     else:
         prestacao = _prestacao_padrao(resultado, cfg)
 
-    historico = _historico_anual(resultado.unidade_id, linhas_cfg)
+    historico = _historico_anual(resultado.unidade_id)
 
     # Eventos — carregado da planilha por unidade (uid-específico)
     bloco_eventos = None
@@ -531,10 +550,10 @@ def _build_patio(r: ResultadoPatio, split_id: str, mes_ref: str, hoje: str) -> R
         repasse=repasse_total,
     )
 
-    lancamentos = _get_lancamentos_ultimos_12(split_r.unidade_id, mes_ref)
+    lancamentos = _get_lancamentos_periodo(split_r.unidade_id, mes_ref)
     lancamentos = _com_mes_atual(lancamentos, split_r, mes_ref)
     comparativo = _comparativo_12m(lancamentos)
-    n_meses_split = len(lancamentos)
+    n_meses_split = len(comparativo)
 
     linhas = [LinhaPrestacao("Receita Bruta", split_r.faturamento, "subtotal")]
     if split_r.aliquota_imposto:
@@ -558,7 +577,7 @@ def _build_patio(r: ResultadoPatio, split_id: str, mes_ref: str, hoje: str) -> R
     linhas.append(LinhaPrestacao("Total Repasse", repasse_total, "total"))
 
     prestacao = Prestacao(linhas=linhas)
-    historico = _historico_anual(uid_hist, ["faturamento", "subtotal", "resultado", "aluguel"])
+    historico = _historico_anual(uid_hist)
 
     blocos = []
     os_data = r.outros_servicos
