@@ -5,8 +5,12 @@ Todos os dados que precisam sobreviver a redeploys são derivados de DATA_DIR:
   - Produção (Render):   DATA_DIR=/mnt/data
   - Desenvolvimento:     DATA_DIR não definido → ./data (comportamento original)
 
-data/units.yaml NÃO passa por aqui — é configuração estrutural versionada no repositório.
 data/seed.db    NÃO é o banco operacional — é apenas a origem da cópia inicial.
+data/units.yaml NÃO é mais consultado em runtime para saber quais unidades
+existem (isso é a tabela `unidades`, ver app.models.bootstrap_unidades_se_vazia
+e migrations/0007) — continua sendo lido só como origem do bootstrap inicial
+(quando a tabela está vazia) e como fonte de campos ainda não migrados para
+tabela própria (ver app.engine._yaml_blocos).
 """
 import logging
 import shutil
@@ -24,6 +28,12 @@ RUNS_DIR = DATA_DIR / "runs"
 # Banco seed incluído na imagem Docker (versionado em data/seed.db).
 # Nunca é aberto diretamente pela aplicação — só serve como origem da cópia inicial.
 _SEED_DB = _PROJECT_ROOT / "data" / "seed.db"
+
+# Cadastro estrutural das unidades, versionado no repositório — origem do
+# bootstrap inicial da tabela `unidades` (nunca sincronizado continuamente,
+# ver app.models.bootstrap_unidades_se_vazia) e dos campos ainda não
+# migrados para tabela própria (ver app.engine._yaml_blocos).
+UNITS_YAML = _PROJECT_ROOT / "data" / "units.yaml"
 
 
 def ensure_dirs() -> None:

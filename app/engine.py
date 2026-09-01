@@ -1,6 +1,7 @@
 import yaml, os, copy
+from app.paths import UNITS_YAML
 from app.models import (
-    ResultadoUnidade, init_db, salvar_lancamento, get_saldo_acumulado,
+    ResultadoUnidade, init_db, get_db, salvar_lancamento, get_saldo_acumulado,
     get_parametros_vigentes, seed_parametros_from_yaml,
 )
 from app.calculators.base import calcular_percentual_simples, calcular_com_aliquota
@@ -12,16 +13,63 @@ from app.calculators.repasse_duplo import calcular_com_aliquota_repasse_duplo
 from app.calculators.patio import calcular_patio
 from app.calculators.patio_manutencao import calcular_patio_manutencao
 
-_UNITS_PATH = os.path.join(os.path.dirname(__file__), "../data/units.yaml")
 _units_cache = None
+_yaml_blocos_cache = None
+
+
+def _yaml_blocos() -> dict:
+    """Blocos originais de data/units.yaml, indexados por id.
+
+    v1.2.0: a tabela `unidades` (bootstrap em app.models.init_db, formalizado
+    pela migration 0007) é a fonte de verdade para identidade/existência/
+    status de cada unidade — não este arquivo. Ainda assim, os blocos
+    aninhados que a tabela `unidades` deliberadamente não duplica (splits do
+    Pátio, faixas, custos_mensais/variaveis — parâmetros operacionais, não
+    estrutura) continuam vindo de cada bloco YAML como "shape legado", até a
+    etapa seguinte trazer um editor próprio para eles. Uma unidade que só
+    existir no banco (criada pela futura tela de Administração, sem bloco
+    YAML correspondente) simplesmente não tem nenhum desses campos extras —
+    load_units() trata isso normalmente.
+    """
+    global _yaml_blocos_cache
+    if _yaml_blocos_cache is None:
+        with open(UNITS_YAML, encoding="utf-8") as f:
+            data = yaml.safe_load(f)
+        _yaml_blocos_cache = {u["id"]: u for u in data["unidades"]}
+    return _yaml_blocos_cache
 
 
 def load_units(force: bool = False) -> dict:
+    """Fonte de verdade: tabela `unidades` no banco (migration 0007).
+
+    Cada unidade é montada a partir da linha do banco (identidade:
+    nome, contratante, ativo, inicio, tipo_calculo, tipo_relatorio) com o
+    bloco YAML correspondente (se existir) por baixo, fornecendo só os
+    campos aninhados ainda não migrados para tabela própria — nunca o
+    contrário: um valor estrutural do banco sempre prevalece sobre o YAML.
+    """
     global _units_cache
     if _units_cache is None or force:
-        with open(_UNITS_PATH, encoding="utf-8") as f:
-            data = yaml.safe_load(f)
-        _units_cache = {u["id"]: u for u in data["unidades"]}
+        init_db()
+        with get_db() as conn:
+            rows = conn.execute("SELECT * FROM unidades").fetchall()
+
+        yaml_blocos = _yaml_blocos()
+        unidades = {}
+        for row in rows:
+            uid = row["id"]
+            bloco = dict(yaml_blocos.get(uid, {}))
+            bloco.update({
+                "id": uid,
+                "nome": row["nome"],
+                "contratante": row["contratante"],
+                "ativo": bool(row["ativo"]),
+                "inicio": row["inicio"],
+                "tipo_calculo": row["tipo_calculo"],
+                "tipo_relatorio": row["tipo_relatorio"],
+            })
+            unidades[uid] = bloco
+        _units_cache = unidades
     return _units_cache
 
 

@@ -1,9 +1,9 @@
 from dataclasses import dataclass, field
 from typing import Optional
-import sqlite3, json, os
+import sqlite3, json, os, yaml
 from datetime import date as _date
 
-from app.paths import DB_PATH
+from app.paths import DB_PATH, UNITS_YAML
 
 # ─── metadados de parâmetros operacionais ────────────────────────────────────
 # Chave dot-notation → (tipo_dado, descrição amigável)
@@ -151,6 +151,28 @@ def init_db():
                 atualizado_em TEXT DEFAULT (datetime('now')),
                 PRIMARY KEY (unidade_id, mes_referencia)
             );
+
+            -- Configuração ESTRUTURAL das unidades (v1.2.0) — identidade e
+            -- roteamento (qual calculadora, qual template de relatório),
+            -- nunca parâmetro operacional (isso continua em
+            -- parametros_vigentes). O schema é criado aqui; o BOOTSTRAP
+            -- inicial (só quando a tabela está vazia — ver
+            -- bootstrap_unidades_se_vazia logo abaixo) também acontece
+            -- aqui, para que uma instalação nova nunca fique com 0
+            -- unidades disponíveis. A migration 0007 formaliza o mesmo
+            -- bootstrap como um passo auditável do histórico de deploy —
+            -- reaproveita esta função, não duplica a lógica.
+            CREATE TABLE IF NOT EXISTS unidades (
+                id             TEXT PRIMARY KEY,
+                nome           TEXT NOT NULL,
+                contratante    TEXT NOT NULL,
+                ativo          INTEGER NOT NULL DEFAULT 1,
+                inicio         TEXT NOT NULL,
+                tipo_calculo   TEXT NOT NULL,
+                tipo_relatorio TEXT NOT NULL DEFAULT 'padrao',
+                criado_em      TEXT DEFAULT (datetime('now')),
+                atualizado_em  TEXT DEFAULT (datetime('now'))
+            );
         """)
         # Migration: adiciona colunas em DBs criados antes desta versão
         for col in ("tipo_dado TEXT", "descricao TEXT"):
@@ -158,6 +180,56 @@ def init_db():
                 conn.execute(f"ALTER TABLE parametros_vigentes ADD COLUMN {col}")
             except sqlite3.OperationalError:
                 pass  # coluna já existe
+
+        bootstrap_unidades_se_vazia(conn)
+
+
+def bootstrap_unidades_se_vazia(conn) -> int:
+    """
+    Carrega as unidades de data/units.yaml na tabela `unidades` — SOMENTE
+    se ela estiver completamente vazia. Não é sincronização: se a tabela já
+    tiver qualquer linha (mesmo uma só, mesmo uma unidade criada manualmente
+    sem bloco YAML correspondente), esta função não faz absolutamente nada
+    — nunca insere unidades "faltantes", nunca atualiza uma já existente.
+    Depois do bootstrap inicial (aqui ou pela migration 0007, que reaproveita
+    esta mesma função), o banco é a única autoridade; data/units.yaml só
+    volta a ser lido para os campos ainda não migrados para tabela própria
+    (ver app.engine._yaml_blocos) — nunca mais para popular `unidades`.
+
+    Corrida entre duas inicializações quase simultâneas: o INSERT usa
+    "OR IGNORE" deliberadamente — mesmo que ambas leiam a tabela vazia antes
+    de qualquer uma escrever, a segunda apenas não duplica nada (SQLite
+    serializa as duas transações de escrita; a que perder a corrida encontra
+    os ids já presentes e os ignora, sem erro). Retorna quantas linhas esta
+    chamada efetivamente inseriu (0 se não fez nada).
+    """
+    total = conn.execute("SELECT COUNT(*) AS c FROM unidades").fetchone()["c"]
+    if total > 0:
+        return 0
+
+    if not UNITS_YAML.exists():
+        return 0
+
+    with open(UNITS_YAML, encoding="utf-8") as f:
+        dados = yaml.safe_load(f)
+
+    inseridas = 0
+    for u in dados["unidades"]:
+        cur = conn.execute("""
+            INSERT OR IGNORE INTO unidades
+                (id, nome, contratante, ativo, inicio, tipo_calculo, tipo_relatorio)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (
+            u["id"],
+            u["nome"],
+            u["contratante"],
+            1 if u.get("ativo", True) else 0,
+            u["inicio"],
+            u["tipo_calculo"],
+            u.get("tipo_relatorio", "padrao"),
+        ))
+        inseridas += cur.rowcount
+    return inseridas
 
 
 # ─── parâmetros com vigência ──────────────────────────────────────────────────
