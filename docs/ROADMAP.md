@@ -28,7 +28,7 @@ Este documento descreve a estratégia de evolução do Lyon Park como **produto*
 ago/2026   v1.0.0  Produção                           — concluída em 12/08/2026
            v1.1.0  Consolidação Operacional           — concluída em 14/08/2026
            v1.1.1  Homologação e Robustez             — concluída em 27/08/2026
-           v1.1.2  Histórico e Consolidação           — concluída em 28/08/2026
+           v1.1.2  Histórico e Consolidação           — concluída em 01/09/2026
            v1.2.0  Autonomia Operacional               — próxima versão
 set/2026   ·       Marco: fechamento de ago/2026 100% pela ferramenta
            v1.3.0  Automação de Entradas e Fechamento
@@ -148,43 +148,55 @@ Tela de cadastro de unidades, tela de parametrização administrativa, vigência
 ---
 
 ## v1.1.2 — Histórico e Consolidação dos Relatórios
-**Lançamento:** 28/08/2026
+**Lançamento:** 01/09/2026
 **Status:** Concluída.
 
 ### Problema que resolve
-O comparativo de 12 meses do PDF só existia, na prática, para os poucos meses fechados pela própria ferramenta desde o lançamento — o histórico anterior ao Lyon Reports nunca tinha sido restaurado nesse nível de detalhe, e por isso o relatório mostrava "histórico insuficiente" mesmo quando a unidade tinha anos de dados reais na planilha original. Separadamente, o comparativo também faltava um mês mesmo quando havia histórico suficiente, sempre que o PDF era gerado antes da aprovação. O Pátio não tinha histórico visível na tela, e a memória de cálculo de Outros Serviços escondia duas incidências (repasse e rateio) num único número.
+O comparativo de 12 meses do PDF só existia, na prática, para os poucos meses fechados pela própria ferramenta desde o lançamento — o histórico anterior ao Lyon Reports nunca tinha sido restaurado nesse nível de detalhe, e por isso o relatório mostrava "histórico insuficiente" mesmo quando a unidade tinha anos de dados reais na planilha original. O Histórico Anual do PDF, por sua vez, dependia de uma importação separada (`historico_anual`) que nunca chegou a rodar em produção e que, quando inspecionada, continha erros próprios já identificados em Medcenter, Viva Open Mall e W-Tower Caxias — ou seja, mesmo restaurando o comparativo mensal, o Histórico Anual continuaria mostrando dados errados ou ausentes. Separadamente, o Pátio não tinha histórico visível na tela, e a memória de cálculo de Outros Serviços escondia duas incidências (repasse e rateio) num único número.
 
 ### Valor entregue
-O comparativo mensal do PDF passa a mostrar até 12 competências reais para praticamente todas as unidades, incluindo a competência sendo fechada no momento — não apenas o que foi fechado pela ferramenta desde agosto/2026. O Pátio ganha histórico operacional independente por contratante, como qualquer outra unidade. A memória de Outros Serviços fica auditável, com cada etapa do cálculo visível — na tela e no PDF, de forma consistente.
+O comparativo mensal do PDF passa a mostrar até 12 competências reais para praticamente todas as unidades, incluindo a competência sendo fechada no momento, com variação ano a ano (YoY) em vez de mês a mês. O Histórico Anual passa a ser reconstruído a partir da mesma fonte mensal confiável do comparativo — não mais de uma importação paralela com erros conhecidos —, com layout simplificado a três indicadores gerenciais (Faturamento, Resultado, Repasse) e identificação explícita de anos parciais. O Pátio ganha histórico operacional independente por contratante, como qualquer outra unidade, com o Repasse anual já somando corretamente a receita extra de mídia. A memória de Outros Serviços fica auditável, com cada etapa do cálculo visível — na tela e no PDF, de forma consistente.
 
 ### O que foi entregue
 
 **Bootstrap do histórico mensal legado**  
-Aproximadamente 5 anos de dados mensais (faturamento, resultado, repasse), extraídos da planilha histórica original e restaurados via migrations — nunca por uma funcionalidade de importação exposta ao usuário. Cobre praticamente todas as unidades ativas, com exceção de Medcenter e Viva Open Mall (a planilha original não tem dados mensais para elas depois de dez/2025).
+Aproximadamente 5 anos de dados mensais (faturamento, resultado, repasse), extraídos da planilha histórica original e restaurados via migrations — nunca por uma funcionalidade de importação exposta ao usuário. Cobre praticamente todas as unidades ativas.
 
-**Histórico mensal de até 12 meses nos PDFs**  
-Consequência direta do bootstrap: o comparativo mensal do relatório passa a exibir a janela completa sempre que houver histórico suficiente, sem precisar esperar meses de uso real da ferramenta para se preencher.
+**Backfill de maio/2026**  
+Corrigida uma suposição do processo de bootstrap que presumia, incorretamente, que toda unidade já tinha maio/2026 gerado pela própria ferramenta. Uma migration separada preenche apenas as unidades que realmente ficaram sem essa competência, sem tocar em nenhum lançamento real já existente.
 
-**Correção do comparativo para a competência atual**  
-O comparativo agora inclui a competência sendo processada mesmo antes da aprovação (quando o lançamento ainda não foi salvo no banco) — sem nunca substituir um valor já aprovado e salvo.
+**Backfill de janeiro a maio/2026 de Medcenter e Viva Open Mall**  
+As duas únicas unidades sem histórico mensal restaurado até o mês anterior à virada operacional para o Lyon Reports (junho/2026) — completadas com os dados oficiais do controle legado, sem tocar em nenhuma competência de junho/2026 em diante.
+
+**Histórico mensal de até 12 meses nos PDFs, com variação YoY**  
+O comparativo mensal do relatório passa a exibir a janela completa sempre que houver histórico suficiente, comparando cada competência com o mesmo mês do ano anterior — sem inventar comparação quando não há histórico correspondente.
+
+**Correção do comparativo e do Histórico Anual para a competência atual**  
+Tanto o comparativo mensal quanto, agora, o Histórico Anual incluem a competência sendo processada mesmo antes da aprovação (quando o lançamento ainda não foi salvo no banco) — sem nunca substituir um valor já aprovado e salvo, e sem contar a mesma competência duas vezes.
+
+**Reconstrução do Histórico Anual a partir do histórico mensal**  
+`historico_anual` deixa de ser uma fonte própria — com erros já identificados em Medcenter (Repasse), Viva Open Mall (Resultado e Repasse ausentes) e W-Tower Caxias (Repasse e Resultado) — e passa a ser um agregado/cache reconstruído a partir de `lancamentos`, a mesma fonte mensal confiável do comparativo.
+
+**Histórico Anual simplificado: `Ano | Faturamento | Resultado | Repasse`**  
+Layout transposto (anos em linha) e reduzido aos três indicadores gerenciais também usados nos cards principais — sem Receita Líquida nem qualquer indicador específico de calculadora. Anos incompletos (unidade nova, ou ano corrente ainda em andamento) aparecem normalmente, identificados no próprio campo Ano — ex.: `2024 (10 meses)`.
+
+**Despesas Fixas editável (Medcenter, Viva Open Mall)**  
+Novo campo por competência nas unidades `RESULTADO_SPLIT`, com a mesma memória operacional já usada para Ponto de Equilíbrio — nomenclatura mantida deliberadamente distinta, são conceitos diferentes.
 
 **Histórico operacional do Pátio REAL e MAIOJAMA**  
-A tela de unidade do Pátio passa a mostrar "Competências anteriores" de forma independente para cada contratante, como qualquer outra unidade — antes essa seção nem aparecia.
+A tela de unidade do Pátio passa a mostrar "Competências anteriores" de forma independente para cada contratante, como qualquer outra unidade — antes essa seção nem aparecia. O Repasse anual do Pátio no PDF passa a somar corretamente a receita extra de mídia (`extras.repasse_outros`).
 
 **Ordem do histórico do mês mais recente para o mais antigo**  
 Tanto na tela quanto no CSV exportado, a competência mais recente passa a ser a primeira coluna.
 
-**Correção do histórico anual do W-Tower Caxias**  
-A importação original usava a coluna de IPTU em vez da coluna de repasse real — o valor de aluguel do histórico anual estava incorreto desde o primeiro seed. Corrigido via migration dedicada, sem misturar com o bootstrap mensal.
-
-**Backfill de maio/2026**  
-Corrigida uma suposição do processo de bootstrap que presumia, incorretamente, que toda unidade já tinha maio/2026 gerado pela própria ferramenta. Uma migration separada preenche apenas as unidades que realmente ficaram sem essa competência, sem tocar em nenhum lançamento real já existente.
+**Ajustes de quebra de página do PDF**  
+Linhas de tabela e cards protegidos contra corte entre páginas, títulos de seção protegidos contra ficar órfãos — sem forçar cada seção a começar em página nova; a seção de Eventos da Competência pode atravessar páginas livremente.
 
 **Refinamentos da memória de cálculo do Pátio**  
 Layout de REAL e MAIOJAMA corrigido para largura total, e a memória de Outros Serviços passa a mostrar cada etapa (Resultado → Repasse 50% → Rateio por contratante com o valor final), igual na tela e no PDF.
 
 ### Fora do escopo desta versão
-Qualquer alteração de regra de cálculo, rateio ou aprovação além das correções já homologadas nesta versão e na v1.1.1.
+Qualquer alteração de regra de cálculo, rateio ou aprovação além das correções já homologadas nesta versão e na v1.1.1. Pátio Manutenção não tem Histórico Anual reconstruído por não ter nenhum lançamento mensal compatível na base — sem fonte confiável, a seção permanece ausente para essa unidade, sem inventar dado.
 
 ---
 
@@ -453,9 +465,9 @@ Ajustes visuais pontuais identificados em uso real ou em reunião de validação
 
 | Item | Problema que resolve | Impacto estimado |
 |---|---|---|
-| Revisão final do layout dos PDFs após feedback do proprietário da Lyon Park | Ajuste de leitura/apresentação do relatório entregue ao contratante | Baixo |
-| Possível remoção ou revisão das colunas de variação percentual do comparativo | Feedback direto sobre a leitura do bloco de comparativo mensal | Baixo |
 | Outros ajustes visuais identificados na reunião de validação | A consolidar conforme a reunião definir escopo | A definir |
+
+> Os dois itens anteriores desta lista — revisão do layout dos PDFs após feedback do proprietário e revisão das colunas de variação do comparativo — foram entregues na v1.1.2 (ver seção correspondente acima).
 
 ---
 
@@ -481,4 +493,4 @@ Nenhum fluxo é automatizado antes de ter rodado de ponta a ponta, manualmente, 
 
 ---
 
-*Última atualização: 28/08/2026*
+*Última atualização: 01/09/2026*

@@ -139,21 +139,37 @@ Primeira versão em produção. Cobre o ciclo completo de fechamento mensal das 
 
 ---
 
-## [1.1.2] - 2026-08-28 — Histórico e Consolidação dos Relatórios
+## [1.1.2] - 2026-09-01 — Histórico Mensal e Anual, Comparativos e Confiabilidade dos Dados
 
 ### Added
 
 - Restauração do histórico mensal legado (~5 anos, desde 2021) para alimentar o comparativo de 12 meses dos PDFs — antes disponível apenas no histórico anual.
+- Backfill de janeiro a maio/2026 de Medcenter e Viva Open Mall com os dados oficiais do controle legado — período anterior à virada operacional para o Lyon Reports em junho/2026.
 - Histórico operacional independente para Pátio REAL e Pátio MAIOJAMA, na tela de unidade — antes inexistente para o Pátio.
 - Memória de cálculo de Outros Serviços (Pátio) detalhada por etapa — Resultado, Repasse 50% e Rateio por contratante com o valor final, em vez de um único valor combinado.
+- Campo editável "Despesas Fixas (R$)" para as unidades `RESULTADO_SPLIT` (Medcenter, Viva Open Mall), com override por competência e a mesma memória operacional já usada para Ponto de Equilíbrio — nomenclatura deliberadamente distinta de "Ponto de Equilíbrio", conceitos diferentes.
 
 ### Changed
 
 - Comparativo mensal do PDF corrigido para considerar a competência atual mesmo antes da aprovação (antes, "Gerar PDF" sem aprovação prévia podia mostrar 11 meses ou menos, mesmo havendo histórico suficiente para 12).
+- Comparativo mensal do PDF passa de variação mês a mês (MoM) para variação ano a ano (YoY): cada competência é comparada com o mesmo mês do ano anterior; sem histórico comparável, a variação fica ausente em vez de comparar com outro mês.
+- Cards principais do PDF deixam de mostrar comparativo com o mês anterior — a leitura de variação passa a viver só no comparativo mensal.
+- Histórico Anual do PDF simplificado para `Ano | Faturamento | Resultado | Repasse` (anos em linha, indicadores em coluna) — os mesmos três conceitos usados nos cards principais; removida a Receita Líquida e qualquer indicador específico de calculadora, para não duplicar a memória de cálculo já detalhada na Prestação de Contas.
+- Anos incompletos do Histórico Anual passam a ser identificados diretamente no campo Ano (ex.: `2024 (10 meses)`, `2026 (1 mês)`) — não é mais necessário ter as 12 competências para a unidade aparecer na tabela.
+- Histórico Anual do PDF passa a considerar a competência sendo processada em memória, mesmo antes de estar persistida — mesmo princípio já aplicado ao comparativo mensal —, com proteção explícita contra dupla contagem quando a competência já está refletida no agregado.
+- Repasse do Pátio no Histórico Anual passa a incluir corretamente a receita extra de mídia (`extras.repasse_outros`), não só o aluguel base.
+- `historico_anual` deixa de ser uma fonte própria de dados e passa a ser tratada como agregado/cache derivado de `lancamentos` — a mesma fonte mensal que já alimenta o comparativo.
 - Histórico operacional da unidade (tela e CSV exportado) reordenado: competência mais recente primeiro, mais antiga por último.
 - Layout do Pátio corrigido para largura total — memória de cálculo de REAL e MAIOJAMA deixa de ficar restrita à largura de uma coluna estreita.
 - Memória de Outros Serviços consistente entre tela e PDF, com a mesma estrutura de etapas nos dois.
+- Quebras de página do PDF ajustadas: linhas de tabela protegidas contra corte entre páginas, títulos de seção protegidos contra ficar órfãos no fim da página, cards protegidos contra corte — sem forçar cada seção a começar em página nova; a seção de Eventos da Competência pode atravessar páginas livremente.
 - Nenhuma alteração de regra de cálculo, rateio ou aprovação além das correções já homologadas nesta versão.
+
+### Fixed
+
+- Repasse do Histórico Anual do Medcenter usava "Resultado Operador" (25%) em vez de "Saldo a Pagar" — o conceito de Repasse usado pelo resto do sistema.
+- Viva Open Mall nunca teve Resultado nem Repasse no Histórico Anual — a importação original nunca chegou a extrair esses dois indicadores para essa unidade.
+- Histórico Anual do W-Tower Caxias com um segundo problema, não coberto pela correção anterior: o Resultado de 2021 estava incorreto na base antiga (positivo); a soma real dos lançamentos mensais mostra resultado negativo, consistente com o início de operação da unidade.
 
 ### Infrastructure
 
@@ -161,6 +177,8 @@ Primeira versão em produção. Cobre o ciclo completo de fechamento mensal das 
 - `migrations/0002_bootstrap_historico_lancamentos.py` — bootstrap do histórico mensal em `lancamentos`, a partir de um arquivo de dados versionado (`migrations/data/historico_lancamentos.json`) extraído da planilha histórica original.
 - `migrations/0003_corrigir_historico_wtower.py` — correção do histórico anual do W-Tower Caxias (`historico_anual`), cuja importação original usava a coluna de IPTU em vez do repasse real.
 - `migrations/0004_backfill_maio_2026.py` — backfill pontual da competência 2026-05 para unidades que não tinham lançamento real nem foram cobertas pelo bootstrap inicial, sem sobrescrever nenhum lançamento real já existente.
+- `migrations/0005_backfill_legado_2026_medcenter_viva.py` — backfill idempotente de janeiro a maio/2026 de Medcenter e Viva Open Mall; nunca sobrescreve um valor já existente — reporta divergência em vez de substituir silenciosamente.
+- `migrations/0006_reconstruir_historico_anual.py` — reconstrói `historico_anual` inteiramente a partir de `lancamentos`; idempotente por recálculo (substitui o agregado antigo sempre que há fonte mensal disponível, nunca apaga um par unidade/ano sem fonte correspondente).
 - Scripts de extração (`scripts/extrair_historico_lancamentos.py`, `scripts/extrair_maio_2026.py`) — uso local e pontual, não fazem parte do runtime da aplicação.
 
 ---
