@@ -168,7 +168,24 @@ def _formatar_ano_label(ano: int, quantidade_meses: int | None) -> str:
     return f"{ano} ({quantidade_meses} {unidade})"
 
 
-def _historico_anual(unidade_id: str) -> Historico:
+def _mes_atual_persistido(unidade_id: str, mes_ref: str) -> bool:
+    """True se (unidade_id, mes_ref) já existir em `lancamentos`.
+
+    `historico_anual` só é populado agregando `lancamentos` (migration
+    0006) — nunca por outro caminho — então "mes_ref já está em
+    lancamentos" e "mes_ref já está refletido no agregado anual
+    persistido" são a mesma pergunta. Não há necessidade (nem estrutura,
+    sem reconstruir o ano inteiro) para verificar isso de outra forma; não
+    usa `status` de workflow, só a própria competência."""
+    with get_db() as conn:
+        row = conn.execute(
+            "SELECT 1 FROM lancamentos WHERE unidade_id=? AND mes_referencia=?",
+            (unidade_id, mes_ref),
+        ).fetchone()
+    return row is not None
+
+
+def _historico_anual(unidade_id: str, mes_ref: str, resultado) -> Historico:
     """Visão gerencial sintética — não a memória completa da prestação de
     contas. Colunas são sempre as mesmas três (Faturamento, Resultado,
     Repasse); quando a base histórica da unidade não tiver Resultado ou
@@ -176,19 +193,51 @@ def _historico_anual(unidade_id: str) -> Historico:
     preenche com outro indicador só para não deixar a célula vazia.
 
     `historico_anual` é um cache/agregado derivado de `lancamentos` (fonte
-    de verdade mensal — ver migration 0006); esta função só lê o cache, não
-    recalcula nada a partir dos lançamentos mensais."""
+    de verdade mensal — ver migration 0006); esta função lê o cache e, só
+    quando a competência sendo processada (`mes_ref`) ainda não estiver
+    persistida em `lancamentos`, soma o `resultado` em memória ao ano
+    correspondente — mesmo princípio que `_com_mes_atual` já aplica ao
+    comparativo mensal, para o PDF gerado antes da aprovação não "esquecer"
+    a competência atual. Nunca grava nada de volta em `historico_anual`;
+    o ajuste vive só no ReportData desta chamada."""
     raw = get_historico_anual(unidade_id)
-    if not raw:
+    por_ano = {e["ano"]: dict(e) for e in raw}
+
+    ano_atual = int(mes_ref[:4])
+    if not _mes_atual_persistido(unidade_id, mes_ref):
+        agregado = por_ano.get(ano_atual)
+        # Ano sem nenhum registro persistido ainda (unidade nova) — parte de
+        # zero. Ano com registro legado nunca reconstruído pela 0006
+        # (quantidade_meses ausente, ex.: unidades sem lançamentos, como
+        # ekos/oka) — não mistura o valor corrente com um agregado que não
+        # temos como confirmar; deixa esse ano como está, intocado.
+        if agregado is None:
+            por_ano[ano_atual] = {
+                "ano": ano_atual,
+                "faturamento": resultado.faturamento or 0.0,
+                "resultado": resultado.resultado or 0.0,
+                "aluguel_calculado": (resultado.aluguel_calculado or 0.0)
+                    + (resultado.extras or {}).get("repasse_outros", 0.0),
+                "quantidade_meses": 1,
+            }
+        elif agregado.get("quantidade_meses") is not None:
+            agregado["faturamento"] = (agregado.get("faturamento") or 0.0) + (resultado.faturamento or 0.0)
+            agregado["resultado"] = (agregado.get("resultado") or 0.0) + (resultado.resultado or 0.0)
+            agregado["aluguel_calculado"] = (agregado.get("aluguel_calculado") or 0.0) + (
+                (resultado.aluguel_calculado or 0.0) + (resultado.extras or {}).get("repasse_outros", 0.0)
+            )
+            agregado["quantidade_meses"] = agregado["quantidade_meses"] + 1
+
+    if not por_ano:
         return Historico(colunas=[], linhas=[])
 
     linhas = [
         LinhaHistoricoAnual(
-            ano=e["ano"],
-            ano_label=_formatar_ano_label(e["ano"], e.get("quantidade_meses")),
+            ano=ano,
+            ano_label=_formatar_ano_label(ano, e.get("quantidade_meses")),
             valores={label: e.get(campo) for campo, label in _HISTORICO_ANUAL_COLUNAS},
         )
-        for e in sorted(raw, key=lambda x: x["ano"])
+        for ano, e in sorted(por_ano.items())
     ]
 
     return Historico(
@@ -529,7 +578,7 @@ def build_report_data(resultado, mes_ref: str,
     else:
         prestacao = _prestacao_padrao(resultado, cfg)
 
-    historico = _historico_anual(resultado.unidade_id)
+    historico = _historico_anual(resultado.unidade_id, mes_ref, resultado)
 
     # Eventos — carregado da planilha por unidade (uid-específico)
     bloco_eventos = None
@@ -601,7 +650,7 @@ def _build_patio(r: ResultadoPatio, split_id: str, mes_ref: str, hoje: str) -> R
     linhas.append(LinhaPrestacao("Total Repasse", repasse_total, "total"))
 
     prestacao = Prestacao(linhas=linhas)
-    historico = _historico_anual(uid_hist)
+    historico = _historico_anual(uid_hist, mes_ref, split_r)
 
     blocos = []
     os_data = r.outros_servicos
