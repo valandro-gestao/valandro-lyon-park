@@ -589,3 +589,124 @@ def get_historico_anual(unidade_id: str) -> list[dict]:
             (unidade_id,)
         ).fetchall()
         return [{"ano": r["ano"], **json.loads(r["dados_json"])} for r in rows]
+
+
+# ─── administração de unidades (v1.2.0) ───────────────────────────────────────
+# Persistência dos campos ESTRUTURAIS de `unidades` (nome, contratante,
+# início, status, tipo_calculo, tipo_relatorio) para a tela de Administração.
+# Nunca grava parâmetro operacional aqui — isso continua em
+# parametros_vigentes, via salvar_parametros (inalterado).
+
+def unidade_id_existe(unidade_id: str) -> bool:
+    with get_db() as conn:
+        row = conn.execute("SELECT 1 FROM unidades WHERE id=?", (unidade_id,)).fetchone()
+    return row is not None
+
+
+def unidade_possui_lancamentos(unidade_id: str) -> bool:
+    with get_db() as conn:
+        row = conn.execute(
+            "SELECT 1 FROM lancamentos WHERE unidade_id=? LIMIT 1", (unidade_id,)
+        ).fetchone()
+    return row is not None
+
+
+def unidade_tem_parametros(unidade_id: str) -> bool:
+    with get_db() as conn:
+        row = conn.execute(
+            "SELECT 1 FROM parametros_vigentes WHERE unidade_id=? LIMIT 1", (unidade_id,)
+        ).fetchone()
+    return row is not None
+
+
+def status_unidade(u: dict) -> str:
+    """"ativa" | "em_configuracao" | "inativa" — nunca uma coluna, sempre
+    derivado na hora: ativo=1 → ativa; ativo=0 sem nenhum parâmetro em
+    parametros_vigentes → em_configuracao (unidade nova, ainda não
+    configurada); ativo=0 com parâmetro já existente → inativa (esteve
+    ativa antes, foi desativada)."""
+    if u.get("ativo"):
+        return "ativa"
+    if unidade_tem_parametros(u["id"]):
+        return "inativa"
+    return "em_configuracao"
+
+
+def get_unidade(unidade_id: str) -> dict | None:
+    """Leitura direta de `unidades`, sem cache — a tela de Administração
+    precisa sempre do valor mais recente gravado. Diferente de
+    app.engine.get_unit(), que é cacheado por processo para o fluxo
+    operacional e não deve ser usado para popular um formulário de edição."""
+    with get_db() as conn:
+        row = conn.execute("SELECT * FROM unidades WHERE id=?", (unidade_id,)).fetchone()
+    return dict(row) if row else None
+
+
+def listar_unidades_admin() -> list[dict]:
+    """Todas as unidades, direto do banco, sem cache — para a lista da tela
+    de Administração."""
+    with get_db() as conn:
+        rows = conn.execute("SELECT * FROM unidades ORDER BY nome").fetchall()
+    return [dict(r) for r in rows]
+
+
+def unidades_exemplo_por_tipo(tipo_calculo: str, limite: int = 3) -> list[str]:
+    """Nomes de até `limite` unidades ATIVAS que usam este tipo_calculo hoje
+    — alimenta a ajuda contextual do cadastro (app.calculadora_labels).
+    Nunca hardcoded: reflete o estado real do banco a cada chamada."""
+    with get_db() as conn:
+        rows = conn.execute(
+            "SELECT nome FROM unidades WHERE tipo_calculo=? AND ativo=1 ORDER BY nome LIMIT ?",
+            (tipo_calculo, limite),
+        ).fetchall()
+    return [r["nome"] for r in rows]
+
+
+def criar_unidade(id: str, nome: str, contratante: str, inicio: str,
+                   tipo_calculo: str, tipo_relatorio: str = "padrao") -> None:
+    """Cria uma unidade nova — sempre `ativo=0` (nasce "Em configuração",
+    ver status_unidade). Não existe caminho de código para criar já ativa;
+    é a proteção contra uso operacional sem parâmetros válidos (ver
+    unidade_tem_parametros / regra de ativação na UI).
+
+    Levanta ValueError se o id já existir. A UI deve checar
+    unidade_id_existe antes para dar uma mensagem amigável sem precisar
+    tratar exceção, mas a proteção final — a que realmente impede duplicar —
+    é esta, não a checagem prévia na tela."""
+    if unidade_id_existe(id):
+        raise ValueError(f"Já existe uma unidade com o identificador '{id}'.")
+    with get_db() as conn:
+        conn.execute("""
+            INSERT INTO unidades (id, nome, contratante, ativo, inicio, tipo_calculo, tipo_relatorio)
+            VALUES (?, ?, ?, 0, ?, ?, ?)
+        """, (id, nome, contratante, inicio, tipo_calculo, tipo_relatorio))
+
+
+def atualizar_unidade(unidade_id: str, *, nome: str = None, contratante: str = None,
+                       inicio: str = None, tipo_calculo: str = None,
+                       tipo_relatorio: str = None, ativo: bool = None) -> None:
+    """Atualiza campos estruturais de uma unidade existente — só altera os
+    campos passados (None = não mexe nesse campo). `id` nunca é parâmetro
+    aqui: não existe caminho de código para renomear o identificador de uma
+    unidade.
+
+    Esta função não decide se pode alterar tipo_calculo (unidade já tem
+    lançamento?) nem se pode ativar (unidade já tem parâmetro?) — quem
+    chama (a UI) já deve ter checado unidade_possui_lancamentos /
+    unidade_tem_parametros antes. Não duplicar essa decisão aqui evita a
+    regra de negócio divergir entre dois lugares."""
+    campos = {
+        "nome": nome, "contratante": contratante, "inicio": inicio,
+        "tipo_calculo": tipo_calculo, "tipo_relatorio": tipo_relatorio,
+        "ativo": (1 if ativo else 0) if ativo is not None else None,
+    }
+    sets = [f"{k}=?" for k, v in campos.items() if v is not None]
+    valores = [v for v in campos.values() if v is not None]
+    if not sets:
+        return
+    sets.append("atualizado_em=datetime('now')")
+    with get_db() as conn:
+        conn.execute(
+            f"UPDATE unidades SET {', '.join(sets)} WHERE id=?",
+            (*valores, unidade_id),
+        )

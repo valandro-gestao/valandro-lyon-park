@@ -192,8 +192,15 @@ if st.session_state.get("authentication_status") is True:
     # st.session_state["username"] → identificador do login (uso futuro: alterado_por, auditoria)
     # st.session_state["name"]     → nome amigável do usuário autenticado
 
-    # Botão de logout: posicionado no canto direito, fora do fluxo da aplicação
-    _col_app, _col_logout = st.columns([11, 1])
+    # Navegação + logout: canto direito, fora do fluxo da aplicação.
+    # "Administração" fica claramente separada do fechamento operacional —
+    # só alterna qual tela é renderizada abaixo (st.session_state.area),
+    # nenhuma mudança na sidebar (permanece escondida, decisão da v1.1.0).
+    _col_app, _col_admin, _col_logout = st.columns([10, 1, 1])
+    with _col_admin:
+        if st.button("Administração", key="btn_administracao", use_container_width=True):
+            st.session_state.area = "administracao"
+            st.rerun()
     with _col_logout:
         _authenticator.logout("Sair", location="main", key="btn_logout")
 
@@ -201,16 +208,21 @@ if st.session_state.get("authentication_status") is True:
     # Importações dentro do bloco autenticado: nenhum dado é carregado antes do login
     from app.models import init_db
     init_db()
-    from app.ui.fechamento import tela_fechamento
 
-    hoje = date.today()
-    if "sel_ano" not in st.session_state:
-        st.session_state.sel_ano = hoje.year
-    if "sel_mes" not in st.session_state:
-        st.session_state.sel_mes = hoje.month - 1 if hoje.month > 1 else 12
+    if st.session_state.get("area") == "administracao":
+        from app.ui.administracao import tela_administracao_unidades
+        tela_administracao_unidades()
+    else:
+        from app.ui.fechamento import tela_fechamento
 
-    mes_ref = f"{st.session_state.sel_ano}-{st.session_state.sel_mes:02d}"
-    tela_fechamento(mes_ref)
+        hoje = date.today()
+        if "sel_ano" not in st.session_state:
+            st.session_state.sel_ano = hoje.year
+        if "sel_mes" not in st.session_state:
+            st.session_state.sel_mes = hoje.month - 1 if hoje.month > 1 else 12
+
+        mes_ref = f"{st.session_state.sel_ano}-{st.session_state.sel_mes:02d}"
+        tela_fechamento(mes_ref)
 
 else:
     # ── Tela de login ───────────────────────────────────────────────────────
