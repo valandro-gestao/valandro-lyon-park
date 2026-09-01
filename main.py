@@ -198,7 +198,7 @@ if st.session_state.get("authentication_status") is True:
     # nenhuma mudança na sidebar (permanece escondida, decisão da v1.1.0).
     _col_app, _col_admin, _col_logout = st.columns([10, 1, 1])
     with _col_admin:
-        if st.button("Administração", key="btn_administracao", use_container_width=True):
+        if st.button("Admin", key="btn_administracao", use_container_width=True, help="Administração"):
             st.session_state.area = "administracao"
             st.rerun()
     with _col_logout:

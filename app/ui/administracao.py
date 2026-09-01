@@ -12,6 +12,14 @@ parametros_vigentes) e só pode ser ativada depois de ter algum parâmetro
 definido — hoje ainda não existe uma tela dedicada para isso; a proteção
 desta etapa é simplesmente não oferecer a opção de ativar enquanto não
 houver nenhum parâmetro.
+
+Datas (`st.date_input`, campo "Início da operação"): `format="DD/MM/YYYY"`
+é o único ajuste de localização nativamente suportado pelo Streamlit
+1.58 — controla só o texto exibido no campo, não o idioma do calendário.
+Nomes de mês e abreviação dos dias da semana no popup do calendário
+continuam em inglês; não há parâmetro de locale/idioma para isso, e
+nenhuma solução via CSS/JS foi aplicada aqui (seria frágil e quebraria em
+atualizações do componente).
 """
 import re
 import unicodedata
@@ -219,7 +227,9 @@ def _tela_nova_unidade():
         st.caption(f"Identificador gerado: `{id_final or '—'}`")
 
     contratante = st.text_input("Contratante", key="admin_nova_contratante")
-    inicio = st.date_input("Início da operação", value=date.today(), key="admin_nova_inicio")
+    inicio = st.date_input(
+        "Início da operação", value=date.today(), format="DD/MM/YYYY", key="admin_nova_inicio",
+    )
 
     st.markdown("**Modelo de cálculo**")
     _ajuda_modelos()
@@ -296,7 +306,9 @@ def _tela_editar_unidade(uid: str):
         inicio_atual = date.fromisoformat(u["inicio"])
     except (TypeError, ValueError):
         inicio_atual = date.today()
-    inicio = st.date_input("Início da operação", value=inicio_atual, key=f"admin_edit_inicio_{uid}")
+    inicio = st.date_input(
+        "Início da operação", value=inicio_atual, format="DD/MM/YYYY", key=f"admin_edit_inicio_{uid}",
+    )
 
     st.markdown("**Modelo de cálculo**")
     tem_lancamentos = unidade_possui_lancamentos(uid)
