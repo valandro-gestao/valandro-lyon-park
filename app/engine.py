@@ -106,14 +106,29 @@ def _merge_dict(base: dict, overrides: dict):
 
 
 def get_unidades_ativas(mes_referencia: str = None) -> list[dict]:
+    """Unidades que participam do fluxo operacional (Dashboard/Fechamento).
+
+    v1.2.0: `ativo` é a autoridade de status — `ativo=0` nunca aparece aqui,
+    independente de `inicio` (antes, uma unidade inativa cujo início já
+    tivesse passado era incluída mesmo assim; essa regra foi removida:
+    Ekos, OKA e Terreno OKA, todas ativo=false, deixam de aparecer mesmo
+    depois de 07/2026). `inicio` passa a ser só um limite temporal para
+    unidade ATIVA: com `mes_referencia` informado, uma unidade ativa cujo
+    início ainda não chegou também não aparece (antes isso nem era
+    checado). Sem `mes_referencia`, retorna todas as ativas — mesmo
+    comportamento de sempre para esse caso.
+
+    Não afeta consulta de relatórios/histórico de uma unidade inativa —
+    essa consulta usa `lancamentos`/`historico_anual` diretamente, não esta
+    função. Esta função decide só quem entra no fluxo operacional CORRENTE.
+    """
     units = load_units()
     result = []
     for u in units.values():
         if not u.get("ativo", True):
-            if mes_referencia and u.get("inicio", "") <= mes_referencia + "-01":
-                pass
-            else:
-                continue
+            continue
+        if mes_referencia and u.get("inicio", "") > mes_referencia + "-01":
+            continue
         result.append(u)
     return result
 
