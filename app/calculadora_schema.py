@@ -528,3 +528,18 @@ def campos_obrigatorios(tipo_calculo: str) -> list[dict]:
     (obrigatoriedade condicional) não entram aqui; ver
     app.models.validar_configuracao_unidade para a avaliação condicional."""
     return [c for c in campos_do_tipo(tipo_calculo) if c.get("obrigatorio")]
+
+
+def campo_por_chave(tipo_calculo: str, chave: str) -> dict | None:
+    """Busca um campo do schema pela chave exata (dot-notation incluso, ex.
+    "custos_variaveis.investimentos"). Usada pela UI (app.ui.administracao)
+    para formatar um valor de parametros_vigentes sem duplicar a definição
+    do campo — inclui também, quando aplicável, uma correspondência por
+    prefixo para chaves de mapa_dinamico (ex. "custos_mensais.condominio"
+    casa com o campo "custos_mensais", tipo_valor_item indica o formato)."""
+    for c in campos_do_tipo(tipo_calculo):
+        if c["chave"] == chave:
+            return c
+        if c.get("natureza") == "mapa_dinamico" and chave.startswith(c["chave"] + "."):
+            return c
+    return None
