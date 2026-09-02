@@ -52,9 +52,28 @@ Estrutura de cada campo:
 
 Campos compostos (natureza != "escalar") têm chaves adicionais:
   lista_estruturada: minimo_itens, item_schema (lista de sub-campos, cada
-                      um com chave/label/tipo_dado/obrigatorio)
+                      um com chave/label/tipo_dado/obrigatorio e,
+                      opcionalmente, minimo/maximo — faixa numérica válida,
+                      ex. percentual entre 0.0 e 1.0), estrutura_ordenada
+                      (opcional — ver abaixo)
   mapa_dinamico:      tipo_valor_item, permite_adicionar_remover (hoje
                       sempre False — ver nota abaixo)
+
+Sub-campo com `"gerado_automaticamente": True` (ex. "id" em splits/repasses):
+não é um campo normal de edição — a UI (app.ui.administracao) nunca o
+mostra como coluna editável; o valor é preservado por posição ao editar um
+item existente, ou gerado a partir do "nome" (mesmo slug do cadastro de
+unidade) para um item novo. Esse mesmo sub-campo é usado genericamente por
+`validar_estrutura_lista` para checar unicidade — não é preciso marcar
+nada além disso no schema para ganhar a validação de "IDs únicos".
+
+`estrutura_ordenada` (só em listas tipo "faixas", ex. COM_FAIXAS.faixas e
+COM_ALIQUOTA_CUMUL.faixas_aluguel): `{"campo_limite": "ate"}` — declara que
+a lista representa faixas progressivas ordenadas por um sub-campo "até"
+opcional (None = sem limite superior). Habilita, de forma genérica (sem
+nenhum "if tipo_calculo=="), as regras: limites informados > 0, em ordem
+estritamente crescente, e "sem limite" (None) permitido no máximo uma vez
+e só na última posição.
 
 Nota sobre mapa_dinamico (custos_mensais/custos_variaveis): o VALOR de cada
 rubrica já é vigência-tracked hoje (cada uma vira uma chave própria em
@@ -182,9 +201,10 @@ SCHEMAS_POR_TIPO: dict[str, dict] = {
                 "descricao": "Percentuais progressivos por faixa de valor do resultado, em vez de um percentual único. Alternativa ao Percentual de Aluguel — configure um dos dois.",
                 "editor": "tabela_editavel", "aceita_vigencia": True,
                 "minimo_itens": 1,
+                "estrutura_ordenada": {"campo_limite": "ate"},
                 "item_schema": [
                     {"chave": "ate", "label": "Até (R$) — vazio = sem limite", "tipo_dado": "moeda", "obrigatorio": False},
-                    {"chave": "percentual", "label": "Percentual da Faixa", "tipo_dado": "percentual", "obrigatorio": True},
+                    {"chave": "percentual", "label": "Percentual da Faixa", "tipo_dado": "percentual", "obrigatorio": True, "minimo": 0.0, "maximo": 1.0},
                 ],
             },
             {
@@ -249,9 +269,10 @@ SCHEMAS_POR_TIPO: dict[str, dict] = {
                 "descricao": "Percentuais progressivos aplicados por faixa de valor do resultado.",
                 "editor": "tabela_editavel", "aceita_vigencia": True,
                 "minimo_itens": 1,
+                "estrutura_ordenada": {"campo_limite": "ate"},
                 "item_schema": [
                     {"chave": "ate", "label": "Até (R$) — vazio = sem limite", "tipo_dado": "moeda", "obrigatorio": False},
-                    {"chave": "percentual", "label": "Percentual da Faixa", "tipo_dado": "percentual", "obrigatorio": True},
+                    {"chave": "percentual", "label": "Percentual da Faixa", "tipo_dado": "percentual", "obrigatorio": True, "minimo": 0.0, "maximo": 1.0},
                 ],
             },
             {
@@ -338,8 +359,8 @@ SCHEMAS_POR_TIPO: dict[str, dict] = {
                 "item_schema": [
                     {"chave": "id", "label": "Identificador", "tipo_dado": "texto", "obrigatorio": False, "gerado_automaticamente": True},
                     {"chave": "nome", "label": "Nome do Contratante", "tipo_dado": "texto", "obrigatorio": True},
-                    {"chave": "percentual_split", "label": "Percentual do Resultado (Rateio)", "tipo_dado": "percentual", "obrigatorio": True},
-                    {"chave": "percentual_aluguel", "label": "Percentual de Repasse", "tipo_dado": "percentual", "obrigatorio": True},
+                    {"chave": "percentual_split", "label": "Percentual do Resultado (Rateio)", "tipo_dado": "percentual", "obrigatorio": True, "minimo": 0.0, "maximo": 1.0},
+                    {"chave": "percentual_aluguel", "label": "Percentual de Repasse", "tipo_dado": "percentual", "obrigatorio": True, "minimo": 0.0, "maximo": 1.0},
                 ],
                 "validacao_cruzada": "soma_percentual_split_100",
             },
@@ -460,8 +481,8 @@ SCHEMAS_POR_TIPO: dict[str, dict] = {
                 "item_schema": [
                     {"chave": "id", "label": "Identificador", "tipo_dado": "texto", "obrigatorio": False, "gerado_automaticamente": True},
                     {"chave": "nome", "label": "Nome do Beneficiário", "tipo_dado": "texto", "obrigatorio": True},
-                    {"chave": "percentual", "label": "Percentual do Resultado", "tipo_dado": "percentual", "obrigatorio": True},
-                    {"chave": "aluguel_minimo", "label": "Valor Mínimo Garantido", "tipo_dado": "moeda", "obrigatorio": False},
+                    {"chave": "percentual", "label": "Percentual do Resultado", "tipo_dado": "percentual", "obrigatorio": True, "minimo": 0.0, "maximo": 1.0},
+                    {"chave": "aluguel_minimo", "label": "Valor Mínimo Garantido", "tipo_dado": "moeda", "obrigatorio": False, "minimo": 0.0},
                 ],
             },
             {
@@ -543,3 +564,171 @@ def campo_por_chave(tipo_calculo: str, chave: str) -> dict | None:
         if c.get("natureza") == "mapa_dinamico" and chave.startswith(c["chave"] + "."):
             return c
     return None
+
+
+# ─── validação pura de parâmetros (v1.2.0 — Parâmetros e Vigências) ───────────
+#
+# Tudo abaixo é puro: só lê `params`/`campo`/`regra`, nunca toca banco. É a
+# MESMA lógica usada por app.models.validar_configuracao_unidade (com params
+# vindos de parametros_vigentes) e por app.ui.administracao (com params
+# candidatos, ainda não salvos, para dar feedback imediato ao editar um
+# campo composto) — não duplicar esta lógica em nenhum dos dois lugares.
+
+def resolver_valor(params: dict, chave: str):
+    """Resolve uma chave simples ou dot-notation dentro de um dict de
+    parâmetros já reconstruído (grupos aninhados como dict, listas como
+    list — mesmo formato que app.models.get_parametros_vigentes devolve)."""
+    if "." in chave:
+        grupo, sub = chave.split(".", 1)
+        return (params.get(grupo) or {}).get(sub)
+    return params.get(chave)
+
+
+def campo_obrigatorio_efetivo(campo: dict, params: dict) -> bool:
+    """True se o campo é obrigatório NESTA avaliação — direto (obrigatorio)
+    ou condicionado a outro campo (obrigatorio_se, ex.: taxa_cobranca só é
+    obrigatória quando tem_base_taxa_cobranca=True)."""
+    condicional = campo.get("obrigatorio_se")
+    if condicional:
+        return resolver_valor(params, condicional["campo"]) == condicional["igual"]
+    return bool(campo.get("obrigatorio"))
+
+
+def validar_estrutura_lista(campo: dict, itens: list) -> list[str]:
+    """Valida a ESTRUTURA INTERNA de uma lista_estruturada já não-vazia —
+    sub-campos obrigatórios, faixas numéricas (minimo/maximo) e, quando
+    declarado, a ordenação de faixas (estrutura_ordenada) e a unicidade de
+    identificadores (sub-campo gerado_automaticamente). Lista vazia é
+    sempre válida aqui: "pelo menos 1 item" depende de o campo estar
+    obrigatório no contexto atual (algo que esta função não conhece) — ver
+    `validar_parametros`, que aplica essa checagem antes de chamar esta."""
+    if not itens:
+        return []
+
+    erros: list[str] = []
+    label = campo["label"]
+    item_schema = campo.get("item_schema", [])
+
+    for idx, item in enumerate(itens, start=1):
+        for sub in item_schema:
+            valor = item.get(sub["chave"]) if isinstance(item, dict) else None
+            if sub.get("obrigatorio") and (valor is None or valor == ""):
+                erros.append(f'{label}, item {idx}: informe "{sub["label"]}".')
+                continue
+            if valor is None:
+                continue
+            eh_percentual = sub.get("tipo_dado") == "percentual"
+            minimo, maximo = sub.get("minimo"), sub.get("maximo")
+            if minimo is not None and valor < minimo:
+                erros.append(
+                    f'{label}, item {idx}: "{sub["label"]}" deve ser um percentual entre 0% e 100%.'
+                    if eh_percentual else
+                    f'{label}, item {idx}: "{sub["label"]}" não pode ser negativo.'
+                )
+            if maximo is not None and valor > maximo:
+                erros.append(
+                    f'{label}, item {idx}: "{sub["label"]}" deve ser um percentual entre 0% e 100%.'
+                    if eh_percentual else
+                    f'{label}, item {idx}: "{sub["label"]}" está acima do máximo permitido.'
+                )
+
+    estrutura = campo.get("estrutura_ordenada")
+    if estrutura:
+        campo_limite = estrutura["campo_limite"]
+        limites = [item.get(campo_limite) for item in itens]
+        sem_limite_idxs = [i for i, v in enumerate(limites) if v is None]
+        if len(sem_limite_idxs) > 1:
+            erros.append('No máximo uma faixa pode ser "Sem limite".')
+        elif sem_limite_idxs and sem_limite_idxs[0] != len(limites) - 1:
+            erros.append('Somente a última faixa pode ser "Sem limite".')
+        informados = [v for v in limites if v is not None]
+        if any(v <= 0 for v in informados):
+            erros.append("Os limites das faixas devem ser maiores que zero.")
+        if any(informados[i] >= informados[i + 1] for i in range(len(informados) - 1)):
+            erros.append("Os limites das faixas devem estar em ordem crescente.")
+
+    campo_id = next((s["chave"] for s in item_schema if s.get("gerado_automaticamente")), None)
+    if campo_id:
+        ids = [item.get(campo_id) for item in itens if item.get(campo_id)]
+        if len(ids) != len(set(ids)):
+            erros.append(f'Existem identificadores duplicados em "{label}" — ajuste os nomes.')
+
+    return erros
+
+
+def validar_regra_cruzada(regra: dict, params: dict) -> list[str]:
+    """Avalia uma única regra de `validacoes` (algum_de/soma_campos/
+    soma_itens) contra um dict de parâmetros já resolvido. Pura."""
+    erros: list[str] = []
+    tipo = regra["tipo"]
+
+    if tipo == "algum_de":
+        algum_presente = any(
+            resolver_valor(params, c) not in (None, [], {}) for c in regra["campos"]
+        )
+        if not algum_presente:
+            erros.append(regra["mensagem"])
+
+    elif tipo == "soma_campos":
+        valores = [resolver_valor(params, c) for c in regra["campos"]]
+        if any(v is None for v in valores):
+            return erros  # ausência já reportada individualmente
+        soma = sum(valores)
+        if abs(soma - regra["alvo"]) > regra["tolerancia"]:
+            erros.append(f"{regra['mensagem']} (hoje soma {soma * 100:.1f}%)")
+
+    elif tipo == "soma_itens":
+        itens = resolver_valor(params, regra["campo"]) or []
+        if not itens:
+            return erros  # ausência já reportada individualmente
+        soma = sum(item.get(regra["subcampo"], 0.0) or 0.0 for item in itens)
+        if abs(soma - regra["alvo"]) > regra["tolerancia"]:
+            erros.append(f"{regra['mensagem']} (hoje soma {soma * 100:.1f}%)")
+
+    return erros
+
+
+def validar_parametros(tipo_calculo: str, params: dict) -> list[str]:
+    """Valida um dict de parâmetros já resolvido contra o schema completo do
+    tipo de cálculo — mensagens em português operacional, lista vazia
+    quando está tudo completo. Pura: usada por
+    app.models.validar_configuracao_unidade (params vindos do banco) e por
+    app.ui.administracao (params candidatos, ainda não salvos)."""
+    campos = campos_do_tipo(tipo_calculo)
+    erros: list[str] = []
+
+    for campo in campos:
+        chave = campo["chave"]
+        natureza = campo.get("natureza", "escalar")
+        valor = resolver_valor(params, chave)
+        obrig = campo_obrigatorio_efetivo(campo, params)
+
+        if natureza == "lista_estruturada":
+            # A estrutura do que já foi digitado é validada sempre — mesmo
+            # num campo opcional (ex.: faixas_aluguel quando percentual_
+            # aluguel também está presente) — mas "precisa ter pelo menos
+            # um item" só se aplica quando o campo está de fato obrigatório
+            # nesta avaliação; vazio num campo opcional é só "não usado".
+            if not valor:
+                if obrig:
+                    erros.append(f'Cadastre pelo menos uma linha em "{campo["label"]}".')
+                continue
+            if len(valor) < campo.get("minimo_itens", 1):
+                erros.append(f'Cadastre pelo menos uma linha em "{campo["label"]}".')
+            erros.extend(validar_estrutura_lista(campo, valor))
+            continue
+
+        if not obrig:
+            continue
+
+        if natureza == "mapa_dinamico":
+            if not valor:
+                erros.append(f'Configure ao menos uma rubrica em "{campo["label"]}".')
+        else:
+            if valor is None:
+                erros.append(f'Informe "{campo["label"]}".')
+
+    for regra in validacoes_do_tipo(tipo_calculo):
+        erros.extend(validar_regra_cruzada(regra, params))
+
+    return erros

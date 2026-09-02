@@ -726,27 +726,12 @@ def atualizar_unidade(unidade_id: str, *, nome: str = None, contratante: str = N
 
 
 # ─── validação de configuração por modelo (v1.2.0) ────────────────────────────
-
-def _resolver_valor_schema(params: dict, chave: str):
-    """Resolve uma chave simples ou dot-notation dentro do dict já
-    reconstruído por get_parametros_vigentes (grupos aninhados de
-    custos_mensais/custos_variaveis já vêm como dict; faixas/splits/repasses
-    já vêm como list)."""
-    if "." in chave:
-        grupo, sub = chave.split(".", 1)
-        return (params.get(grupo) or {}).get(sub)
-    return params.get(chave)
-
-
-def _campo_obrigatorio_efetivo(campo: dict, params: dict) -> bool:
-    """True se o campo é obrigatório NESTA avaliação — direto (obrigatorio)
-    ou condicionado a outro campo (obrigatorio_se, ex.: taxa_cobranca só é
-    obrigatória quando tem_base_taxa_cobranca=True)."""
-    condicional = campo.get("obrigatorio_se")
-    if condicional:
-        return _resolver_valor_schema(params, condicional["campo"]) == condicional["igual"]
-    return bool(campo.get("obrigatorio"))
-
+#
+# A lógica de validação em si (pura, sem banco) mora em app.calculadora_schema
+# — validar_parametros() e as funções que ela usa — para ser compartilhada
+# entre esta função (params vindos do banco) e app.ui.administracao (params
+# candidatos, ainda não salvos, para feedback imediato ao editar um campo
+# composto). Não duplicar essa lógica aqui.
 
 def validar_configuracao_unidade(unidade_id: str, competencia: str) -> list[str]:
     """
@@ -761,72 +746,17 @@ def validar_configuracao_unidade(unidade_id: str, competencia: str) -> list[str]
     leitura pura). Usada hoje só pela tela de Administração — não afeta o
     fluxo de fechamento nem bloqueia aprovação de relatório.
     """
-    from app.calculadora_schema import campos_do_tipo, validacoes_do_tipo
+    from app.calculadora_schema import campos_do_tipo, validar_parametros
 
     unidade = get_unidade(unidade_id)
     if not unidade:
         return [f"Unidade '{unidade_id}' não encontrada."]
 
     tipo_calculo = unidade["tipo_calculo"]
-    campos = campos_do_tipo(tipo_calculo)
-    if not campos:
+    if not campos_do_tipo(tipo_calculo):
         # PATIO_OPERACAO (ou qualquer tipo sem schema declarado): fora do
         # escopo desta validação — não é papel deste módulo opinar sobre ele.
         return []
 
     params = get_parametros_vigentes(unidade_id, competencia)
-    erros: list[str] = []
-
-    for campo in campos:
-        if not _campo_obrigatorio_efetivo(campo, params):
-            continue
-
-        chave = campo["chave"]
-        natureza = campo.get("natureza", "escalar")
-        valor = _resolver_valor_schema(params, chave)
-
-        if natureza == "lista_estruturada":
-            if not valor or len(valor) < campo.get("minimo_itens", 1):
-                erros.append(f"Cadastre pelo menos uma linha em \"{campo['label']}\".")
-                continue
-            for idx, item in enumerate(valor, start=1):
-                for sub in campo.get("item_schema", []):
-                    if sub.get("obrigatorio") and not item.get(sub["chave"]):
-                        erros.append(
-                            f"{campo['label']}, item {idx}: informe \"{sub['label']}\"."
-                        )
-        elif natureza == "mapa_dinamico":
-            if not valor:
-                erros.append(f"Configure ao menos uma rubrica em \"{campo['label']}\".")
-        else:
-            if valor is None:
-                erros.append(f"Informe \"{campo['label']}\".")
-
-    for regra in validacoes_do_tipo(tipo_calculo):
-        tipo = regra["tipo"]
-
-        if tipo == "algum_de":
-            algum_presente = any(
-                _resolver_valor_schema(params, c) not in (None, [], {})
-                for c in regra["campos"]
-            )
-            if not algum_presente:
-                erros.append(regra["mensagem"])
-
-        elif tipo == "soma_campos":
-            valores = [_resolver_valor_schema(params, c) for c in regra["campos"]]
-            if any(v is None for v in valores):
-                continue  # ausência já reportada individualmente acima
-            soma = sum(valores)
-            if abs(soma - regra["alvo"]) > regra["tolerancia"]:
-                erros.append(f"{regra['mensagem']} (hoje soma {soma * 100:.1f}%)")
-
-        elif tipo == "soma_itens":
-            itens = _resolver_valor_schema(params, regra["campo"]) or []
-            if not itens:
-                continue  # ausência já reportada individualmente acima
-            soma = sum(item.get(regra["subcampo"], 0.0) or 0.0 for item in itens)
-            if abs(soma - regra["alvo"]) > regra["tolerancia"]:
-                erros.append(f"{regra['mensagem']} (hoje soma {soma * 100:.1f}%)")
-
-    return erros
+    return validar_parametros(tipo_calculo, params)

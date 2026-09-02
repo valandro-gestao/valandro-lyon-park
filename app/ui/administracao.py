@@ -40,6 +40,7 @@ import re
 import unicodedata
 from datetime import date
 
+import pandas as pd
 import streamlit as st
 
 from app.ui.fechamento import _CSS, _VALANDRO_LOGO_URI
@@ -47,13 +48,17 @@ from app.calculadora_labels import (
     TIPO_CALCULO_LABELS, TIPO_CALCULO_DESCRICOES, TIPO_RELATORIO_LABELS,
     TIPOS_CALCULO_PARA_CADASTRO, TIPOS_RELATORIO_PARA_CADASTRO,
 )
-from app.calculadora_schema import campos_do_tipo, campo_por_chave
+from app.calculadora_schema import (
+    campos_do_tipo, campo_por_chave, validacoes_do_tipo,
+    resolver_valor, campo_obrigatorio_efetivo,
+    validar_estrutura_lista, validar_regra_cruzada,
+)
 from app.models import (
     listar_unidades_admin, get_unidade, criar_unidade, atualizar_unidade,
     unidade_id_existe, unidade_possui_lancamentos, status_unidade,
     unidades_exemplo_por_tipo, get_parametros_vigentes, salvar_parametros,
     get_historico_parametros, validar_configuracao_unidade,
-    seed_parametros_from_yaml, _resolver_valor_schema, _campo_obrigatorio_efetivo,
+    seed_parametros_from_yaml,
 )
 from app.engine import load_units
 
@@ -489,37 +494,257 @@ def _formatar_valor(tipo_dado: str, valor) -> str:
     return str(valor)
 
 
-def _detalhar_composto(campo: dict, valor_atual):
-    """Renderiza em modo leitura (nunca JSON cru) o valor vigente de um campo
-    `lista_estruturada` ou `mapa_dinamico` — as próprias faixas/splits/repasses/
-    rubricas de custo, cuja edição fica para a próxima subetapa."""
-    natureza = campo.get("natureza")
-    if natureza == "lista_estruturada":
-        if not valor_atual:
-            st.caption("Nenhum item cadastrado.")
-            return
-        item_schema = campo.get("item_schema", [])
-        linhas = []
-        for item in valor_atual:
-            if not item_schema:
-                linhas.append({"Item": _formatar_valor("texto", item)})
-                continue
-            linha = {}
-            for sub in item_schema:
-                v = item.get(sub["chave"]) if isinstance(item, dict) else None
-                linha[sub["label"]] = _formatar_valor(sub.get("tipo_dado", "texto"), v)
-            linhas.append(linha)
-        st.table(linhas)
-    elif natureza == "mapa_dinamico":
-        if not valor_atual:
-            st.caption("Nenhuma rubrica cadastrada.")
-            return
-        tipo_valor = campo.get("tipo_valor_item", "moeda")
-        linhas = [
-            {"Rubrica": str(k).replace("_", " ").title(), "Valor": _formatar_valor(tipo_valor, v)}
-            for k, v in valor_atual.items()
-        ]
-        st.table(linhas)
+def _detalhar_mapa_dinamico(campo: dict, valor_atual):
+    """Renderiza em modo leitura (nunca JSON cru) as rubricas vigentes de um
+    campo `mapa_dinamico` (custos_mensais/custos_variaveis) — a lista de
+    nomes de rubrica ainda vem do YAML; editor de rubricas fica para uma
+    etapa futura (fora do escopo desta subetapa, que cobre só as 4 listas
+    estruturadas: faixas, faixas_aluguel, splits, repasses)."""
+    if not valor_atual:
+        st.caption("Nenhuma rubrica cadastrada.")
+        return
+    tipo_valor = campo.get("tipo_valor_item", "moeda")
+    linhas = [
+        {"Rubrica": str(k).replace("_", " ").title(), "Valor": _formatar_valor(tipo_valor, v)}
+        for k, v in valor_atual.items()
+    ]
+    st.table(linhas)
+
+
+# ─── editor genérico de listas estruturadas (faixas, splits, repasses) ───────
+#
+# Dirigido inteiramente por SCHEMAS_POR_TIPO/item_schema — nenhum "if
+# tipo_calculo == ..." aqui. O que diferencia faixas de splits/repasses na
+# tela é só o que o próprio schema declara: item_schema (colunas), minimo/
+# maximo por sub-campo, estrutura_ordenada (faixas) e o sub-campo marcado
+# gerado_automaticamente (id técnico de splits/repasses, nunca editável).
+
+def _pct_para_ui_editor(valor):
+    return None if valor is None else _pct_armazenado_para_ui(valor)
+
+
+def _valor_para_armazenado_editor(sub: dict, valor):
+    """Converte o valor de uma célula do st.data_editor de volta para a
+    representação interna (percentual decimal, moeda float, texto stripado).
+    NaN (célula em branco numa coluna numérica) vira None — é assim que o
+    pandas representa "vazio" numa coluna float; None é o que o resto do
+    sistema (e o "Sem limite" das faixas) espera."""
+    if valor is None or (isinstance(valor, float) and pd.isna(valor)):
+        return None
+    tipo_dado = sub.get("tipo_dado", "texto")
+    if tipo_dado == "percentual":
+        return _pct_ui_para_armazenado(valor)
+    if tipo_dado == "moeda":
+        return float(valor)
+    if isinstance(valor, str):
+        valor = valor.strip()
+        return valor or None
+    return valor
+
+
+def _column_config_editor(sub: dict):
+    tipo_dado = sub.get("tipo_dado", "texto")
+    obrigatorio = bool(sub.get("obrigatorio"))
+    escala = 100 if tipo_dado == "percentual" else 1
+    kwargs = {}
+    if sub.get("minimo") is not None:
+        kwargs["min_value"] = sub["minimo"] * escala
+    if sub.get("maximo") is not None:
+        kwargs["max_value"] = sub["maximo"] * escala
+
+    if tipo_dado == "percentual":
+        return st.column_config.NumberColumn(
+            sub["label"], format="%.2f%%", step=0.5, required=obrigatorio, **kwargs
+        )
+    if tipo_dado == "moeda":
+        return st.column_config.NumberColumn(
+            sub["label"], format="R$ %.2f", step=100.0, required=obrigatorio, **kwargs
+        )
+    return st.column_config.TextColumn(sub["label"], required=obrigatorio)
+
+
+def _gerar_id_unico(nome, ids_usados: set) -> str:
+    base = _gerar_id_sugerido(str(nome or "")) or "item"
+    novo_id, sufixo = base, 2
+    while novo_id in ids_usados:
+        novo_id = f"{base}_{sufixo}"
+        sufixo += 1
+    ids_usados.add(novo_id)
+    return novo_id
+
+
+def _celula_vazia(valor) -> bool:
+    return valor is None or valor == "" or (isinstance(valor, float) and pd.isna(valor))
+
+
+def _linhas_para_dataframe(itens: list, colunas: list, campo_id: str | None):
+    """Monta o DataFrame de entrada do data_editor. Quando há campo_id, ele
+    entra como uma coluna REAL do DataFrame (não um estado paralelo) — é
+    ocultado da grade via column_config={campo_id: None}, mas o Streamlit
+    devolve seu valor junto com cada linha em qualquer edição, exclusão ou
+    inserção. É esse mecanismo nativo — não a posição da linha — que garante
+    a identidade: confirmado empiricamente que excluir uma linha do meio
+    NÃO desloca o id das linhas seguintes (ver retorno desta etapa)."""
+    linhas = []
+    for item in itens:
+        linha = {
+            sub["label"]: (
+                _pct_para_ui_editor(item.get(sub["chave"]))
+                if sub.get("tipo_dado") == "percentual" else item.get(sub["chave"])
+            )
+            for sub in colunas
+        }
+        if campo_id:
+            linha[campo_id] = item.get(campo_id)
+        linhas.append(linha)
+    colunas_df = [s["label"] for s in colunas] + ([campo_id] if campo_id else [])
+    df = pd.DataFrame(linhas, columns=colunas_df)
+    for sub in colunas:
+        if sub.get("tipo_dado") in ("percentual", "moeda"):
+            df[sub["label"]] = pd.to_numeric(df[sub["label"]], errors="coerce")
+    return df
+
+
+def _dataframe_para_itens(df_editado, colunas: list, campo_id: str | None) -> list:
+    """Reconstrói os itens internos a partir do DataFrame editado. Uma linha
+    sem id (célula da coluna técnica vazia/NaN — sempre o caso de uma linha
+    recém-adicionada, já que o operador nunca a edita) ganha um id novo,
+    gerado do "nome" uma única vez; uma linha com id já presente preserva
+    exatamente esse valor, não importa em qual posição ela caiu depois de
+    edições/exclusões/inclusões de outras linhas."""
+    ids_usados = set()
+    if campo_id and campo_id in df_editado.columns:
+        ids_usados = {v for v in df_editado[campo_id].tolist() if not _celula_vazia(v)}
+
+    itens = []
+    for _, row in df_editado.iterrows():
+        item = {sub["chave"]: _valor_para_armazenado_editor(sub, row[sub["label"]]) for sub in colunas}
+        if campo_id:
+            id_atual = row.get(campo_id)
+            if _celula_vazia(id_atual):
+                item[campo_id] = _gerar_id_unico(item.get("nome"), ids_usados)
+            else:
+                item[campo_id] = id_atual
+            item = {campo_id: item.pop(campo_id), **item}
+        itens.append(item)
+    return itens
+
+
+def _editor_tabela_simples(uid: str, competencia_ref: str, campo: dict, valor_atual: list, colunas: list, campo_id: str | None):
+    """Editor padrão (splits, repasses): uma linha por item, todas as
+    colunas do item_schema editáveis, id técnico presente no DataFrame mas
+    oculto da grade."""
+    df = _linhas_para_dataframe(valor_atual, colunas, campo_id)
+    column_config = {sub["label"]: _column_config_editor(sub) for sub in colunas}
+    if campo_id:
+        column_config[campo_id] = None  # coluna técnica: presente nos dados, nunca exibida
+
+    st.caption(
+        "Clique na última linha (em branco) para adicionar. Selecione uma linha pelo "
+        "checkbox à esquerda e pressione Delete para remover."
+    )
+    editor_key = f"param_editor_{uid}_{competencia_ref}_{campo['chave']}"
+    df_editado = st.data_editor(
+        df, num_rows="dynamic", key=editor_key, use_container_width=True,
+        hide_index=True, column_config=column_config,
+    )
+    return _dataframe_para_itens(df_editado, colunas, campo_id)
+
+
+def _editor_faixas_com_limite(uid: str, competencia_ref: str, campo: dict, valor_atual: list, colunas: list, estrutura: dict):
+    """Editor de listas com `estrutura_ordenada` (faixas, faixas_aluguel) —
+    dirigido por esse metadado do schema, não por tipo_calculo ou nome do
+    campo: qualquer lista_estruturada futura marcada da mesma forma ganha
+    automaticamente esta UI. "Sem limite" é tratado como o que é — uma
+    decisão de negócio (existe ou não uma faixa final aberta) — em vez de
+    uma célula numérica vazia: o data_editor cobre só as faixas COM limite;
+    a faixa final, se existir, é um checkbox + um campo de percentual à
+    parte. Assume (como hoje em todo o schema) que uma lista com
+    estrutura_ordenada tem exatamente 2 sub-campos: o limite e um outro
+    (percentual) — se um dia houver um terceiro sub-campo aqui, este editor
+    precisa ser revisto."""
+    campo_limite = estrutura["campo_limite"]
+    sub_limite = next(s for s in colunas if s["chave"] == campo_limite)
+    outras = [s for s in colunas if s["chave"] != campo_limite]
+    sub_percentual = outras[0]
+
+    tem_sem_limite = bool(valor_atual) and valor_atual[-1].get(campo_limite) is None
+    linhas_limitadas = valor_atual[:-1] if tem_sem_limite else list(valor_atual)
+    item_sem_limite = valor_atual[-1] if tem_sem_limite else None
+
+    df = _linhas_para_dataframe(linhas_limitadas, colunas, campo_id=None)
+    column_config = {sub["label"]: _column_config_editor(sub) for sub in colunas}
+    # Aqui "Até" é sempre exigido: a faixa sem limite é tratada à parte pelo
+    # checkbox abaixo, então toda linha desta grade precisa de um limite real.
+    column_config[sub_limite["label"]] = st.column_config.NumberColumn(
+        sub_limite["label"], format="R$ %.2f", step=100.0, required=True, min_value=0.01,
+    )
+
+    st.caption(
+        "Cadastre aqui as faixas COM limite superior, da menor para a maior. "
+        "Clique na última linha (em branco) para adicionar. Selecione uma linha pelo "
+        "checkbox à esquerda e pressione Delete para remover."
+    )
+    editor_key = f"param_editor_{uid}_{competencia_ref}_{campo['chave']}"
+    df_editado = st.data_editor(
+        df, num_rows="dynamic", key=editor_key, use_container_width=True,
+        hide_index=True, column_config=column_config,
+    )
+    itens = _dataframe_para_itens(df_editado, colunas, campo_id=None)
+
+    toggle_key = f"param_semlimite_{uid}_{competencia_ref}_{campo['chave']}"
+    tem_sem_limite_novo = st.checkbox(
+        "Faixa final sem limite (vale para tudo que passar da última faixa acima)",
+        value=tem_sem_limite, key=toggle_key,
+    )
+    if tem_sem_limite_novo:
+        pct_key = f"param_semlimite_pct_{uid}_{competencia_ref}_{campo['chave']}"
+        pct_default = _pct_armazenado_para_ui(item_sem_limite[sub_percentual["chave"]]) if item_sem_limite else 0.0
+        pct_ui = st.number_input(
+            f"{sub_percentual['label']} da faixa sem limite (%)", value=pct_default,
+            step=0.5, format="%.2f", key=pct_key,
+        )
+        itens.append({campo_limite: None, sub_percentual["chave"]: _pct_ui_para_armazenado(pct_ui)})
+
+    return itens
+
+
+def _editor_lista_estruturada(
+    uid: str, competencia_ref: str, campo: dict, valor_atual: list,
+    params_atuais: dict, tipo_calculo: str,
+):
+    """Renderiza o editor de uma lista_estruturada e devolve (itens_editados,
+    valido). Delega para `_editor_faixas_com_limite` quando o schema declara
+    `estrutura_ordenada`, ou `_editor_tabela_simples` caso contrário — a
+    escolha é sobre uma CAPACIDADE que o próprio campo declara, não sobre
+    tipo_calculo ou nome do campo."""
+    item_schema = campo.get("item_schema", [])
+    campo_id = next((s["chave"] for s in item_schema if s.get("gerado_automaticamente")), None)
+    colunas = [s for s in item_schema if s["chave"] != campo_id]
+    valor_atual = valor_atual or []
+    estrutura = campo.get("estrutura_ordenada")
+
+    if estrutura:
+        itens_editados = _editor_faixas_com_limite(uid, competencia_ref, campo, valor_atual, colunas, estrutura)
+    else:
+        itens_editados = _editor_tabela_simples(uid, competencia_ref, campo, valor_atual, colunas, campo_id)
+
+    erros = list(validar_estrutura_lista(campo, itens_editados))
+    if campo_obrigatorio_efetivo(campo, params_atuais) and not itens_editados:
+        erros.append(f'Cadastre pelo menos uma linha em "{campo["label"]}".')
+
+    if not erros:
+        params_candidatos = dict(params_atuais)
+        params_candidatos[campo["chave"]] = itens_editados
+        for regra in validacoes_do_tipo(tipo_calculo):
+            campos_regra = regra.get("campos") or [regra.get("campo")]
+            if campo["chave"] in campos_regra:
+                erros.extend(validar_regra_cruzada(regra, params_candidatos))
+
+    for e in erros:
+        st.error(e)
+
+    return itens_editados, (len(erros) == 0)
 
 
 def _aba_parametros(uid: str, u: dict):
@@ -568,23 +793,38 @@ def _aba_parametros(uid: str, u: dict):
 
     st.markdown("**Parâmetros do modelo**")
     valores_editados = {}
+    compostos_invalidos = False
     for campo in campos:
         chave = campo["chave"]
         natureza = campo.get("natureza", "escalar")
-        valor_atual = _resolver_valor_schema(params_atuais, chave)
+        valor_atual = resolver_valor(params_atuais, chave)
         widget_key = f"param_{uid}_{competencia_ref}_{chave}"
 
-        if natureza in ("lista_estruturada", "mapa_dinamico"):
+        if natureza == "mapa_dinamico":
             st.markdown(f"**{campo['label']}**")
             if campo.get("descricao"):
                 st.caption(campo["descricao"])
-            st.write(_formatar_valor(campo.get("tipo_dado", "json"), valor_atual))
-            _detalhar_composto(campo, valor_atual)
-            st.caption("🔒 Edição disponível na próxima etapa.")
+            _detalhar_mapa_dinamico(campo, valor_atual)
+            st.caption("🔒 Edição de rubricas disponível numa etapa futura.")
             st.write("")
             continue
 
-        obrig = _campo_obrigatorio_efetivo(campo, params_atuais)
+        if natureza == "lista_estruturada":
+            obrig = campo_obrigatorio_efetivo(campo, params_atuais)
+            st.markdown(f"**{campo['label']}**" + (" *" if obrig else ""))
+            if campo.get("descricao"):
+                st.caption(campo["descricao"])
+            itens_editados, valido = _editor_lista_estruturada(
+                uid, competencia_ref, campo, valor_atual, params_atuais, tipo_calculo,
+            )
+            if not valido:
+                compostos_invalidos = True
+            elif itens_editados != (valor_atual or []):
+                valores_editados[chave] = itens_editados
+            st.write("")
+            continue
+
+        obrig = campo_obrigatorio_efetivo(campo, params_atuais)
         tipo_dado = campo.get("tipo_dado", "texto")
         label = campo["label"] + (" *" if obrig else "")
 
@@ -649,6 +889,13 @@ def _aba_parametros(uid: str, u: dict):
             f"Confirmo que quero usar estes valores a partir de {_fmt_competencia(vigente_a_partir)}.",
             key=f"param_confirma_{uid}_{competencia_ref}_{vigente_a_partir}",
         )
+
+    if compostos_invalidos:
+        st.error(
+            "Corrija os erros indicados acima nas listas (faixas/splits/repasses) "
+            "antes de salvar."
+        )
+        pode_salvar = False
 
     if st.button("Salvar parâmetros", type="primary", key=f"param_salvar_{uid}", disabled=not pode_salvar):
         usuario = st.session_state.get("username") or "administracao"
