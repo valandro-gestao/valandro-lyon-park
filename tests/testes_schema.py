@@ -23,7 +23,7 @@ from app.models import (
     init_db, validar_configuracao_unidade, get_parametros_vigentes,
     salvar_parametros, criar_unidade, unidade_id_existe,
 )
-from app.calculadora_schema import SCHEMAS_POR_TIPO
+from app.calculadora_schema import SCHEMAS_POR_TIPO, campo_por_chave
 
 init_db()
 MES = "2026-09"
@@ -254,6 +254,19 @@ checar("tem_receita_selos foi seedado em parametros_vigentes pelo get_unit_com_p
        "tem_receita_selos" in params_fiergs)
 checar("tem_base_taxa_cobranca também persistido para fiergs",
        "tem_base_taxa_cobranca" in params_fiergs)
+print()
+
+# ── 5. Ajuda de ordenação nas faixas (v1.2.0 — melhoria de UX, sem tocar
+#    validação) — texto precisa estar na descrição exibida na Administração
+#    dos dois únicos campos com estrutura_ordenada ────────────────────────
+print("=== 5. Texto de ajuda sobre ordem das faixas presente na descrição ===")
+_ORIENTACAO_FAIXAS = "As faixas devem estar em ordem crescente. A última pode ficar sem limite."
+campo_faixas_aluguel = campo_por_chave("COM_ALIQUOTA_CUMUL", "faixas_aluguel")
+campo_faixas = campo_por_chave("COM_FAIXAS", "faixas")
+checar("COM_ALIQUOTA_CUMUL.faixas_aluguel tem a orientação de ordem na descrição",
+       _ORIENTACAO_FAIXAS in (campo_faixas_aluguel or {}).get("descricao", ""))
+checar("COM_FAIXAS.faixas tem a orientação de ordem na descrição",
+       _ORIENTACAO_FAIXAS in (campo_faixas or {}).get("descricao", ""))
 print()
 
 if _falhas:
