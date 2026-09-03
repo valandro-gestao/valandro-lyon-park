@@ -6,13 +6,18 @@ vigência-tracked de cada modelo. Deliberadamente separada do fluxo
 operacional de fechamento (app.ui.fechamento) — reaproveita a mesma
 linguagem visual (_CSS, marca Valandro) sem redesenhar nada.
 
-Ainda NÃO cobre (próxima subetapa): editor de campos compostos (`faixas`,
-`faixas_aluguel`, `splits`, `repasses`, mapas dinâmicos de custos) — esses
-aparecem na aba Parâmetros em modo leitura, com indicação explícita de que
-a edição vem na etapa seguinte. Uma unidade criada aqui nasce
-"Em configuração" (ativo=0, sem nenhuma linha em parametros_vigentes) e só
-pode ser ativada manualmente (na aba Dados da Unidade) depois de ter algum
-parâmetro definido.
+Status: dois eixos SEPARADOS, nunca misturados numa heurística única —
+status operacional (`status_operacional`: "ativa"/"inativa", direto do
+campo `ativo`) e status de configuração (`status_configuracao`:
+"completa"/"incompleta"/"nao_aplicavel", direto de
+`validar_configuracao_unidade`). "Em configuração" continua existindo só
+como linguagem de UX na lista — é a apresentação de "inativa + incompleta"
+juntas, nunca uma regra técnica própria. Uma unidade criada aqui nasce
+`ativo=0`; ativar/inativar é sempre uma ação explícita da operadora (aba
+Dados da Unidade), nunca automática — nem ao salvar parâmetros, nem por
+falha de validação numa unidade já ativa. Ver `pode_ativar_unidade`
+(app.models) para a regra completa (competência >= início estrutural +
+configuração completa naquela competência).
 
 Datas (`st.date_input`, campo "Início da operação"): `format="DD/MM/YYYY"`
 é o único ajuste de localização nativamente suportado pelo Streamlit
@@ -55,7 +60,8 @@ from app.calculadora_schema import (
 )
 from app.models import (
     listar_unidades_admin, get_unidade, criar_unidade, atualizar_unidade,
-    unidade_id_existe, unidade_possui_lancamentos, status_unidade,
+    unidade_id_existe, unidade_possui_lancamentos,
+    status_operacional, status_configuracao, pode_ativar_unidade,
     unidades_exemplo_por_tipo, get_parametros_vigentes, salvar_parametros,
     get_historico_parametros, validar_configuracao_unidade,
     seed_parametros_from_yaml,
@@ -73,22 +79,32 @@ _ADMIN_CSS = """
 </style>
 """
 
-_STATUS_LABELS = {
-    "ativa": "Ativa",
-    "em_configuracao": "Em configuração",
-    "inativa": "Inativa",
-}
-_STATUS_CSS_GRUPO = {
-    "ativa": "admin-ativa",
-    "em_configuracao": "admin-config",
-    "inativa": "admin-inativa",
-}
+# Status OPERACIONAL — "ativa"/"inativa", direto de status_operacional().
+_STATUS_LABELS = {"ativa": "Ativa", "inativa": "Inativa"}
+_STATUS_CSS_GRUPO = {"ativa": "admin-ativa", "inativa": "admin-inativa"}
 
 
 def _status_chip(status: str) -> str:
     grupo = _STATUS_CSS_GRUPO.get(status, "admin-inativa")
     label = _STATUS_LABELS.get(status, status)
     return f'<span class="vd-status vd-status--{grupo}"><span class="vd-status-dot"></span>{label}</span>'
+
+
+# Status de CONFIGURAÇÃO — eixo separado, direto de status_configuracao().
+_CONFIG_LABELS = {
+    "completa": "Configuração completa",
+    "incompleta": "Configuração incompleta",
+    "nao_aplicavel": "Configuração não aplicável",
+}
+_CONFIG_CSS_GRUPO = {"completa": "admin-ativa", "incompleta": "admin-config", "nao_aplicavel": "admin-inativa"}
+_CONFIG_ICONE = {"completa": "✓", "incompleta": "⚠"}
+
+
+def _config_chip(status_config: str) -> str:
+    grupo = _CONFIG_CSS_GRUPO.get(status_config, "admin-inativa")
+    label = _CONFIG_LABELS.get(status_config, status_config)
+    icone = _CONFIG_ICONE.get(status_config, "—")
+    return f'<span class="vd-status vd-status--{grupo}"><span class="vd-status-dot"></span>{icone} {label}</span>'
 
 
 def _fmt_data(iso: str) -> str:
@@ -156,8 +172,13 @@ def _tela_lista_unidades():
 
     col_filtro, col_novo = st.columns([3, 1])
     with col_filtro:
+        # Filtro é só sobre o eixo OPERACIONAL (ativa/inativa) — configuração
+        # completa/incompleta é um eixo separado, mostrado por linha (badge),
+        # nunca uma opção de filtro própria. "Em configuração" (inativa +
+        # incompleta) continua existindo como legenda na própria linha, não
+        # como categoria de filtro — ver comentário abaixo, junto ao badge.
         filtro = st.radio(
-            "Filtro de status", ["Todas", "Ativas", "Em configuração", "Inativas"],
+            "Filtro de status", ["Todas", "Ativas", "Inativas"],
             horizontal=True, label_visibility="collapsed", key="admin_filtro",
         )
     with col_novo:
@@ -165,23 +186,22 @@ def _tela_lista_unidades():
             st.session_state.admin_view = "nova"
             st.rerun()
 
-    filtro_status = {
-        "Todas": None, "Ativas": "ativa",
-        "Em configuração": "em_configuracao", "Inativas": "inativa",
-    }[filtro]
+    filtro_status = {"Todas": None, "Ativas": "ativa", "Inativas": "inativa"}[filtro]
 
+    hoje_aaaa_mm = date.today().strftime("%Y-%m")
     linhas = []
     for u in listar_unidades_admin():
-        status = status_unidade(u)
-        if filtro_status and status != filtro_status:
+        operacional = status_operacional(u)
+        if filtro_status and operacional != filtro_status:
             continue
-        linhas.append((u, status))
+        config = status_configuracao(u, hoje_aaaa_mm)
+        linhas.append((u, operacional, config))
 
     if not linhas:
         st.info("Nenhuma unidade neste filtro.")
         return
 
-    for u, status in linhas:
+    for u, operacional, config in linhas:
         modelo = TIPO_CALCULO_LABELS.get(u["tipo_calculo"], u["tipo_calculo"])
         relatorio = TIPO_RELATORIO_LABELS.get(u["tipo_relatorio"], u["tipo_relatorio"])
         c1, c2, c3, c4 = st.columns([3, 3, 2, 1])
@@ -192,7 +212,12 @@ def _tela_lista_unidades():
             st.write(modelo)
             st.caption(f"{relatorio} · Início {_fmt_data(u['inicio'])}")
         with c3:
-            st.markdown(_status_chip(status), unsafe_allow_html=True)
+            st.markdown(_status_chip(operacional), unsafe_allow_html=True)
+            st.markdown(_config_chip(config), unsafe_allow_html=True)
+            if operacional == "inativa" and config == "incompleta":
+                # "Em configuração" como linguagem de UX — só a apresentação
+                # de "inativa + incompleta" juntas, nunca uma regra própria.
+                st.caption("Em configuração")
         with c4:
             if st.button("Editar", key=f"admin_editar_{u['id']}", use_container_width=True):
                 st.session_state.admin_view = "editar"
@@ -375,15 +400,6 @@ def _aba_dados_unidade(uid: str, u: dict):
     )
     tipo_relatorio = relatorio_opcoes[relatorio_labels.index(relatorio_sel)]
 
-    st.markdown("**Status**")
-    status_atual = status_unidade(u)
-    st.markdown(_status_chip(status_atual), unsafe_allow_html=True)
-    if status_atual == "em_configuracao":
-        st.warning("Configure os parâmetros de cálculo antes de ativar esta unidade.")
-        ativo_novo = False
-    else:
-        ativo_novo = st.toggle("Unidade ativa", value=bool(u["ativo"]), key=f"admin_edit_ativo_{uid}")
-
     st.divider()
     if st.button("Salvar alterações", type="primary", key=f"admin_edit_salvar_{uid}"):
         erros = []
@@ -396,14 +412,86 @@ def _aba_dados_unidade(uid: str, u: dict):
                 st.error(e)
             return
 
+        # Nunca inclui `ativo` aqui — ativar/inativar é sempre uma ação
+        # explícita e separada (ver _secao_status_ativacao), nunca um efeito
+        # colateral de salvar os dados estruturais.
         atualizar_unidade(
             uid, nome=nome.strip(), contratante=contratante.strip(),
             inicio=inicio.isoformat(), tipo_calculo=tipo_calculo,
-            tipo_relatorio=tipo_relatorio, ativo=ativo_novo,
+            tipo_relatorio=tipo_relatorio,
         )
         load_units(force=True)
         st.session_state.admin_msg = "Alterações salvas."
         st.rerun()
+
+    st.divider()
+    _secao_status_ativacao(uid, u)
+
+
+def _secao_status_ativacao(uid: str, u: dict):
+    """Ativar/inativar é sempre uma ação explícita e imediata (não faz
+    parte de "Salvar alterações", nem de salvar parâmetros). A competência
+    usada para validar a ativação é a mesma "Competência de referência" já
+    selecionada na aba Parâmetros — evita duas competências divergentes
+    fazendo papéis parecidos. Funciona mesmo antes de a aba Parâmetros ter
+    sido aberta nesta sessão: o valor default (mês atual) é o mesmo dos
+    dois lados, e o session_state persiste entre reruns — na primeira
+    renderização da tela ambas as abas ainda calculam o mesmo default; nas
+    seguintes, o valor já refletido aqui é exatamente o que a operadora
+    escolheu na aba Parâmetros, mesmo que esta função rode antes dela no
+    mesmo script (o valor foi gravado no rerun anterior)."""
+    st.markdown("**Status**")
+    operacional = status_operacional(u)
+    st.markdown(_status_chip(operacional), unsafe_allow_html=True)
+
+    hoje_aaaa_mm = date.today().strftime("%Y-%m")
+    competencia = st.session_state.get(f"param_ref_valor_{uid}", hoje_aaaa_mm)
+    erros_config = validar_configuracao_unidade(uid, competencia)
+    config = status_configuracao(u, competencia)
+
+    if config == "completa":
+        st.success(f"✓ Configuração completa em {_fmt_competencia(competencia)}")
+    elif config == "incompleta":
+        st.warning(f"⚠ Configuração incompleta em {_fmt_competencia(competencia)}")
+        for e in erros_config:
+            st.markdown(f"- {e}")
+    else:
+        st.caption(f"Configuração não avaliada para este modelo de cálculo em {_fmt_competencia(competencia)}.")
+
+    st.caption(
+        f"Configuração avaliada em: {_fmt_competencia(competencia)} — a mesma \"Competência de "
+        "referência\" selecionada na aba **Parâmetros**. Mude-a lá para avaliar outro mês."
+    )
+
+    if operacional == "ativa":
+        if st.button("Inativar unidade", key=f"admin_inativar_{uid}"):
+            atualizar_unidade(uid, ativo=False)
+            load_units(force=True)
+            st.session_state.admin_msg = "Unidade inativada."
+            st.rerun()
+        return
+
+    # Inativa: só pode ativar se pode_ativar_unidade não apontar bloqueio
+    # algum (início estrutural + configuração completa) NESSA competência.
+    # pode_ativar_unidade() = [mensagem de início, quando aplicável] +
+    # erros_config (os mesmos já listados acima) — aqui só mostramos a
+    # parte que ainda não apareceu (início), para não duplicar a lista.
+    bloqueios = pode_ativar_unidade(uid, competencia)
+    bloqueios_inicio = [b for b in bloqueios if b not in erros_config]
+    if bloqueios:
+        for b in bloqueios_inicio:
+            st.error(b)
+        st.button("Ativar unidade", disabled=True, key=f"admin_ativar_{uid}")
+        st.caption("Corrija os pontos acima para habilitar a ativação.")
+    else:
+        st.info(f"Configuração válida para {_fmt_competencia(competencia)}. Unidade pronta para ativação.")
+        if st.button("Ativar unidade", type="primary", key=f"admin_ativar_{uid}"):
+            atualizar_unidade(uid, ativo=True)
+            load_units(force=True)
+            st.session_state.admin_msg = (
+                f"Unidade ativada (configuração validada para {_fmt_competencia(competencia)})."
+            )
+            st.rerun()
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -785,8 +873,8 @@ def _aba_parametros(uid: str, u: dict):
         st.success(f"✓ Configuração completa em {_fmt_competencia(competencia_ref)}")
         if not u["ativo"]:
             st.caption(
-                'Esta unidade está pronta para ser ativada — use o campo "Unidade ativa" '
-                "na aba **Dados da Unidade**."
+                'Esta unidade pode estar pronta para ativação — veja o botão "Ativar unidade" '
+                "na aba **Dados da Unidade** (a ativação também confere o início estrutural)."
             )
 
     st.divider()

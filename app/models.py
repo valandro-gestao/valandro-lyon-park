@@ -624,25 +624,63 @@ def unidade_possui_lancamentos(unidade_id: str) -> bool:
     return row is not None
 
 
-def unidade_tem_parametros(unidade_id: str) -> bool:
+def unidade_possui_lancamento_no_mes(unidade_id: str, mes_referencia: str) -> bool:
+    """Existe lançamento (rascunho ou aprovado) desta unidade nesta
+    competência específica — diferente de unidade_possui_lancamentos, que
+    é "em algum mês, qualquer um". Usada por app.engine.get_unidades_ativas
+    para nunca esconder do Fechamento uma competência que já teve
+    cálculo/consulta real, mesmo que a configuração de hoje não cubra mais
+    aquele mês (ex.: parâmetro corrigido depois, unidade que só passou a
+    ter configuração válida numa competência posterior)."""
     with get_db() as conn:
         row = conn.execute(
-            "SELECT 1 FROM parametros_vigentes WHERE unidade_id=? LIMIT 1", (unidade_id,)
+            "SELECT 1 FROM lancamentos WHERE unidade_id=? AND mes_referencia=? LIMIT 1",
+            (unidade_id, mes_referencia),
         ).fetchone()
     return row is not None
 
 
-def status_unidade(u: dict) -> str:
-    """"ativa" | "em_configuracao" | "inativa" — nunca uma coluna, sempre
-    derivado na hora: ativo=1 → ativa; ativo=0 sem nenhum parâmetro em
-    parametros_vigentes → em_configuracao (unidade nova, ainda não
-    configurada); ativo=0 com parâmetro já existente → inativa (esteve
-    ativa antes, foi desativada)."""
-    if u.get("ativo"):
-        return "ativa"
-    if unidade_tem_parametros(u["id"]):
-        return "inativa"
-    return "em_configuracao"
+def status_operacional(u: dict) -> str:
+    """"ativa" | "inativa" — direto do campo `ativo` da unidade, sem
+    heurística. Substitui a antiga status_unidade(): ativo é a única
+    autoridade sobre este eixo; "está com parâmetro configurado ou não" é
+    um eixo SEPARADO (ver status_configuracao), nunca misturado aqui."""
+    return "ativa" if u.get("ativo") else "inativa"
+
+
+def status_configuracao(u: dict, competencia: str) -> str:
+    """"completa" | "incompleta" | "nao_aplicavel" (tipo_calculo sem schema
+    declarado em SCHEMAS_POR_TIPO, ex. PATIO_OPERACAO — validar_configuracao
+    _unidade não tem opinião sobre esses, então não faz sentido rotular
+    como "completa"). Delega inteiramente a validar_configuracao_unidade —
+    nunca usa "tem algum parâmetro salvo" como atalho para esta decisão."""
+    from app.calculadora_schema import campos_do_tipo
+    if not campos_do_tipo(u["tipo_calculo"]):
+        return "nao_aplicavel"
+    return "incompleta" if validar_configuracao_unidade(u["id"], competencia) else "completa"
+
+
+def pode_ativar_unidade(unidade_id: str, competencia: str) -> list[str]:
+    """Mensagens que bloqueiam a ativação da unidade na competência
+    informada — lista vazia quando pode ativar. Verifica, nesta ordem:
+    (1) a competência não pode ser anterior ao início estrutural da
+    unidade — não faz sentido operar antes de existir; (2) configuração
+    completa na competência (validar_configuracao_unidade).
+
+    Função de leitura pura — não decide sozinha o status: quem ativa de
+    fato é a UI, chamando atualizar_unidade(ativo=True) só depois de ver
+    esta função devolver []. Nunca inativa nada — não existe caminho de
+    código que desative uma unidade automaticamente por falha aqui."""
+    unidade = get_unidade(unidade_id)
+    if not unidade:
+        return [f"Unidade '{unidade_id}' não encontrada."]
+
+    erros = []
+    inicio_mes = (unidade["inicio"] or "")[:7]  # "AAAA-MM-DD" -> "AAAA-MM"
+    if inicio_mes and competencia < inicio_mes:
+        erros.append(f"A unidade inicia sua operação em {inicio_mes[5:7]}/{inicio_mes[:4]}.")
+    erros.extend(validar_configuracao_unidade(unidade_id, competencia))
+    return erros
 
 
 def get_unidade(unidade_id: str) -> dict | None:
@@ -677,10 +715,11 @@ def unidades_exemplo_por_tipo(tipo_calculo: str, limite: int = 3) -> list[str]:
 
 def criar_unidade(id: str, nome: str, contratante: str, inicio: str,
                    tipo_calculo: str, tipo_relatorio: str = "padrao") -> None:
-    """Cria uma unidade nova — sempre `ativo=0` (nasce "Em configuração",
-    ver status_unidade). Não existe caminho de código para criar já ativa;
-    é a proteção contra uso operacional sem parâmetros válidos (ver
-    unidade_tem_parametros / regra de ativação na UI).
+    """Cria uma unidade nova — sempre `ativo=0` (nasce inativa e, via de
+    regra, com configuração incompleta — ver status_operacional/
+    status_configuracao). Não existe caminho de código para criar já
+    ativa; é a proteção contra uso operacional sem parâmetros válidos
+    (ver pode_ativar_unidade / regra de ativação na UI).
 
     Levanta ValueError se o id já existir. A UI deve checar
     unidade_id_existe antes para dar uma mensagem amigável sem precisar
@@ -704,10 +743,12 @@ def atualizar_unidade(unidade_id: str, *, nome: str = None, contratante: str = N
     unidade.
 
     Esta função não decide se pode alterar tipo_calculo (unidade já tem
-    lançamento?) nem se pode ativar (unidade já tem parâmetro?) — quem
-    chama (a UI) já deve ter checado unidade_possui_lancamentos /
-    unidade_tem_parametros antes. Não duplicar essa decisão aqui evita a
-    regra de negócio divergir entre dois lugares."""
+    lançamento?) nem se pode ativar (configuração completa na competência
+    de ativação?) — quem chama (a UI) já deve ter checado
+    unidade_possui_lancamentos / pode_ativar_unidade antes. Não duplicar
+    essa decisão aqui evita a regra de negócio divergir entre dois
+    lugares. `ativo=True`/`False` aqui é só a escrita mecânica do campo —
+    a decisão de permitir ativar mora inteiramente em pode_ativar_unidade."""
     campos = {
         "nome": nome, "contratante": contratante, "inicio": inicio,
         "tipo_calculo": tipo_calculo, "tipo_relatorio": tipo_relatorio,
@@ -735,18 +776,29 @@ def atualizar_unidade(unidade_id: str, *, nome: str = None, contratante: str = N
 
 def validar_configuracao_unidade(unidade_id: str, competencia: str) -> list[str]:
     """
-    "Configuração completa" para a competência informada, com base
-    EXCLUSIVAMENTE nos parâmetros já vigentes no banco (parametros_vigentes)
-    — nunca cai para data/units.yaml como atalho. Uma unidade só passa
-    aqui se o parâmetro já foi de fato persistido, não porque o YAML (ou o
-    default técnico da própria calculadora) teria um valor razoável.
+    "Configuração completa" para a competência informada, avaliando os
+    PARÂMETROS EFETIVOS daquela competência — a mesma resolução que o
+    motor de cálculo usaria para calcular (bloco legado do YAML como base,
+    parâmetros já vigentes no banco por cima, DB sempre prevalecendo; ver
+    app.engine.get_parametros_efetivos). Não é mais "banco puro": uma
+    unidade cujo YAML legado já carrega um valor plenamente válido não é
+    mais considerada incompleta só por esse valor nunca ter sido copiado
+    para parametros_vigentes — o motor já usaria esse valor do YAML de
+    qualquer forma, então a validação administrativa deve concordar com
+    ele. O que continua nunca acontecendo aqui: aceitar um valor que o
+    motor NÃO usaria (ex. um default técnico interno da calculadora que
+    nunca aparece em cfg) — get_parametros_efetivos não inventa nada, só
+    resolve exatamente a mesma mescla YAML+DB que get_unit_com_params usa,
+    sem o efeito colateral de escrever (lazy seed).
 
     Retorna uma lista de mensagens em português operacional — vazia quando
     a configuração está completa. Não altera nada no banco (função de
-    leitura pura). Usada hoje só pela tela de Administração — não afeta o
-    fluxo de fechamento nem bloqueia aprovação de relatório.
+    leitura pura — get_parametros_efetivos também é pura, nunca faz
+    INSERT). Usada hoje só pela tela de Administração — não afeta o fluxo
+    de fechamento nem bloqueia aprovação de relatório.
     """
     from app.calculadora_schema import campos_do_tipo, validar_parametros
+    from app.engine import get_parametros_efetivos
 
     unidade = get_unidade(unidade_id)
     if not unidade:
@@ -758,5 +810,5 @@ def validar_configuracao_unidade(unidade_id: str, competencia: str) -> list[str]
         # escopo desta validação — não é papel deste módulo opinar sobre ele.
         return []
 
-    params = get_parametros_vigentes(unidade_id, competencia)
+    params = get_parametros_efetivos(unidade_id, competencia)
     return validar_parametros(tipo_calculo, params)

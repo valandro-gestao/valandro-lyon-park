@@ -3,6 +3,7 @@ from app.paths import UNITS_YAML
 from app.models import (
     ResultadoUnidade, init_db, get_db, salvar_lancamento, get_saldo_acumulado,
     get_parametros_vigentes, seed_parametros_from_yaml,
+    validar_configuracao_unidade, unidade_possui_lancamento_no_mes,
 )
 from app.calculators.base import calcular_percentual_simples, calcular_com_aliquota
 from app.calculators.cumulativo import calcular_com_aliquota_cumul
@@ -77,23 +78,50 @@ def get_unit(unidade_id: str) -> dict:
     return load_units()[unidade_id]
 
 
+def get_parametros_efetivos(unidade_id: str, mes_ref: str) -> dict:
+    """
+    A mesma resolução "efetiva" que o motor de cálculo usa (bloco legado do
+    YAML como base + parâmetros já vigentes no banco por cima, DB sempre
+    prevalecendo) — mas PURA: nunca chama seed_parametros_from_yaml, nunca
+    escreve em parametros_vigentes, nunca chama init_db(). Não modifica o
+    banco só porque alguém pediu para ler o estado de uma unidade.
+
+    Existe para que a validação administrativa
+    (app.models.validar_configuracao_unidade) enxergue exatamente o que o
+    motor calcularia para aquela competência — antes, ela usava só
+    get_parametros_vigentes (banco puro), o que fazia uma unidade cujo
+    bloco YAML legado ainda carrega valores plenamente válidos aparecer
+    como "incompleta" só por nunca ter sido "tocada" por
+    get_unit_com_params (que faz esse seed automaticamente, mas como
+    efeito colateral de calcular, não de só abrir uma tela).
+
+    YAML aqui continua sendo só a ponte para os blocos ainda não migrados
+    para tabela própria (faixas/splits/repasses/custos de unidades
+    antigas) — nunca a fonte de verdade da identidade da unidade (isso é
+    sempre a tabela `unidades`, já refletida em load_units()).
+    """
+    yaml_cfg = load_units()[unidade_id]
+    db_params = get_parametros_vigentes(unidade_id, mes_ref)
+    if not db_params:
+        return yaml_cfg
+    cfg = copy.deepcopy(yaml_cfg)
+    _merge_dict(cfg, db_params)
+    return cfg
+
+
 def get_unit_com_params(unidade_id: str, mes_ref: str) -> dict:
     """
     Retorna cfg do YAML mesclado com parâmetros vigentes do DB.
     DB tem precedência sobre YAML para campos numéricos.
-    Semeia o DB automaticamente na primeira chamada por unidade.
+    Semeia o DB automaticamente na primeira chamada por unidade — esse
+    lazy seed é feito aqui, e só aqui: get_parametros_efetivos (usada pela
+    validação administrativa) resolve a mesma mescla sem esse efeito
+    colateral.
     """
     init_db()
     yaml_cfg = load_units()[unidade_id]
     seed_parametros_from_yaml(unidade_id, yaml_cfg)
-
-    db_params = get_parametros_vigentes(unidade_id, mes_ref)
-    if not db_params:
-        return yaml_cfg
-
-    cfg = copy.deepcopy(yaml_cfg)
-    _merge_dict(cfg, db_params)
-    return cfg
+    return get_parametros_efetivos(unidade_id, mes_ref)
 
 
 def _merge_dict(base: dict, overrides: dict):
@@ -106,30 +134,50 @@ def _merge_dict(base: dict, overrides: dict):
 
 
 def get_unidades_ativas(mes_referencia: str = None) -> list[dict]:
-    """Unidades que participam do fluxo operacional (Dashboard/Fechamento).
+    """Unidades que participam do fluxo operacional (Dashboard/Fechamento)
+    NAQUELA competência.
 
-    v1.2.0: `ativo` é a autoridade de status — `ativo=0` nunca aparece aqui,
-    independente de `inicio` (antes, uma unidade inativa cujo início já
-    tivesse passado era incluída mesmo assim; essa regra foi removida:
-    Ekos, OKA e Terreno OKA, todas ativo=false, deixam de aparecer mesmo
-    depois de 07/2026). `inicio` passa a ser só um limite temporal para
-    unidade ATIVA: com `mes_referencia` informado, uma unidade ativa cujo
-    início ainda não chegou também não aparece (antes isso nem era
-    checado). Sem `mes_referencia`, retorna todas as ativas — mesmo
-    comportamento de sempre para esse caso.
+    v1.2.0: uma unidade só é oferecida no Fechamento de uma competência
+    quando (1) está operacionalmente ativa (`ativo=1`); (2) a competência
+    é >= `inicio`; e (3) possui configuração efetiva válida naquela
+    competência (app.models.validar_configuracao_unidade, que já resolve
+    "nao_aplicavel" — ex. PATIO_OPERACAO — como sem bloqueio) OU (4) já
+    existe lançamento gravado naquela competência, para nunca esconder do
+    Fechamento uma competência que já teve cálculo/consulta real (ex.:
+    unidade cuja configuração só passou a ser válida numa competência
+    posterior, mas que já tinha um rascunho/aprovação num mês anterior).
+
+    Deliberadamente NÃO depende de date.today() nem de "mês atual vs.
+    passado/futuro": as 4 condições acima valem do mesmo jeito para
+    qualquer competência, passada, presente ou futura — uma unidade cuja
+    primeira configuração válida é só em 2026-10 não aparece em 2026-09
+    mesmo que 2026-09 seja "hoje", e uma unidade com lançamento em
+    2025-03 continua aparecendo lá mesmo que sua configuração atual não
+    cubra mais aquele mês.
+
+    Sem `mes_referencia`, retorna todas as `ativo=1` sem checar (2)/(3)/(4)
+    — usado só por código que itera unidades ativas fora do contexto de
+    uma competência específica (ex. scripts/relatorio_historico_mensal.py).
 
     Não afeta consulta de relatórios/histórico de uma unidade inativa —
     essa consulta usa `lancamentos`/`historico_anual` diretamente, não esta
-    função. Esta função decide só quem entra no fluxo operacional CORRENTE.
+    função. Esta função decide só quem entra no fluxo operacional CORRENTE
+    para a competência informada.
     """
     units = load_units()
+    if mes_referencia is None:
+        return [u for u in units.values() if u.get("ativo", True)]
+
     result = []
     for u in units.values():
         if not u.get("ativo", True):
             continue
-        if mes_referencia and u.get("inicio", "") > mes_referencia + "-01":
+        if u.get("inicio", "") > mes_referencia + "-01":
             continue
-        result.append(u)
+        config_valida = validar_configuracao_unidade(u["id"], mes_referencia) == []
+        tem_lancamento = unidade_possui_lancamento_no_mes(u["id"], mes_referencia)
+        if config_valida or tem_lancamento:
+            result.append(u)
     return result
 
 
