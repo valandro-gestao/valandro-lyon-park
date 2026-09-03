@@ -10,6 +10,7 @@ Fórmula:
   saldo_a_pagar = resultado_contratante - parcela_fixa
 """
 from app.models import ResultadoUnidade
+from app.rubricas import custos_com_overrides, ids_normalizados
 
 
 def calcular_resultado_split(cfg: dict, mes: str, faturamento: float,
@@ -23,14 +24,13 @@ def calcular_resultado_split(cfg: dict, mes: str, faturamento: float,
 
     receita_liquida = round(faturamento * (1 - aliq), 2)
 
-    # Custos mensais variáveis (condomínio, IPTU, energia, água, internet, etc.)
-    custos: dict = {}
-    for k, v in (cfg.get("custos_mensais") or {}).items():
-        custos[k] = float(custos_extras.get(k, v) if custos_extras else v)
-    for k, v in (cfg.get("custos_variaveis") or {}).items():
-        custos[k] = float(custos_extras.get(k, v) if custos_extras else v)
+    # Custos mensais e variáveis (condomínio, IPTU, energia, água, internet
+    # etc.) — normalizados via app.rubricas, dict legado ou lista nova.
+    custos = dict(custos_com_overrides(cfg.get("custos_mensais"), custos_extras))
+    custos.update(custos_com_overrides(cfg.get("custos_variaveis"), custos_extras))
+    _ids_rubricas = ids_normalizados(cfg.get("custos_mensais"), cfg.get("custos_variaveis"))
     for k, v in (custos_extras or {}).items():
-        if k not in custos and k != "despesas_fixas" and v:
+        if k not in custos and k not in _ids_rubricas and k != "despesas_fixas" and v:
             custos[k] = float(v)
     total_custos = sum(custos.values())
 

@@ -28,6 +28,7 @@ from app.parsers import eventos as eventos_parser
 from app.parsers import faturamento as fat_parser
 from app.reporter import build_report_data
 from app.renderer import render_html
+from app.rubricas import normalizar_rubricas, rotulo_exibicao as _custo_label
 
 # ─── CSS global ──────────────────────────────────────────────────────────────
 # Tokens alinhados ao padrão aprovado no Login (docs/03_DESIGN_LANGUAGE.md).
@@ -399,30 +400,12 @@ def _status_chip_html(status: str) -> str:
     return f'<span class="vd-status vd-status--{grupo}"><span class="vd-status-dot"></span>{label}</span>'
 
 
-def _custo_label(k: str) -> str:
-    labels = {
-        "condominio": "Condomínio",
-        "iptu": "IPTU",
-        "energia_eletrica": "Energia Elétrica",
-        "sistema_perto": "Sistema Perto",
-        "sistema_automacao": "Sistema Automação",
-        "monitoramento": "Monitoramento",
-        "aucon": "Aucon / Equip.",
-        "instalacoes": "Manutenção Instalações",
-        "investimentos": "Investimentos",
-        "fundo_recomposicao": "Fundo Recomposição",
-        "agua": "Água",
-        "internet": "Internet",
-        "manutencao_equipamentos": "Manutenção Equip.",
-        "seguranca": "Segurança",
-        "sistemas_voip": "Sistemas VOIP",
-        "perto": "Perto",
-    }
-    return labels.get(k, k.replace("_", " ").title())
-
-
-def _custo_label_ui(k: str) -> str:
-    return _custo_label(k) + " (R$)"
+# _custo_label (= app.rubricas.rotulo_exibicao) resolve o rótulo de uma
+# chave crua de `resultado.custos` já congelado num lançamento (formato
+# legado) — usado só nas duas tabelas de memória de cálculo mais abaixo.
+# A renderização dos INPUTS de rubricas (logo depois de _diff_html) usa o
+# `nome` já resolvido de cada RubricaItem diretamente, sem passar por
+# esta função — ver app.rubricas.normalizar_rubricas.
 
 
 # ─── histórico da unidade por lançamentos ────────────────────────────────────
@@ -448,8 +431,11 @@ def _get_historico_lancamentos(uid: str) -> list[dict]:
 
 
 def _get_params_competencia(uid: str, mes_ref: str) -> dict:
-    """Retorna parâmetros vigentes planos (dot-notation) para uma competência."""
+    """Retorna parâmetros vigentes planos (dot-notation) para uma competência.
+    Usado só para o destaque "valor mudou desde a competência anterior"
+    (ver _diff_html) — nunca para o cálculo em si."""
     from app.models import get_parametros_vigentes
+    from app.rubricas import por_id
     params = {}
     vigentes = get_parametros_vigentes(uid, mes_ref)
     # Flatten de volta para dot-notation
@@ -460,6 +446,14 @@ def _get_params_competencia(uid: str, mes_ref: str) -> dict:
                 _flatten(v, chave)
             elif isinstance(v, (int, float)) and not isinstance(v, bool):
                 params[chave] = v
+            elif isinstance(v, list):
+                # mapa_rubricas no formato novo (ver app.rubricas) — chaveia
+                # por id (estável entre renomeações), não por posição, para
+                # o destaque de "mudou" continuar funcionando por rubrica
+                # individual mesmo depois de uma unidade "graduar" para o
+                # formato novo.
+                for id_, valor in por_id(normalizar_rubricas(v)).items():
+                    params[f"{chave}.{id_}"] = valor
     _flatten(vigentes)
     return params
 
@@ -498,10 +492,10 @@ def _chaves_estado_unidade(uid: str, u: dict) -> list[str]:
         chaves.append(f"despesas_fixas_{uid}")
     if u.get("tem_base_taxa_cobranca"):
         chaves.append(f"base_tc_{uid}")
-    for k in (u.get("custos_mensais") or {}):
-        chaves.append(f"custo_{uid}_{k}")
-    for k in (u.get("custos_variaveis") or {}):
-        chaves.append(f"cv_{uid}_{k}")
+    for item in normalizar_rubricas(u.get("custos_mensais")):
+        chaves.append(f"custo_{uid}_{item.id}")
+    for item in normalizar_rubricas(u.get("custos_variaveis")):
+        chaves.append(f"cv_{uid}_{item.id}")
     return chaves
 
 
@@ -1092,45 +1086,49 @@ def _inputs_parametros(uid: str, u: dict, mes_ref: str,
         if diff:
             st.markdown(f'<div class="vd-param-diff">{diff}</div>', unsafe_allow_html=True)
 
-    # Custos mensais
-    custos_mensais = u.get("custos_mensais") or {}
-    if custos_mensais:
+    # Custos mensais e variáveis (rubricas dinâmicas, v1.2.0) — nomes e
+    # quantidade vêm de app.rubricas.normalizar_rubricas, que já resolve
+    # tanto o dict legado (nome técnico == rótulo) quanto a lista nova
+    # (id técnico + nome editável). O widget é sempre chaveado por `id`
+    # (estável), nunca por `nome` — evita qualquer ambiguidade caso duas
+    # rubricas acabem com o mesmo nome de exibição.
+    itens_custos_mensais = normalizar_rubricas(u.get("custos_mensais"))
+    if itens_custos_mensais:
         st.caption("**Custos mensais:**")
-        n = min(4, len(custos_mensais))
+        n = min(4, len(itens_custos_mensais))
         cc = st.columns(n)
-        for i, (k, v) in enumerate(custos_mensais.items()):
-            chave_db = f"custos_mensais.{k}"
+        for i, item in enumerate(itens_custos_mensais):
+            chave_db = f"custos_mensais.{item.id}"
             with cc[i % n]:
                 val = st.number_input(
-                    _custo_label_ui(k),
+                    f"{item.nome} (R$)",
                     min_value=0.0, step=10.0, format="%.2f",
-                    value=float(st.session_state.get(f"custo_{uid}_{k}", v)),
-                    key=f"custo_{uid}_{k}",
+                    value=float(st.session_state.get(f"custo_{uid}_{item.id}", item.valor)),
+                    key=f"custo_{uid}_{item.id}",
                 )
                 diff = _diff_html(chave_db)
                 if diff:
                     st.markdown(f'<div class="vd-param-diff">{diff}</div>', unsafe_allow_html=True)
-                custos_extras[k] = val
+                custos_extras[item.id] = val
 
-    # Custos variáveis
-    custos_variaveis = u.get("custos_variaveis") or {}
-    if custos_variaveis:
+    itens_custos_variaveis = normalizar_rubricas(u.get("custos_variaveis"))
+    if itens_custos_variaveis:
         st.caption("**Custos variáveis:**")
-        n = min(4, len(custos_variaveis))
+        n = min(4, len(itens_custos_variaveis))
         cv = st.columns(n)
-        for i, (k, v) in enumerate(custos_variaveis.items()):
-            chave_db = f"custos_variaveis.{k}"
+        for i, item in enumerate(itens_custos_variaveis):
+            chave_db = f"custos_variaveis.{item.id}"
             with cv[i % n]:
                 val = st.number_input(
-                    _custo_label_ui(k),
+                    f"{item.nome} (R$)",
                     min_value=0.0, step=10.0, format="%.2f",
-                    value=float(st.session_state.get(f"cv_{uid}_{k}", v)),
-                    key=f"cv_{uid}_{k}",
+                    value=float(st.session_state.get(f"cv_{uid}_{item.id}", item.valor)),
+                    key=f"cv_{uid}_{item.id}",
                 )
                 diff = _diff_html(chave_db)
                 if diff:
                     st.markdown(f'<div class="vd-param-diff">{diff}</div>', unsafe_allow_html=True)
-                custos_extras[k] = val
+                custos_extras[item.id] = val
 
     # Rascunho de trabalho: persiste o estado atual de todos os campos acima
     # a cada rerender — ou seja, a cada alteração feita pela operadora.
@@ -1935,12 +1933,21 @@ def _coletar_params_usados(uid: str, u_cfg: dict,
         params["ponto_equilibrio"] = pe_override
     if "despesas_fixas" in custos_extras:
         params["despesas_fixas"] = custos_extras["despesas_fixas"]
-    for k in u_cfg.get("custos_mensais") or {}:
-        if k in custos_extras:
-            params[f"custos_mensais.{k}"] = custos_extras[k]
-    for k in u_cfg.get("custos_variaveis") or {}:
-        if k in custos_extras:
-            params[f"custos_variaveis.{k}"] = custos_extras[k]
+    # Grava sempre em dot-notation por rubrica (id), mesmo para uma unidade
+    # já no formato novo (lista) — é o único formato que este fluxo de
+    # aprovação sabe escrever hoje (ver salvar_lancamento/salvar_parametros
+    # logo abaixo, em _barra_decisao_final). Não é uma regressão: pela
+    # precedência de app.models.get_parametros_vigentes, um bloco atômico
+    # já vigente (criado pela Administração) sempre continua prevalecendo
+    # sobre esta linha dot-notation — ela só documenta o valor realmente
+    # usado no cálculo aprovado, sem efeito prático numa unidade já
+    # migrada para o formato novo.
+    for item in normalizar_rubricas(u_cfg.get("custos_mensais")):
+        if item.id in custos_extras:
+            params[f"custos_mensais.{item.id}"] = custos_extras[item.id]
+    for item in normalizar_rubricas(u_cfg.get("custos_variaveis")):
+        if item.id in custos_extras:
+            params[f"custos_variaveis.{item.id}"] = custos_extras[item.id]
     return params
 
 

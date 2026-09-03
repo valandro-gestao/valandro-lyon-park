@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 from app.models import ResultadoUnidade
+from app.rubricas import custos_com_overrides
 
 
 @dataclass
@@ -37,9 +38,7 @@ def calcular_patio(cfg: dict, mes: str,
         pct = split_cfg["percentual_aluguel"]
         subtotal = round(fat * (1 - aliq), 2)
 
-        custos = {}
-        for k, v in (split_cfg.get("custos_mensais") or {}).items():
-            custos[k] = float(custos_var.get(k, v) if custos_var else v)
+        custos = dict(custos_com_overrides(split_cfg.get("custos_mensais"), custos_var))
         total_custos = sum(custos.values())
 
         resultado = max(subtotal - pe - total_custos, 0.0)

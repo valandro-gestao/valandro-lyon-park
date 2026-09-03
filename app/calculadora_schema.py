@@ -28,7 +28,7 @@ Estrutura de cada campo:
   chave              dot-notation, mesma usada em parametros_vigentes
   label              nome amigável (operacional, não técnico)
   tipo_dado          "moeda" | "percentual" | "inteiro" | "texto" | "booleano"
-  natureza           "escalar" | "lista_estruturada" | "mapa_dinamico"
+  natureza           "escalar" | "lista_estruturada" | "mapa_rubricas"
   obrigatorio        obrigatoriedade ADMINISTRATIVA — independente do
                      default técnico da calculadora (ver docstring do
                      módulo: "default_tecnico" abaixo documenta o que a
@@ -56,8 +56,15 @@ Campos compostos (natureza != "escalar") têm chaves adicionais:
                       opcionalmente, minimo/maximo — faixa numérica válida,
                       ex. percentual entre 0.0 e 1.0), estrutura_ordenada
                       (opcional — ver abaixo)
-  mapa_dinamico:      tipo_valor_item, permite_adicionar_remover (hoje
-                      sempre False — ver nota abaixo)
+  mapa_rubricas:      tipo_valor_item, permite_adicionar, permite_remover,
+                      minimo_itens, item_schema — ESTRUTURALMENTE é uma
+                      lista_estruturada (mesmo editor, mesma validação via
+                      validar_estrutura_lista, mesmo generated-id via
+                      item_schema[].gerado_automaticamente); o rótulo
+                      próprio existe só para deixar a intenção conceitual
+                      explícita ("isto é um mapa de rubricas nome→valor",
+                      não uma lista arbitrária de sub-campos custom) — ver
+                      nota abaixo e app.rubricas.
 
 Sub-campo com `"gerado_automaticamente": True` (ex. "id" em splits/repasses):
 não é um campo normal de edição — a UI (app.ui.administracao) nunca o
@@ -75,13 +82,24 @@ nenhum "if tipo_calculo=="), as regras: limites informados > 0, em ordem
 estritamente crescente, e "sem limite" (None) permitido no máximo uma vez
 e só na última posição.
 
-Nota sobre mapa_dinamico (custos_mensais/custos_variaveis): o VALOR de cada
-rubrica já é vigência-tracked hoje (cada uma vira uma chave própria em
-parametros_vigentes, ex. "custos_mensais.condominio"). A LISTA DE NOMES das
-rubricas, porém, ainda vem do YAML — confirmado em app.ui.fechamento:
-`_inputs_parametros` só renderiza input para uma chave que já existe no cfg
-mesclado. `permite_adicionar_remover=False` documenta essa limitação atual;
-o editor de rubricas dinâmicas é trabalho de uma etapa futura, não desta.
+Nota sobre mapa_rubricas (custos_mensais/custos_variaveis, v1.2.0 —
+rubricas dinâmicas): cada item é {"id": <técnico, estável>, "nome":
+<editável>, "valor": <moeda >= 0>}, salvo como UM parâmetro atômico por
+vigência (igual a uma lista_estruturada qualquer — nunca mais uma chave
+dot-notation por rubrica). Isso resolve, de graça, o problema que motivou
+esta modelagem: um valor salvo nesse formato SUBSTITUI por inteiro o bloco
+equivalente do YAML no merge (app.engine._merge_dict só mescla
+recursivamente quando os dois lados são dict — uma lista sempre
+substitui), então remover uma rubrica da lista nova realmente a remove,
+sem o YAML "ressuscitá-la". Unidades legadas cujo `custos_mensais` ainda é
+um dict simples (nunca editadas pelo editor novo) continuam funcionando
+sem qualquer migração — `app.rubricas.normalizar_rubricas` aceita as duas
+formas e é o único lugar do sistema que sabe interpretar ambas. Os únicos
+campos de custo que NÃO são mapa_rubricas são os dois reservados de
+COM_ALIQUOTA/COM_ALIQUOTA_CUMUL (`custos_variaveis.investimentos` e
+`custos_variaveis.fundo_recomposicao`) — natureza "escalar", com
+dedução própria no motor (ver app/calculators/base.py e cumulativo.py) —
+nunca aparecem no editor genérico.
 
 Validações de modelo (cruzando campos) ficam em `validacoes`, por tipo:
   {"tipo": "algum_de", "campos": [...], "mensagem": "..."}
@@ -95,6 +113,18 @@ Validações de modelo (cruzando campos) ficam em `validacoes`, por tipo:
 """
 
 _TOLERANCIA_PERCENTUAL = 0.005  # 0,5 ponto percentual
+
+# item_schema compartilhado por todo campo natureza="mapa_rubricas" (v1.2.0
+# — rubricas dinâmicas). Igual em todo tipo de cálculo que o usa: id técnico
+# oculto (gerado a partir do nome, nunca editável — mesmo mecanismo de
+# splits/repasses), nome livre e valor monetário >= 0. Reaproveita o editor
+# genérico de lista_estruturada (app.ui.administracao._editor_lista_
+# estruturada) inteiro — não existe um editor separado para mapa_rubricas.
+_ITEM_SCHEMA_RUBRICA = [
+    {"chave": "id", "label": "Identificador", "tipo_dado": "texto", "obrigatorio": False, "gerado_automaticamente": True},
+    {"chave": "nome", "label": "Rubrica", "tipo_dado": "texto", "obrigatorio": True},
+    {"chave": "valor", "label": "Valor", "tipo_dado": "moeda", "obrigatorio": True, "minimo": 0.0},
+]
 
 
 SCHEMAS_POR_TIPO: dict[str, dict] = {
@@ -162,7 +192,7 @@ SCHEMAS_POR_TIPO: dict[str, dict] = {
                 "chave": "custos_variaveis.investimentos", "label": "Investimentos (dedução do aluguel)",
                 "tipo_dado": "moeda", "natureza": "escalar",
                 "obrigatorio": False, "default_tecnico": 0.0,
-                "descricao": "Quando informado, é descontado do aluguel calculado, gerando um Saldo a Pagar.",
+                "descricao": "Quando informado, é descontado do aluguel calculado, gerando um Saldo a Pagar. Campo reservado — nunca aparece no editor genérico de rubricas.",
                 "editor": "number_moeda", "aceita_vigencia": True,
             },
         ],
@@ -230,24 +260,25 @@ SCHEMAS_POR_TIPO: dict[str, dict] = {
             },
             {
                 "chave": "custos_mensais", "label": "Custos Mensais Fixos",
-                "tipo_dado": "moeda", "natureza": "mapa_dinamico",
+                "tipo_dado": "moeda", "natureza": "mapa_rubricas",
                 "obrigatorio": False, "default_tecnico": None,
-                "descricao": "Rubricas de custo fixo descontadas todo mês (condomínio, IPTU etc.).",
-                "editor": "lista_nome_valor", "aceita_vigencia": True,
-                "tipo_valor_item": "moeda", "permite_adicionar_remover": False,
+                "descricao": "Rubricas de custo fixo descontadas todo mês (condomínio, IPTU etc.). Adicione, renomeie ou remova livremente.",
+                "editor": "tabela_editavel", "aceita_vigencia": True,
+                "tipo_valor_item": "moeda", "permite_adicionar": True, "permite_remover": True,
+                "minimo_itens": 0, "item_schema": _ITEM_SCHEMA_RUBRICA,
             },
             {
                 "chave": "custos_variaveis.investimentos", "label": "Investimentos (dedução do aluguel)",
                 "tipo_dado": "moeda", "natureza": "escalar",
                 "obrigatorio": False, "default_tecnico": 0.0,
-                "descricao": "Quando informado, é descontado do aluguel calculado, gerando um Saldo a Pagar. Mutuamente exclusivo com Fundo de Recomposição — o primeiro com valor prevalece.",
+                "descricao": "Quando informado, é descontado do aluguel calculado, gerando um Saldo a Pagar. Mutuamente exclusivo com Fundo de Recomposição — o primeiro com valor prevalece. Campo reservado — nunca aparece no editor genérico de rubricas.",
                 "editor": "number_moeda", "aceita_vigencia": True,
             },
             {
                 "chave": "custos_variaveis.fundo_recomposicao", "label": "Fundo de Recomposição (dedução do aluguel)",
                 "tipo_dado": "moeda", "natureza": "escalar",
                 "obrigatorio": False, "default_tecnico": 0.0,
-                "descricao": "Quando informado, é descontado do aluguel calculado, gerando um Saldo a Pagar. Mutuamente exclusivo com Investimentos — o primeiro com valor prevalece.",
+                "descricao": "Quando informado, é descontado do aluguel calculado, gerando um Saldo a Pagar. Mutuamente exclusivo com Investimentos — o primeiro com valor prevalece. Campo reservado — nunca aparece no editor genérico de rubricas.",
                 "editor": "number_moeda", "aceita_vigencia": True,
             },
         ],
@@ -314,19 +345,21 @@ SCHEMAS_POR_TIPO: dict[str, dict] = {
             },
             {
                 "chave": "custos_mensais", "label": "Custos Mensais Fixos",
-                "tipo_dado": "moeda", "natureza": "mapa_dinamico",
+                "tipo_dado": "moeda", "natureza": "mapa_rubricas",
                 "obrigatorio": False, "default_tecnico": None,
-                "descricao": "Rubricas de custo fixo descontadas todo mês.",
-                "editor": "lista_nome_valor", "aceita_vigencia": True,
-                "tipo_valor_item": "moeda", "permite_adicionar_remover": False,
+                "descricao": "Rubricas de custo fixo descontadas todo mês. Adicione, renomeie ou remova livremente.",
+                "editor": "tabela_editavel", "aceita_vigencia": True,
+                "tipo_valor_item": "moeda", "permite_adicionar": True, "permite_remover": True,
+                "minimo_itens": 0, "item_schema": _ITEM_SCHEMA_RUBRICA,
             },
             {
                 "chave": "custos_variaveis", "label": "Custos Variáveis",
-                "tipo_dado": "moeda", "natureza": "mapa_dinamico",
+                "tipo_dado": "moeda", "natureza": "mapa_rubricas",
                 "obrigatorio": False, "default_tecnico": None,
-                "descricao": "Rubricas de custo variável descontadas todo mês.",
-                "editor": "lista_nome_valor", "aceita_vigencia": True,
-                "tipo_valor_item": "moeda", "permite_adicionar_remover": False,
+                "descricao": "Rubricas de custo variável descontadas todo mês. Adicione, renomeie ou remova livremente.",
+                "editor": "tabela_editavel", "aceita_vigencia": True,
+                "tipo_valor_item": "moeda", "permite_adicionar": True, "permite_remover": True,
+                "minimo_itens": 0, "item_schema": _ITEM_SCHEMA_RUBRICA,
             },
         ],
         "validacoes": [],
@@ -414,19 +447,21 @@ SCHEMAS_POR_TIPO: dict[str, dict] = {
             },
             {
                 "chave": "custos_mensais", "label": "Custos Mensais Fixos",
-                "tipo_dado": "moeda", "natureza": "mapa_dinamico",
+                "tipo_dado": "moeda", "natureza": "mapa_rubricas",
                 "obrigatorio": False, "default_tecnico": None,
-                "descricao": "Rubricas de custo fixo descontadas todo mês (condomínio, IPTU, energia etc.).",
-                "editor": "lista_nome_valor", "aceita_vigencia": True,
-                "tipo_valor_item": "moeda", "permite_adicionar_remover": False,
+                "descricao": "Rubricas de custo fixo descontadas todo mês (condomínio, IPTU, energia etc.). Adicione, renomeie ou remova livremente.",
+                "editor": "tabela_editavel", "aceita_vigencia": True,
+                "tipo_valor_item": "moeda", "permite_adicionar": True, "permite_remover": True,
+                "minimo_itens": 0, "item_schema": _ITEM_SCHEMA_RUBRICA,
             },
             {
                 "chave": "custos_variaveis", "label": "Custos Variáveis",
-                "tipo_dado": "moeda", "natureza": "mapa_dinamico",
+                "tipo_dado": "moeda", "natureza": "mapa_rubricas",
                 "obrigatorio": False, "default_tecnico": None,
-                "descricao": "Rubricas de custo variável descontadas todo mês.",
-                "editor": "lista_nome_valor", "aceita_vigencia": True,
-                "tipo_valor_item": "moeda", "permite_adicionar_remover": False,
+                "descricao": "Rubricas de custo variável descontadas todo mês. Adicione, renomeie ou remova livremente.",
+                "editor": "tabela_editavel", "aceita_vigencia": True,
+                "tipo_valor_item": "moeda", "permite_adicionar": True, "permite_remover": True,
+                "minimo_itens": 0, "item_schema": _ITEM_SCHEMA_RUBRICA,
             },
         ],
         "validacoes": [
@@ -487,19 +522,21 @@ SCHEMAS_POR_TIPO: dict[str, dict] = {
             },
             {
                 "chave": "custos_mensais", "label": "Custos Mensais Fixos",
-                "tipo_dado": "moeda", "natureza": "mapa_dinamico",
+                "tipo_dado": "moeda", "natureza": "mapa_rubricas",
                 "obrigatorio": False, "default_tecnico": None,
-                "descricao": "Rubricas de custo fixo descontadas todo mês.",
-                "editor": "lista_nome_valor", "aceita_vigencia": True,
-                "tipo_valor_item": "moeda", "permite_adicionar_remover": False,
+                "descricao": "Rubricas de custo fixo descontadas todo mês. Adicione, renomeie ou remova livremente.",
+                "editor": "tabela_editavel", "aceita_vigencia": True,
+                "tipo_valor_item": "moeda", "permite_adicionar": True, "permite_remover": True,
+                "minimo_itens": 0, "item_schema": _ITEM_SCHEMA_RUBRICA,
             },
             {
                 "chave": "custos_variaveis", "label": "Custos Variáveis",
-                "tipo_dado": "moeda", "natureza": "mapa_dinamico",
+                "tipo_dado": "moeda", "natureza": "mapa_rubricas",
                 "obrigatorio": False, "default_tecnico": None,
-                "descricao": "Rubricas de custo variável descontadas todo mês.",
-                "editor": "lista_nome_valor", "aceita_vigencia": True,
-                "tipo_valor_item": "moeda", "permite_adicionar_remover": False,
+                "descricao": "Rubricas de custo variável descontadas todo mês. Adicione, renomeie ou remova livremente.",
+                "editor": "tabela_editavel", "aceita_vigencia": True,
+                "tipo_valor_item": "moeda", "permite_adicionar": True, "permite_remover": True,
+                "minimo_itens": 0, "item_schema": _ITEM_SCHEMA_RUBRICA,
             },
         ],
         "validacoes": [],
@@ -524,11 +561,12 @@ SCHEMAS_POR_TIPO: dict[str, dict] = {
             },
             {
                 "chave": "custos_mensais", "label": "Custos Mensais Fixos",
-                "tipo_dado": "moeda", "natureza": "mapa_dinamico",
+                "tipo_dado": "moeda", "natureza": "mapa_rubricas",
                 "obrigatorio": False, "default_tecnico": None,
-                "descricao": "Rubricas de custo fixo descontadas todo mês (ex.: manutenção de equipamentos, instalações).",
-                "editor": "lista_nome_valor", "aceita_vigencia": True,
-                "tipo_valor_item": "moeda", "permite_adicionar_remover": False,
+                "descricao": "Rubricas de custo fixo descontadas todo mês (ex.: manutenção de equipamentos, instalações). Adicione, renomeie ou remova livremente.",
+                "editor": "tabela_editavel", "aceita_vigencia": True,
+                "tipo_valor_item": "moeda", "permite_adicionar": True, "permite_remover": True,
+                "minimo_itens": 0, "item_schema": _ITEM_SCHEMA_RUBRICA,
             },
         ],
         "validacoes": [],
@@ -556,12 +594,14 @@ def campo_por_chave(tipo_calculo: str, chave: str) -> dict | None:
     "custos_variaveis.investimentos"). Usada pela UI (app.ui.administracao)
     para formatar um valor de parametros_vigentes sem duplicar a definição
     do campo — inclui também, quando aplicável, uma correspondência por
-    prefixo para chaves de mapa_dinamico (ex. "custos_mensais.condominio"
-    casa com o campo "custos_mensais", tipo_valor_item indica o formato)."""
+    prefixo para chaves dot-notation legadas de mapa_rubricas (ex.
+    "custos_mensais.condominio" casa com o campo "custos_mensais" — só
+    acontece para unidades nunca tocadas pelo editor novo, que grava um
+    único parâmetro sem ponto)."""
     for c in campos_do_tipo(tipo_calculo):
         if c["chave"] == chave:
             return c
-        if c.get("natureza") == "mapa_dinamico" and chave.startswith(c["chave"] + "."):
+        if c.get("natureza") == "mapa_rubricas" and chave.startswith(c["chave"] + "."):
             return c
     return None
 
@@ -703,12 +743,25 @@ def validar_parametros(tipo_calculo: str, params: dict) -> list[str]:
         valor = resolver_valor(params, chave)
         obrig = campo_obrigatorio_efetivo(campo, params)
 
-        if natureza == "lista_estruturada":
+        if natureza == "mapa_rubricas" and isinstance(valor, dict):
+            # Unidade ainda não tocada pelo editor novo: valor ainda é o
+            # dict legado (nome_tecnico -> valor). validar_estrutura_lista
+            # só entende a forma lista de dicts — normaliza aqui, na
+            # fronteira de validação, sem que nenhum outro código precise
+            # saber que essa forma legada existe.
+            from app.rubricas import normalizar_rubricas, para_persistencia
+            valor = para_persistencia(normalizar_rubricas(valor))
+
+        if natureza in ("lista_estruturada", "mapa_rubricas"):
             # A estrutura do que já foi digitado é validada sempre — mesmo
             # num campo opcional (ex.: faixas_aluguel quando percentual_
             # aluguel também está presente) — mas "precisa ter pelo menos
             # um item" só se aplica quando o campo está de fato obrigatório
             # nesta avaliação; vazio num campo opcional é só "não usado".
+            # mapa_rubricas segue exatamente o mesmo caminho de
+            # lista_estruturada (id único, sub-campos obrigatórios,
+            # mínimo>=0) — são estruturalmente a mesma coisa, só o rótulo
+            # conceitual muda (ver app.rubricas / natureza no schema).
             if not valor:
                 if obrig:
                     erros.append(f'Cadastre pelo menos uma linha em "{campo["label"]}".')
@@ -721,12 +774,8 @@ def validar_parametros(tipo_calculo: str, params: dict) -> list[str]:
         if not obrig:
             continue
 
-        if natureza == "mapa_dinamico":
-            if not valor:
-                erros.append(f'Configure ao menos uma rubrica em "{campo["label"]}".')
-        else:
-            if valor is None:
-                erros.append(f'Informe "{campo["label"]}".')
+        if valor is None:
+            erros.append(f'Informe "{campo["label"]}".')
 
     for regra in validacoes_do_tipo(tipo_calculo):
         erros.extend(validar_regra_cruzada(regra, params))

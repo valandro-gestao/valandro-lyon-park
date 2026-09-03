@@ -9,6 +9,7 @@ Fórmula:
   total_repasse = soma de todos os repasses
 """
 from app.models import ResultadoUnidade
+from app.rubricas import custos_com_overrides, ids_normalizados
 
 
 def calcular_com_aliquota_repasse_duplo(cfg: dict, mes: str, faturamento: float,
@@ -23,14 +24,12 @@ def calcular_com_aliquota_repasse_duplo(cfg: dict, mes: str, faturamento: float,
     taxa_cob_valor = round(base_taxa_cob * taxa_cob_pct, 2)
     subtotal = round(faturamento * (1 - aliq) - taxa_cob_valor, 2)
 
-    custos: dict = {}
-    for k, v in (cfg.get("custos_mensais") or {}).items():
-        custos[k] = float(custos_extras.get(k, v) if custos_extras else v)
-    for k, v in (cfg.get("custos_variaveis") or {}).items():
-        custos[k] = float(custos_extras.get(k, v) if custos_extras else v)
+    custos = dict(custos_com_overrides(cfg.get("custos_mensais"), custos_extras))
+    custos.update(custos_com_overrides(cfg.get("custos_variaveis"), custos_extras))
     _excluir = {"base_calculo_taxa_cobranca", "ponto_equilibrio_override"}
+    _ids_rubricas = ids_normalizados(cfg.get("custos_mensais"), cfg.get("custos_variaveis"))
     for k, v in (custos_extras or {}).items():
-        if k not in custos and k not in _excluir and v:
+        if k not in custos and k not in _ids_rubricas and k not in _excluir and v:
             custos[k] = float(v)
     total_custos = sum(custos.values())
 

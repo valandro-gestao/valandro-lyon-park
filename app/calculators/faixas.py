@@ -11,6 +11,7 @@ Fluxo Monza (sem aliq, sem taxa_cob, sem PE, sem custos):
   aluguel   = faixas sobre resultado
 """
 from app.models import ResultadoUnidade
+from app.rubricas import custos_com_overrides, ids_normalizados
 
 
 def calcular_com_faixas(cfg: dict, mes: str, faturamento: float,
@@ -35,17 +36,16 @@ def calcular_com_faixas(cfg: dict, mes: str, faturamento: float,
 
     subtotal = round(receita_bruta * (1 - aliq) - taxa_cob_valor, 2)
 
-    # Custos mensais fixos (condomínio, IPTU, energia — ex: Ekos, OKA)
-    custos = {}
-    for k, v in (cfg.get("custos_mensais") or {}).items():
-        custos[k] = float(custos_extras.get(k, v) if custos_extras else v)
-    # Custos variáveis (sistema_perto etc.)
-    for k, v in (cfg.get("custos_variaveis") or {}).items():
-        custos[k] = float(custos_extras.get(k, v) if custos_extras else v)
-    # Custos extras dinâmicos (eventos etc.)
+    # Custos mensais fixos (condomínio, IPTU, energia — ex: Ekos, OKA) e
+    # variáveis (sistema_perto etc.) — normalizados via app.rubricas, aceita
+    # tanto dict legado quanto lista nova sem este módulo saber a diferença.
+    custos = dict(custos_com_overrides(cfg.get("custos_mensais"), custos_extras))
+    custos.update(custos_com_overrides(cfg.get("custos_variaveis"), custos_extras))
+    # Custos extras dinâmicos (eventos etc.) — nunca estiveram em cfg
     _excluir = {"base_calculo_taxa_cobranca", "ponto_equilibrio_override", "receita_selos"}
+    _ids_rubricas = ids_normalizados(cfg.get("custos_mensais"), cfg.get("custos_variaveis"))
     for k, v in (custos_extras or {}).items():
-        if k not in custos and k not in _excluir and v:
+        if k not in custos and k not in _ids_rubricas and k not in _excluir and v:
             custos[k] = float(v)
     total_custos = sum(custos.values())
 

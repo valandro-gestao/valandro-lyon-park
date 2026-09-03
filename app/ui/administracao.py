@@ -554,7 +554,7 @@ def _formatar_valor(tipo_dado: str, valor) -> str:
     usado tanto na leitura de campos compostos quanto no histórico."""
     if valor is None:
         return "—"
-    # Contêiner (lista_estruturada/mapa_dinamico): o tipo_dado do campo aqui
+    # Contêiner (lista_estruturada/mapa_rubricas): o tipo_dado do campo aqui
     # descreve o VALOR interno de cada item, não o campo em si — nunca tentar
     # formatar o dict/list inteiro como escalar (senão cai no repr Python cru).
     if isinstance(valor, list):
@@ -582,21 +582,20 @@ def _formatar_valor(tipo_dado: str, valor) -> str:
     return str(valor)
 
 
-def _detalhar_mapa_dinamico(campo: dict, valor_atual):
-    """Renderiza em modo leitura (nunca JSON cru) as rubricas vigentes de um
-    campo `mapa_dinamico` (custos_mensais/custos_variaveis) — a lista de
-    nomes de rubrica ainda vem do YAML; editor de rubricas fica para uma
-    etapa futura (fora do escopo desta subetapa, que cobre só as 4 listas
-    estruturadas: faixas, faixas_aluguel, splits, repasses)."""
-    if not valor_atual:
-        st.caption("Nenhuma rubrica cadastrada.")
-        return
-    tipo_valor = campo.get("tipo_valor_item", "moeda")
-    linhas = [
-        {"Rubrica": str(k).replace("_", " ").title(), "Valor": _formatar_valor(tipo_valor, v)}
-        for k, v in valor_atual.items()
-    ]
-    st.table(linhas)
+def _editor_mapa_rubricas(uid, competencia_ref, campo, valor_atual, params_atuais, tipo_calculo):
+    """Editor de um campo `mapa_rubricas` (custos_mensais/custos_variaveis,
+    v1.2.0 — rubricas dinâmicas). Não é um editor novo: normaliza o valor
+    atual (dict legado OU lista nova — ver app.rubricas.normalizar_rubricas)
+    para a forma plana que `_editor_lista_estruturada` já sabe editar, e
+    delega inteiramente para ela — mesma grade, mesmo id oculto gerado por
+    slug, mesma unicidade, mesmo add/remove de linhas já usados por
+    splits/repasses. `mapa_rubricas` só existe como conceito de schema
+    (ver app.calculadora_schema); não existe caminho de UI próprio."""
+    from app.rubricas import normalizar_rubricas, para_persistencia
+    valor_normalizado = para_persistencia(normalizar_rubricas(valor_atual))
+    return _editor_lista_estruturada(
+        uid, competencia_ref, campo, valor_normalizado, params_atuais, tipo_calculo,
+    )
 
 
 # ─── editor genérico de listas estruturadas (faixas, splits, repasses) ───────
@@ -888,26 +887,25 @@ def _aba_parametros(uid: str, u: dict):
         valor_atual = resolver_valor(params_atuais, chave)
         widget_key = f"param_{uid}_{competencia_ref}_{chave}"
 
-        if natureza == "mapa_dinamico":
-            st.markdown(f"**{campo['label']}**")
-            if campo.get("descricao"):
-                st.caption(campo["descricao"])
-            _detalhar_mapa_dinamico(campo, valor_atual)
-            st.caption("🔒 Edição de rubricas disponível numa etapa futura.")
-            st.write("")
-            continue
-
-        if natureza == "lista_estruturada":
+        if natureza in ("lista_estruturada", "mapa_rubricas"):
             obrig = campo_obrigatorio_efetivo(campo, params_atuais)
             st.markdown(f"**{campo['label']}**" + (" *" if obrig else ""))
             if campo.get("descricao"):
                 st.caption(campo["descricao"])
-            itens_editados, valido = _editor_lista_estruturada(
-                uid, competencia_ref, campo, valor_atual, params_atuais, tipo_calculo,
-            )
+            if natureza == "mapa_rubricas":
+                itens_editados, valido = _editor_mapa_rubricas(
+                    uid, competencia_ref, campo, valor_atual, params_atuais, tipo_calculo,
+                )
+                from app.rubricas import normalizar_rubricas, para_persistencia
+                valor_comparacao = para_persistencia(normalizar_rubricas(valor_atual))
+            else:
+                itens_editados, valido = _editor_lista_estruturada(
+                    uid, competencia_ref, campo, valor_atual, params_atuais, tipo_calculo,
+                )
+                valor_comparacao = valor_atual or []
             if not valido:
                 compostos_invalidos = True
-            elif itens_editados != (valor_atual or []):
+            elif itens_editados != valor_comparacao:
                 valores_editados[chave] = itens_editados
             st.write("")
             continue
@@ -1012,12 +1010,16 @@ def _secao_historico(uid: str, tipo_calculo: str):
             tipo_dado = campo_schema["tipo_dado"] if campo_schema else (h.get("tipo_dado") or "texto")
             if campo_schema:
                 label = campo_schema["label"]
-                # Sub-chave de mapa_dinamico (ex. "custos_variaveis.sistema_perto"):
-                # o campo do schema é o mapa inteiro ("Custos Variáveis") — sem a
-                # rubrica específica, entradas de rubricas diferentes ficariam com
-                # o mesmo rótulo no histórico.
-                if campo_schema.get("natureza") == "mapa_dinamico" and "." in chave:
-                    rubrica = chave.split(".", 1)[1].replace("_", " ").title()
+                # Sub-chave dot-notation legada de mapa_rubricas (ex.
+                # "custos_variaveis.sistema_perto"): só existe para unidades
+                # nunca tocadas pelo editor novo (que grava um único
+                # parâmetro "custos_variaveis" sem ponto) — sem isso, o
+                # campo do schema é o mapa inteiro ("Custos Variáveis"), e
+                # entradas de rubricas diferentes ficariam com o mesmo
+                # rótulo no histórico.
+                if campo_schema.get("natureza") == "mapa_rubricas" and "." in chave:
+                    from app.rubricas import rotulo_exibicao
+                    rubrica = rotulo_exibicao(chave.split(".", 1)[1])
                     label = f"{label} — {rubrica}"
                     tipo_dado = campo_schema.get("tipo_valor_item", tipo_dado)
             else:

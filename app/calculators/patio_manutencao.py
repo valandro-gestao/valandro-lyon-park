@@ -1,4 +1,5 @@
 from app.models import ResultadoUnidade, get_saldo_acumulado
+from app.rubricas import custos_com_overrides
 
 
 def calcular_patio_manutencao(cfg: dict, mes: str, faturamento: float,
@@ -20,9 +21,7 @@ def calcular_patio_manutencao(cfg: dict, mes: str, faturamento: float,
     retencao_iss = round(faturamento * iss_pct, 2)
     subtotal = round(faturamento - retencao_iss, 2)
 
-    custos: dict[str, float] = {}
-    for k, v in (cfg.get("custos_mensais") or {}).items():
-        custos[k] = float(custos_extras.get(k, v) if custos_extras else v)
+    custos = dict(custos_com_overrides(cfg.get("custos_mensais"), custos_extras))
     total_custos = sum(custos.values())
 
     resultado = round(subtotal - total_custos, 2)

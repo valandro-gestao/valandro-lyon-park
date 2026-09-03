@@ -12,6 +12,7 @@ Suporta:
   - taxa_admin_fixa
 """
 from app.models import ResultadoUnidade, get_saldo_acumulado
+from app.rubricas import custos_com_overrides, ids_normalizados
 
 
 def calcular_com_aliquota_cumul(cfg: dict, mes: str, faturamento: float,
@@ -36,15 +37,15 @@ def calcular_com_aliquota_cumul(cfg: dict, mes: str, faturamento: float,
 
     subtotal = round(faturamento_total * (1 - aliq), 2)
 
-    # Custos mensais fixos (condomínio, IPTU, etc.)
-    custos = {}
-    for k, v in (cfg.get("custos_mensais") or {}).items():
-        custos[k] = float(custos_extras.get(k, v) if custos_extras else v)
+    # Custos mensais fixos (condomínio, IPTU, etc.) — normalizado via
+    # app.rubricas, aceita dict legado ou lista nova indistintamente.
+    custos = dict(custos_com_overrides(cfg.get("custos_mensais"), custos_extras))
     # Custos extras que não são campos fixos (eventos, etc.)
     _nao_custo = {"fat_carregadores", "investimentos", "fundo_recomposicao",
                   "ponto_equilibrio_override"}
+    _ids_rubricas = ids_normalizados(cfg.get("custos_mensais"))
     for k, v in (custos_extras or {}).items():
-        if k not in custos and k not in _nao_custo and v:
+        if k not in custos and k not in _ids_rubricas and k not in _nao_custo and v:
             custos[k] = float(v)
     total_custos = sum(custos.values())
 

@@ -13,6 +13,7 @@ from app.models import ResultadoUnidade, get_lancamentos_mes, get_historico_anua
 from app.calculators.patio import ResultadoPatio
 from app.engine import get_unit
 from app.parsers import eventos as eventos_parser
+from app.rubricas import rotulo_exibicao
 
 MESES_PT = [
     "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -246,29 +247,8 @@ def _historico_anual(unidade_id: str, mes_ref: str, resultado) -> Historico:
     )
 
 
-_CUSTO_LABELS: dict[str, str] = {
-    "custos_eventos":   "Colaboradores Eventos",
-    "condominio":       "Condomínio",
-    "iptu":             "IPTU",
-    "monitoramento":    "Monitoramento",
-    "energia_eletrica": "Energia Elétrica",
-    "agua":             "Água",
-    "manutencao_equipamentos": "Manutenção de Equipamentos",
-    "internet":         "Internet",
-    "sistema_perto":    "Sistema Perto",
-    "sistema_automacao":"Sistema Automação",
-    "aucon":            "Aucon / Equipamentos",
-    "instalacoes":      "Manutenção Instalações",
-    "investimentos_equipamentos": "Investimentos / Equipamentos",
-    "troca_de_lona":    "Troca de Lona",
-    "seguranca":        "Segurança",
-    "sistemas_voip":    "Sistemas VOIP",
-    "perto":            "Perto",
-}
-
-
-def _custo_label(k: str) -> str:
-    return _CUSTO_LABELS.get(k, k.replace("_", " ").title())
+_custo_label = rotulo_exibicao  # ver app.rubricas — rótulo de rubricas
+# centralizado num único lugar (era duplicado aqui e em app.ui.fechamento).
 
 
 def _build_bloco_eventos(mes_ref: str, eventos_data: dict) -> BlocoEventos | None:

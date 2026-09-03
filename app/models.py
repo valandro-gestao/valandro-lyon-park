@@ -243,6 +243,19 @@ def get_parametros_vigentes(unidade_id: str, mes_ref: str) -> dict:
     """
     Retorna todos os parâmetros vigentes em mes_ref para a unidade.
     Reconstrói dicts aninhados: "custos_mensais.condominio" → {custos_mensais: {condominio: v}}.
+
+    Precedência bloco atômico > dot-notation antiga (v1.2.0 — rubricas
+    dinâmicas, ver app.rubricas): um parâmetro salvo sem ponto cujo valor
+    é uma LISTA (ex. "custos_mensais" como [{"id":..,"nome":..,"valor":..},
+    ...]) representa o grupo inteiro de forma atômica. Linhas dot-notation
+    antigas do mesmo grupo (ex. "custos_mensais.condominio", de um seed
+    legado nunca migrado) nunca são apagadas, mas são ignoradas na
+    reconstrução quando o grupo já tem um bloco atômico vigente na
+    competência consultada — sem isso, uma rubrica removida do bloco novo
+    "ressuscitaria" via a linha antiga ainda aberta. Sem essa checagem o
+    merge também quebraria: `params.setdefault(grupo, {})` retornaria a
+    LISTA já atribuída ao grupo, e indexá-la por subchave (string)
+    levantaria TypeError.
     """
     with get_db() as conn:
         rows = conn.execute("""
@@ -255,6 +268,7 @@ def get_parametros_vigentes(unidade_id: str, mes_ref: str) -> dict:
         """, (unidade_id, mes_ref, mes_ref)).fetchall()
 
     seen: set = set()
+    grupos_atomicos: set = set()
     params: dict = {}
     for row in rows:
         chave = row["parametro"]
@@ -267,11 +281,14 @@ def get_parametros_vigentes(unidade_id: str, mes_ref: str) -> dict:
             valor = row["valor"]
 
         if "." in chave:
-            partes = chave.split(".", 1)
-            grupo, subchave = partes[0], partes[1]
+            grupo, subchave = chave.split(".", 1)
+            if grupo in grupos_atomicos:
+                continue
             params.setdefault(grupo, {})[subchave] = valor
         else:
             params[chave] = valor
+            if isinstance(valor, list):
+                grupos_atomicos.add(chave)
 
     return params
 
