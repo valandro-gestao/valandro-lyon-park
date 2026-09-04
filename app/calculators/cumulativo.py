@@ -11,7 +11,7 @@ Suporta:
   - adicional_fixo (ex: parcelamento de equipamentos)
   - taxa_admin_fixa
 """
-from app.models import ResultadoUnidade, get_saldo_acumulado
+from app.models import ResultadoUnidade, get_saldo_entrada
 from app.rubricas import custos_com_overrides, ids_normalizados
 
 
@@ -26,10 +26,17 @@ def calcular_com_aliquota_cumul(cfg: dict, mes: str, faturamento: float,
     taxa_admin = cfg.get("taxa_admin_fixa", 0.0) or 0.0
     adicional = cfg.get("adicional_fixo", 0.0) or 0.0
 
+    # v1.2.0: entrada resolvida pela cadeia real de fechamentos (saída do
+    # último aprovado anterior, com fallback à âncora explícita da
+    # unidade) — nunca mais pelo valor único e corrente de
+    # saldos_acumulados (app.models.get_saldo_acumulado), que não sabe a
+    # qual competência pertence. saldo_override continua tendo prioridade
+    # máxima, para testes e correções explícitas (ex.: futura correção de
+    # IPCA de abril).
     if saldo_override is not None:
         prejuizo_entrada = saldo_override
     else:
-        prejuizo_entrada = get_saldo_acumulado(cfg["id"])
+        prejuizo_entrada = get_saldo_entrada(cfg["id"], mes)
 
     # Faturamento pode incluir carregadores (passado em custos_extras)
     fat_carregadores = float((custos_extras or {}).get("fat_carregadores", 0.0))

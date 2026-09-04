@@ -1,4 +1,4 @@
-from app.models import ResultadoUnidade, get_saldo_acumulado
+from app.models import ResultadoUnidade, get_saldo_entrada
 from app.rubricas import custos_com_overrides
 
 
@@ -26,11 +26,14 @@ def calcular_patio_manutencao(cfg: dict, mes: str, faturamento: float,
 
     resultado = round(subtotal - total_custos, 2)
 
-    # Saldo acumulado carregado do mês anterior (via DB ou override manual)
+    # v1.2.0: saldo carregado pela cadeia real de fechamentos (saída do
+    # último aprovado anterior, com fallback à âncora explícita da
+    # unidade) — nunca mais pelo valor único e corrente de
+    # saldos_acumulados. saldo_override continua com prioridade máxima.
     if saldo_override is not None:
         saldo_anterior = saldo_override
     else:
-        saldo_anterior = get_saldo_acumulado(cfg["id"])
+        saldo_anterior = get_saldo_entrada(cfg["id"], mes)
 
     saldo_acumulado = round(saldo_anterior + resultado, 2)
 

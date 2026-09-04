@@ -300,6 +300,25 @@ def salvar_parametros(unidade_id: str, mes_ref: str, parametros: dict,
     - Fecha a vigência do valor anterior (competencia_fim = mês anterior)
     - Insere novo registro com competencia_inicio = mes_ref
     Aceita dicts aninhados: {custos_mensais: {condominio: 1880.51}}.
+
+    Localiza sempre a vigência que efetivamente COBRE `mes_ref`
+    (competencia_inicio <= mes_ref <= competencia_fim-ou-aberta) — nunca
+    "a vigência aberta mais recente" de forma incondicional. A diferença
+    importa exatamente quando já existe uma vigência FUTURA cadastrada
+    (ex.: uma correção de contrato agendada com antecedência, via
+    migration ou via "Vigente a partir de" na Administração): buscar "a
+    mais recente aberta" acha essa vigência futura mesmo ao salvar uma
+    competência anterior a ela, fecha-a com `competencia_fim =
+    mês_anterior(mes_ref)` — um fim ANTERIOR ao próprio início dela — e
+    insere uma vigência nova que, por ficar aberta, "vence" a futura para
+    sempre. Foi exatamente esse bug que corrompeu o percentual do
+    Medcenter em produção (2026-07→2026-05 depois de aprovar 2026-06).
+
+    Por isso, toda vigência nova criada aqui é limitada ao mês anterior à
+    PRÓXIMA vigência já cadastrada para o mesmo parâmetro (se houver) —
+    nunca fica aberta por cima de algo que já existia no futuro; e a
+    vigência fechada/atualizada é sempre a que já cobria `mes_ref`, nunca
+    uma que começa depois dele.
     """
     linhas = _flatten_parametros(parametros)
     now = _date.today().isoformat()
@@ -311,54 +330,72 @@ def salvar_parametros(unidade_id: str, mes_ref: str, parametros: dict,
             valor_json = json.dumps(valor, ensure_ascii=False)
             tipo_dado, descricao = _infer_meta(chave, valor)
 
+            # Vigência que efetivamente cobre mes_ref hoje — nunca "a mais
+            # recente aberta" (que pode já ser do futuro em relação a mes_ref).
             atual = conn.execute("""
-                SELECT id, valor, competencia_inicio FROM parametros_vigentes
-                WHERE unidade_id=? AND parametro=? AND competencia_fim IS NULL
+                SELECT id, valor, competencia_inicio, competencia_fim
+                FROM parametros_vigentes
+                WHERE unidade_id=? AND parametro=?
+                  AND competencia_inicio <= ?
+                  AND (competencia_fim IS NULL OR competencia_fim >= ?)
                 ORDER BY competencia_inicio DESC LIMIT 1
-            """, (unidade_id, chave)).fetchone()
+            """, (unidade_id, chave, mes_ref, mes_ref)).fetchone()
 
-            if atual:
-                if atual["competencia_inicio"] == mes_ref:
-                    # Mesmo mês: atualiza no lugar (inclui tipo_dado/descricao caso estejam ausentes)
-                    if atual["valor"] != valor_json:
-                        conn.execute("""
-                            UPDATE parametros_vigentes
-                            SET valor=?, tipo_dado=?, descricao=?,
-                                alterado_em=?, alterado_por=?
-                            WHERE id=?
-                        """, (valor_json, tipo_dado, descricao, now, alterado_por, atual["id"]))
-                    else:
-                        # Valor igual mas pode faltar metadados (migration de dados antigos)
-                        conn.execute("""
-                            UPDATE parametros_vigentes
-                            SET tipo_dado=COALESCE(tipo_dado, ?),
-                                descricao=COALESCE(descricao, ?)
-                            WHERE id=?
-                        """, (tipo_dado, descricao, atual["id"]))
+            # Próxima vigência já cadastrada, estritamente depois de mes_ref
+            # (se houver) — nunca deve ser invadida por uma vigência nova
+            # criada aqui.
+            proxima = conn.execute("""
+                SELECT MIN(competencia_inicio) AS inicio FROM parametros_vigentes
+                WHERE unidade_id=? AND parametro=? AND competencia_inicio > ?
+            """, (unidade_id, chave, mes_ref)).fetchone()
+            fim_novo = _mes_anterior(proxima["inicio"]) if proxima and proxima["inicio"] else None
+
+            if atual and atual["competencia_inicio"] == mes_ref:
+                # Mesmo mês: atualiza no lugar (inclui tipo_dado/descricao caso estejam ausentes)
+                if atual["valor"] != valor_json:
+                    conn.execute("""
+                        UPDATE parametros_vigentes
+                        SET valor=?, tipo_dado=?, descricao=?,
+                            alterado_em=?, alterado_por=?
+                        WHERE id=?
+                    """, (valor_json, tipo_dado, descricao, now, alterado_por, atual["id"]))
                 else:
-                    # Novo mês: fecha anterior e insere
-                    if atual["valor"] != valor_json:
-                        comp_fim = _mes_anterior(mes_ref)
-                        conn.execute("""
-                            UPDATE parametros_vigentes SET competencia_fim=?
-                            WHERE id=?
-                        """, (comp_fim, atual["id"]))
-                        conn.execute("""
-                            INSERT INTO parametros_vigentes
-                                (unidade_id, parametro, valor, tipo_dado, descricao,
-                                 competencia_inicio, alterado_por, alterado_em)
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                        """, (unidade_id, chave, valor_json, tipo_dado, descricao,
-                              mes_ref, alterado_por, now))
+                    # Valor igual mas pode faltar metadados (migration de dados antigos)
+                    conn.execute("""
+                        UPDATE parametros_vigentes
+                        SET tipo_dado=COALESCE(tipo_dado, ?),
+                            descricao=COALESCE(descricao, ?)
+                        WHERE id=?
+                    """, (tipo_dado, descricao, atual["id"]))
+            elif atual:
+                # mes_ref está coberto por uma vigência que começou antes
+                # dele — só mexe se o valor realmente mudou (no-op, sem
+                # linha nova, quando o valor efetivo já é o que se quer salvar).
+                if atual["valor"] != valor_json:
+                    comp_fim_atual = _mes_anterior(mes_ref)
+                    conn.execute("""
+                        UPDATE parametros_vigentes SET competencia_fim=?
+                        WHERE id=?
+                    """, (comp_fim_atual, atual["id"]))
+                    conn.execute("""
+                        INSERT INTO parametros_vigentes
+                            (unidade_id, parametro, valor, tipo_dado, descricao,
+                             competencia_inicio, competencia_fim, alterado_por, alterado_em)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (unidade_id, chave, valor_json, tipo_dado, descricao,
+                          mes_ref, fim_novo, alterado_por, now))
             else:
-                # Primeiro registro
+                # Nenhuma vigência cobre mes_ref ainda — primeiro registro
+                # deste parâmetro, ou uma lacuna antes de uma vigência
+                # futura já existente. Nos dois casos, insere limitada até
+                # o mês anterior a essa futura (fim_novo), se houver.
                 conn.execute("""
                     INSERT INTO parametros_vigentes
                         (unidade_id, parametro, valor, tipo_dado, descricao,
-                         competencia_inicio, alterado_por, alterado_em)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                         competencia_inicio, competencia_fim, alterado_por, alterado_em)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (unidade_id, chave, valor_json, tipo_dado, descricao,
-                      mes_ref, alterado_por, now))
+                      mes_ref, fim_novo, alterado_por, now))
 
 
 def seed_parametros_from_yaml(unidade_id: str, cfg: dict,
@@ -518,13 +555,123 @@ def salvar_lancamento(resultado: ResultadoUnidade):
             resultado.status,
         ))
         if resultado.prejuizo_acumulado_saida != 0 or resultado.status == "aprovado":
-            conn.execute("""
-                INSERT INTO saldos_acumulados (unidade_id, prejuizo_acumulado)
-                VALUES (?, ?)
-                ON CONFLICT(unidade_id)
-                DO UPDATE SET prejuizo_acumulado=excluded.prejuizo_acumulado,
-                              atualizado_em=datetime('now')
-            """, (resultado.unidade_id, resultado.prejuizo_acumulado_saida))
+            # v1.2.0 (cadeia temporal de saldo acumulado): saldos_acumulados
+            # NÃO é mais consultada por app.calculators.cumulativo/
+            # patio_manutencao para resolver a entrada de uma competência
+            # (ver get_saldo_entrada, abaixo) — continua sendo escrita aqui
+            # só por compatibilidade (exibição em Fechamento, correção
+            # anual de IPCA, ainda não migradas para a cadeia). Para essa
+            # tabela não retroceder quando uma competência ANTIGA é
+            # reprocessada fora de ordem (reabrir e recalcular um mês
+            # passado depois que meses mais recentes já foram aprovados),
+            # só atualiza quando a competência sendo salva agora for a
+            # mais recente já aprovada desta unidade — nunca quando for
+            # uma reaprovação de algo mais antigo que o que já existe.
+            mais_recente = conn.execute("""
+                SELECT MAX(mes_referencia) AS mes FROM lancamentos
+                WHERE unidade_id=? AND status='aprovado'
+            """, (resultado.unidade_id,)).fetchone()
+            if not mais_recente["mes"] or resultado.mes_referencia >= mais_recente["mes"]:
+                conn.execute("""
+                    INSERT INTO saldos_acumulados (unidade_id, prejuizo_acumulado)
+                    VALUES (?, ?)
+                    ON CONFLICT(unidade_id)
+                    DO UPDATE SET prejuizo_acumulado=excluded.prejuizo_acumulado,
+                                  atualizado_em=datetime('now')
+                """, (resultado.unidade_id, resultado.prejuizo_acumulado_saida))
+
+
+# ─── cadeia temporal de saldo acumulado (v1.2.0) ──────────────────────────────
+#
+# Substitui, para os tipos com semântica de prejuízo/saldo acumulado
+# (COM_ALIQUOTA_CUMUL, PATIO_MANUTENCAO), a leitura do valor único e
+# corrente de `saldos_acumulados` por uma cadeia real: a entrada de uma
+# competência é a saída congelada do lançamento aprovado imediatamente
+# anterior — nunca "o valor atual da tabela", que não sabe a qual
+# competência pertence e por isso pode devolver o saldo de um mês
+# FUTURO ao reprocessar um mês passado (bug real de produção).
+
+CADEIA_SALDO_DESDE = "2026-06"
+"""Primeira competência em que a cadeia de saldo acumulado é confiável.
+Lançamentos anteriores a esta vieram do bootstrap histórico (migration
+0002), que grava prejuizo_acumulado_entrada/saida = 0.0 para TODOS eles,
+deliberadamente (não representa o saldo real da época — ver docstring
+da migração). Usar esses zeros como entrada real apagaria a dívida
+verdadeira. Por isso a cadeia nunca olha para trás desta data — antes
+dela, só a âncora explícita (ver _CHAVE_SALDO_ACUMULADO_INICIAL) vale."""
+
+_CHAVE_SALDO_ACUMULADO_INICIAL = "saldo_acumulado_inicial"
+"""Nome do parâmetro, salvo via `salvar_parametros` na infraestrutura já
+existente de `parametros_vigentes` (nenhuma tabela/coluna nova) — a
+âncora explícita e versionável de cada unidade: "o saldo que entra no
+primeiro fechamento real da cadeia desta unidade" (vigência a partir de
+CADEIA_SALDO_DESDE). Deliberadamente NUNCA passa por
+get_parametros_efetivos/get_unit_com_params (o merge YAML+DB que os
+calculators leem) — não é um parâmetro de cálculo mensal, é só a semente
+da cadeia; ler por fora desse caminho evita que
+app.models._extrair_editaveis a capture e resalve "de carona" a cada
+aprovação mensal comum (o mesmo mecanismo que corrompeu a vigência do
+Medcenter — ver correção de app.models.salvar_parametros)."""
+
+
+def get_saldo_ancora(unidade_id: str, mes_ref: str) -> float | None:
+    """Âncora explícita vigente em `mes_ref`, ou None se nunca foi
+    configurada. Pura leitura de parametros_vigentes — não inventa
+    default nenhum (isso é responsabilidade de get_saldo_entrada)."""
+    valor = get_parametros_vigentes(unidade_id, mes_ref).get(_CHAVE_SALDO_ACUMULADO_INICIAL)
+    return float(valor) if valor is not None else None
+
+
+def get_saldo_entrada(unidade_id: str, mes_ref: str) -> float:
+    """
+    Resolve o saldo/prejuízo acumulado de ENTRADA de `mes_ref` pela cadeia
+    real de fechamentos — nunca pelo valor único e corrente de
+    `saldos_acumulados` (get_saldo_acumulado), que não sabe a qual
+    competência pertence.
+
+    Precedência:
+      1. `prejuizo_acumulado_saida` do último lançamento **aprovado**,
+         estritamente anterior a `mes_ref`, dentro da cadeia confiável
+         (mes_referencia >= CADEIA_SALDO_DESDE) — não precisa ser o mês
+         calendário imediatamente anterior: um mês faltante na sequência
+         não quebra a cadeia, e um mês FUTURO já aprovado (reprocessamento
+         fora de ordem) nunca é escolhido, porque o filtro é sempre
+         "estritamente anterior a mes_ref", não "o mais recente que existe".
+      2. `get_saldo_ancora(unidade_id, mes_ref)` — a âncora explícita da
+         unidade, vigente naquela competência.
+      3. 0.0.
+
+    "Aprovado" = `lancamentos.status == 'aprovado'`, o único valor que essa
+    coluna assume na prática hoje (nenhum código vivo grava 'rascunho' ou
+    qualquer outro status ali). Reabrir uma competência (app.run_manager.
+    reopen) muda só o status de WORKFLOW, controlado à parte em
+    run_manager — nunca `lancamentos.status` — então o `resultado_json` de
+    uma competência "reaberta" continua sendo o último cálculo realmente
+    aprovado até uma nova aprovação sobrescrever a linha. Por isso ele
+    continua alimentando a cadeia do mês seguinte normalmente enquanto a
+    reabertura não for seguida de uma reaprovação: é o único dado que
+    existe, é o último fechamento efetivamente consolidado, e não há
+    nenhum estado "reaberto" na própria tabela para excluir.
+    """
+    with get_db() as conn:
+        row = conn.execute("""
+            SELECT resultado_json FROM lancamentos
+            WHERE unidade_id=? AND status='aprovado'
+              AND mes_referencia < ? AND mes_referencia >= ?
+            ORDER BY mes_referencia DESC LIMIT 1
+        """, (unidade_id, mes_ref, CADEIA_SALDO_DESDE)).fetchone()
+
+    if row is not None:
+        dados = json.loads(row["resultado_json"])
+        saida = dados.get("prejuizo_acumulado_saida")
+        if saida is not None:
+            return float(saida)
+
+    ancora = get_saldo_ancora(unidade_id, mes_ref)
+    if ancora is not None:
+        return ancora
+
+    return 0.0
 
 
 def corrigir_saldo_anual(unidade_id: str, percentual_ipca: float,

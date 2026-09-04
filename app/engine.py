@@ -1,7 +1,7 @@
 import yaml, os, copy
 from app.paths import UNITS_YAML
 from app.models import (
-    ResultadoUnidade, init_db, get_db, salvar_lancamento, get_saldo_acumulado,
+    ResultadoUnidade, init_db, get_db, salvar_lancamento,
     get_parametros_vigentes, seed_parametros_from_yaml,
     validar_configuracao_unidade, unidade_possui_lancamento_no_mes,
 )
@@ -202,9 +202,12 @@ def calcular(unidade_id: str, mes: str, faturamento: float,
     elif tipo == "COM_ALIQUOTA_SPLIT":
         res = calcular_com_aliquota_split(cfg, mes, faturamento, pe_override=pe_override)
     elif tipo == "COM_ALIQUOTA_CUMUL":
-        saldo = saldo_override if saldo_override is not None else get_saldo_acumulado(unidade_id)
+        # v1.2.0: não pré-resolve mais o saldo aqui via get_saldo_acumulado
+        # (valor único e corrente, sem competência) — passa saldo_override
+        # como veio (None inclusive) e deixa o calculator resolver a
+        # entrada pela cadeia real (app.models.get_saldo_entrada).
         res = calcular_com_aliquota_cumul(cfg, mes, faturamento,
-                                           saldo_override=saldo,
+                                           saldo_override=saldo_override,
                                            custos_extras=custos_extras,
                                            pe_override=pe_override)
     elif tipo == "COM_FAIXAS":
@@ -221,9 +224,10 @@ def calcular(unidade_id: str, mes: str, faturamento: float,
     elif tipo == "PATIO_OPERACAO":
         return calcular_patio(cfg, mes, faturamento, **(extras_patio or {}))
     elif tipo == "PATIO_MANUTENCAO":
-        saldo = saldo_override if saldo_override is not None else get_saldo_acumulado(unidade_id)
+        # v1.2.0: idem COM_ALIQUOTA_CUMUL — sem pré-resolução via
+        # get_saldo_acumulado; o calculator resolve pela cadeia real.
         res = calcular_patio_manutencao(cfg, mes, faturamento,
-                                         saldo_override=saldo,
+                                         saldo_override=saldo_override,
                                          custos_extras=custos_extras)
     else:
         raise ValueError(f"Tipo de cálculo desconhecido: {tipo}")
