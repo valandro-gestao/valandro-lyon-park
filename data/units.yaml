@@ -236,10 +236,9 @@ unidades:
       condominio: 9073.23
       iptu: 0.0
       energia_eletrica: 0.0
-    taxa_admin_fixa: 4350.0
     prejuizo_acumulado_inicial: -632029.12
     relatorio:
-      linhas: [faturamento, aliquota, subtotal, pe, condominio, resultado, prejuizo, aluguel, taxa_admin]
+      linhas: [faturamento, aliquota, subtotal, pe, condominio, resultado, prejuizo, aluguel]
 
   - id: nl_2800
     nome: "NL 2800"

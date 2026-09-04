@@ -9,7 +9,14 @@ Suporta:
   - faixas_aluguel (se configurado no YAML)
   - investimentos (dedução do aluguel → saldo_a_pagar)
   - adicional_fixo (ex: parcelamento de equipamentos)
-  - taxa_admin_fixa
+
+Não suporta (removido, v1.2.0): taxa_admin_fixa como piso do repasse. Era
+usada só por MW Tristeza (4350.0) e a operadora confirmou que era controle
+da planilha antiga, sem correspondência na regra contratual real (repasse
+= percentual_aluguel × resultado disponível após absorção do prejuízo
+acumulado, sem piso). `taxa_admin_fixa` continua existindo para
+PERCENTUAL_SIMPLES (Vasco) — semântica diferente (piso quando o resultado
+NÃO supera o ponto de equilíbrio) — ver app.calculators.base.
 """
 from app.models import ResultadoUnidade, get_saldo_entrada
 from app.rubricas import custos_com_overrides, ids_normalizados
@@ -23,7 +30,6 @@ def calcular_com_aliquota_cumul(cfg: dict, mes: str, faturamento: float,
     pe = pe_override if pe_override is not None else cfg.get("ponto_equilibrio", 0.0)
     aliq = cfg.get("aliquota_imposto", 0.0)
     pct = cfg.get("percentual_aluguel", 0.0)
-    taxa_admin = cfg.get("taxa_admin_fixa", 0.0) or 0.0
     adicional = cfg.get("adicional_fixo", 0.0) or 0.0
 
     # v1.2.0: entrada resolvida pela cadeia real de fechamentos (saída do
@@ -66,16 +72,12 @@ def calcular_com_aliquota_cumul(cfg: dict, mes: str, faturamento: float,
             aluguel = _aplicar_faixas(resultado_com_prejuizo, faixas_aluguel)
         else:
             aluguel = round(resultado_com_prejuizo * pct, 2)
-        if taxa_admin:
-            aluguel = max(aluguel, taxa_admin)
         prejuizo_saida = 0.0
     else:
         aluguel = 0.0
         prejuizo_saida = round(resultado_com_prejuizo, 2)
 
     extras: dict = {}
-    if taxa_admin:
-        extras["taxa_admin"] = taxa_admin
     if adicional:
         extras["adicional_fixo"] = adicional
         aluguel = round(aluguel + adicional, 2)

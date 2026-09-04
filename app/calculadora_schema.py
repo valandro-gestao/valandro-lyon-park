@@ -238,13 +238,6 @@ SCHEMAS_POR_TIPO: dict[str, dict] = {
                 ],
             },
             {
-                "chave": "taxa_admin_fixa", "label": "Taxa de Administração Fixa",
-                "tipo_dado": "moeda", "natureza": "escalar",
-                "obrigatorio": False, "default_tecnico": 0.0,
-                "descricao": "Valor mínimo garantido de repasse, aplicado quando o cálculo normal resultar em menos que isso.",
-                "editor": "number_moeda", "aceita_vigencia": True,
-            },
-            {
                 "chave": "adicional_fixo", "label": "Adicional Fixo",
                 "tipo_dado": "moeda", "natureza": "escalar",
                 "obrigatorio": False, "default_tecnico": 0.0,

@@ -309,9 +309,13 @@ def _prestacao_padrao(r: ResultadoUnidade, cfg: dict) -> Prestacao:
         linhas.append(LinhaPrestacao("Resultado", r.resultado, "destaque"))
 
     if "prejuizo" in linhas_cfg:
-        # Sempre mostra quando configurado — mesmo que zero
+        # Sempre mostra quando configurado — mesmo que zero. Mostra a SAÍDA
+        # (saldo já considerando o resultado deste mês), não a entrada —
+        # ver app.models.get_saldo_entrada: a entrada é só o ponto de
+        # partida do mês, a saída é o saldo real após o mês, que é o que a
+        # tela de cálculo já exibe corretamente (ver _mostrar_resultado_unit).
         linhas.append(LinhaPrestacao("(+/-) Prejuízo Acumulado",
-                                      r.prejuizo_acumulado_entrada, "deducao"))
+                                      r.prejuizo_acumulado_saida, "deducao"))
 
     repasse = r.aluguel_calculado
     if extras.get("repasse_outros"):

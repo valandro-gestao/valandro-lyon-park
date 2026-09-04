@@ -1407,15 +1407,51 @@ def _detalhe_patio(uid: str, u: dict, mes_ref: str,
     inv_car   = c3.number_input("Investim.",  min_value=0.0, step=100.0, format="%.2f", key="fp_inv_car")
     saldo_car = c4.number_input("Saldo ant.", step=100.0, format="%.2f",               key="fp_saldo_car")
 
+    # Ponto de Equilíbrio de cada split — vigente em mes_ref (DB, se já
+    # tiver sido salvo para esta ou uma competência anterior aberta; YAML
+    # como base). Lido de get_unit_com_params, não do YAML puro, para que
+    # o campo sempre mostre o valor efetivamente em vigor nesta competência.
+    _splits_vigentes = {s["id"]: s for s in get_unit_com_params("patio", mes_ref)["splits"]}
+
     st.caption("**Custos Variáveis**")
     c1, c2 = st.columns(2)
     with c1:
         st.caption("REAL")
         cond_real = st.number_input("Condomínio", min_value=0.0, step=10.0, format="%.2f", key="fp_cond_r")
+        pe_real = st.number_input(
+            "Ponto de Equilíbrio", min_value=0.0, step=100.0, format="%.2f",
+            value=float(_splits_vigentes["real"]["ponto_equilibrio"]),
+            key=f"fp_pe_real_{mes_ref}",
+        )
     with c2:
         st.caption("MAIOJAMA")
         cond_mj = st.number_input("Condomínio", min_value=0.0, step=10.0, format="%.2f", key="fp_cond_m")
         iptu_mj = st.number_input("IPTU",       min_value=0.0, step=10.0, format="%.2f", key="fp_iptu_m")
+        pe_maiojama = st.number_input(
+            "Ponto de Equilíbrio", min_value=0.0, step=100.0, format="%.2f",
+            value=float(_splits_vigentes["maiojama"]["ponto_equilibrio"]),
+            key=f"fp_pe_maiojama_{mes_ref}",
+        )
+
+    # Ponto de Equilíbrio é um parâmetro versionado por competência (não um
+    # campo de entrada por cálculo, como faturamento/custos variáveis) —
+    # salvo explicitamente aqui, via a mesma vigência de parametros_vigentes
+    # já usada pelas demais unidades (app.models.salvar_parametros, com a
+    # correção da Etapa 1: nunca invade uma vigência futura já cadastrada).
+    # "splits" é um bloco atômico (ver get_parametros_vigentes) — sempre
+    # grava o array inteiro, preservando os campos que não são PE.
+    if st.button("Salvar Ponto de Equilíbrio", key="fp_salvar_pe"):
+        novo_splits = []
+        for s in get_unit_com_params("patio", mes_ref)["splits"]:
+            s = dict(s)
+            if s["id"] == "real":
+                s["ponto_equilibrio"] = pe_real
+            elif s["id"] == "maiojama":
+                s["ponto_equilibrio"] = pe_maiojama
+            novo_splits.append(s)
+        salvar_parametros("patio", mes_ref, {"splits": novo_splits}, alterado_por="operador")
+        st.success("Ponto de Equilíbrio atualizado para esta competência.")
+        st.rerun()
 
     # Rascunho de trabalho do Pátio — mesmo mecanismo das unidades simples.
     _salvar_rascunho("patio", mes_ref, _CHAVES_PATIO)
@@ -1641,7 +1677,13 @@ def _mostrar_resultado_unit(r: ResultadoUnidade):
         if v:
             rows.append((f"(-) {_custo_label(k)}", _fmt(-v)))
     rows.append(("Resultado", _fmt(r.resultado)))
-    rows.append((aluguel_label, _fmt(aluguel_val)))
+    # PATIO_MANUTENCAO não tem conceito de repasse/aluguel — o campo
+    # aluguel_calculado só existe ali como valor técnico (= resultado, ver
+    # app.calculators.patio_manutencao), nunca um repasse real. O indicador
+    # final dessa unidade é "Saldo Acumulado" (extras_metrics, acima), não
+    # esta linha.
+    if r.unidade_id != "patio_manutencao":
+        rows.append((aluguel_label, _fmt(aluguel_val)))
 
     if rows:
         st.dataframe(
