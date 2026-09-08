@@ -7,8 +7,12 @@ Suporta:
   - custos mensais fixos (condomínio, IPTU etc.)
   - prejuízo acumulado entre meses
   - faixas_aluguel (se configurado no YAML)
-  - investimentos (dedução do RESULTADO, antes do prejuízo/repasse — v1.2.0,
-    ver bloco abaixo; regra confirmada pela operadora para Viva Trindade)
+  - outras_despesas (dedução do RESULTADO — v1.2.0, junto de PE/custos_mensais,
+    ANTES do resultado ser apurado; regra confirmada pela operadora para
+    Viva Trindade, fechamento oficial de agosto/2026)
+  - investimentos (dedução do RESULTADO já apurado, antes do prejuízo/repasse
+    — v1.2.0, ver bloco abaixo; regra confirmada pela operadora para Viva
+    Trindade)
   - fundo_recomposicao (dedução do ALUGUEL, depois do repasse — comportamento
     antigo, inalterado; usado só por W Tower, fora de escopo desta correção)
   - adicional_fixo (ex: parcelamento de equipamentos)
@@ -25,6 +29,21 @@ composição de `resultado_com_prejuizo` (abaixo), e deixou de gerar
 investimento. `fundo_recomposicao` (W Tower) NÃO foi alterado — continua na
 regra antiga, pós-repasse — trata-se de um campo de W Tower, fora do
 escopo desta correção (só Viva Trindade foi confirmada pela operadora).
+
+v1.2.0 — Outras Despesas (Viva Trindade, confirmado após o fechamento
+oficial de agosto/2026): categoria DIFERENTE de investimentos — a operadora
+foi explícita que os dois conceitos coexistem, não se substituem.
+`outras_despesas` entra ANTES de "Resultado" ser apurado, junto do Ponto de
+Equilíbrio e dos custos mensais (condomínio, IPTU) — não depois, como
+investimentos. Fórmula validada contra o fechamento oficial:
+    resultado        = subtotal - PE - custos_mensais - outras_despesas
+    disponivel        = resultado - investimentos + prejuizo_entrada
+    disponivel <= 0   -> aluguel=0, prejuizo_saida=disponivel
+    disponivel  > 0   -> aluguel=percentual/faixas(disponivel), prejuizo_saida=0
+Campo reservado, resolvido via `custos_variaveis.outras_despesas`
+(parametros_vigentes, versionado por competência — mesma infraestrutura já
+usada por investimentos/fundo_recomposicao) — nunca aparece no editor
+genérico de rubricas (custos_mensais).
 
 Não suporta (removido, v1.2.0): taxa_admin_fixa como piso do repasse. Era
 usada só por MW Tristeza (4350.0) e a operadora confirmou que era controle
@@ -71,14 +90,24 @@ def calcular_com_aliquota_cumul(cfg: dict, mes: str, faturamento: float,
     custos = dict(custos_com_overrides(cfg.get("custos_mensais"), custos_extras))
     # Custos extras que não são campos fixos (eventos, etc.)
     _nao_custo = {"fat_carregadores", "investimentos", "fundo_recomposicao",
-                  "ponto_equilibrio_override"}
+                  "outras_despesas", "ponto_equilibrio_override"}
     _ids_rubricas = ids_normalizados(cfg.get("custos_mensais"))
     for k, v in (custos_extras or {}).items():
         if k not in custos and k not in _ids_rubricas and k not in _nao_custo and v:
             custos[k] = float(v)
     total_custos = sum(custos.values())
 
-    resultado_bruto = subtotal - pe - total_custos
+    # v1.2.0: outras_despesas reduz o resultado JUNTO do PE/custos_mensais —
+    # ANTES de "Resultado" ser apurado (ver docstring do módulo). Resolução
+    # no mesmo padrão de investimentos/fundo_recomposicao: custos_extras
+    # (entrada por cálculo) tem prioridade sobre o valor vigente em
+    # cfg["custos_variaveis"] (parametros_vigentes, versionado por
+    # competência).
+    outras_despesas = float((custos_extras or {}).get("outras_despesas", 0.0))
+    if outras_despesas == 0.0:
+        outras_despesas = float((cfg.get("custos_variaveis") or {}).get("outras_despesas", 0.0))
+
+    resultado_bruto = subtotal - pe - total_custos - outras_despesas
 
     # v1.2.0: investimentos reduz o resultado ANTES do prejuízo/repasse (ver
     # docstring do módulo — regra confirmada pela operadora para Viva
@@ -90,8 +119,8 @@ def calcular_com_aliquota_cumul(cfg: dict, mes: str, faturamento: float,
     if investimento == 0.0:
         investimento = float((cfg.get("custos_variaveis") or {}).get("investimentos", 0.0))
 
-    resultado_liquido = resultado_bruto - investimento
-    resultado_com_prejuizo = resultado_liquido + prejuizo_entrada  # prejuizo é negativo
+    disponivel = resultado_bruto - investimento
+    resultado_com_prejuizo = disponivel + prejuizo_entrada  # prejuizo é negativo
 
     # Aluguel: por faixas ou percentual simples
     faixas_aluguel = cfg.get("faixas_aluguel")
@@ -109,6 +138,11 @@ def calcular_com_aliquota_cumul(cfg: dict, mes: str, faturamento: float,
         prejuizo_saida = round(resultado_com_prejuizo, 2)
 
     extras: dict = {}
+    if outras_despesas:
+        # Só informativo (mostrado no PDF antes de "Resultado", junto do
+        # PE/custos — ver app.reporter._prestacao_padrao). O valor já foi
+        # descontado de resultado_bruto, acima.
+        extras["outras_despesas"] = outras_despesas
     if investimento:
         # Só informativo (mostrado no PDF antes do Prejuízo Acumulado — ver
         # app.reporter._prestacao_padrao). Não gera mais "saldo_a_pagar":

@@ -7,10 +7,15 @@ reprocessamento — pontos que não dependem de dado adicional):
      valores oficiais de saída de maio/2026. Viva Trindade e W Tower NUNCA
      são tocados por esta migração (Viva Trindade já está correta; W Tower
      não tem âncora oficial nem dados de fundo_recomposicao histórico).
-  2. COM_ALIQUOTA_CUMUL — investimentos agora reduz o resultado ANTES do
-     prejuízo/repasse (era uma dedução pós-repasse, "saldo_a_pagar").
-     fundo_recomposicao (W Tower) continua exatamente no comportamento
-     antigo — não foi tocado.
+  2. COM_ALIQUOTA_CUMUL (Viva Trindade) — duas categorias de despesa,
+     confirmadas pela operadora em momentos diferentes, com incidências
+     DIFERENTES: outras_despesas entra junto do PE/custos mensais, ANTES de
+     "Resultado" ser apurado; investimentos entra DEPOIS de "Resultado",
+     antes do prejuízo/repasse (era uma dedução pós-repasse, "saldo_a_pagar",
+     na versão anterior). Os dois campos coexistem — nenhum substitui o
+     outro. Reproduz exatamente o fechamento oficial de agosto/2026 validado
+     pela Débora. fundo_recomposicao (W Tower) continua exatamente no
+     comportamento antigo — não foi tocado.
   3. PATIO_MANUTENCAO — a linha/coluna "Repasse" (redundante com Resultado,
      já que aluguel_calculado é só um valor técnico nessa calculadora) some
      de: Comparativo Mensal do PDF, Histórico Anual do PDF, Card "Valor do
@@ -38,6 +43,7 @@ sys.path.insert(0, _REPO_ROOT)
 from app.models import init_db, get_db, ResultadoUnidade
 from app.calculators.cumulativo import calcular_com_aliquota_cumul
 from app.reporter import _prestacao_padrao, _comparativo_12m, _historico_anual
+from app.calculadora_schema import SCHEMAS_POR_TIPO
 
 _falhas = []
 
@@ -347,6 +353,65 @@ checar("2d. sem investimentos configurado: repasse sobre o resultado cheio (8500
 checar("2d. sem investimentos: extras não tem a chave 'investimentos'",
        "investimentos" not in r4.extras)
 
+print("--- 2d.1-2d.2: fechamento oficial de agosto/2026 — Viva Trindade ---")
+# Reprodução exata do fechamento validado pela operadora (Débora). O saldo
+# de entrada (-162171.54) não foi informado diretamente — foi DERIVADO a
+# partir dos valores oficiais: prejuizo_saida = disponivel + prejuizo_entrada
+# (disponivel = resultado - investimentos = -1525.24 - 0 = -1525.24), logo
+# prejuizo_entrada = prejuizo_saida_oficial - disponivel
+#                   = -163696.78 - (-1525.24) = -162171.54
+_SALDO_ENTRADA_AGOSTO_2026_DERIVADO = -162171.54
+cfg_viva_oficial = {
+    "id": "viva_trindade", "aliquota_imposto": 0.1425, "percentual_aluguel": 0.85,
+    "ponto_equilibrio": 27823.50,
+    "custos_mensais": {"condominio": 13039.72, "iptu": 0.0},
+    "custos_variaveis": {"outras_despesas": 2400.00, "investimentos": 0.0},
+}
+r_oficial = calcular_com_aliquota_cumul(
+    cfg_viva_oficial, "2026-08", faturamento=48674.03,
+    saldo_override=_SALDO_ENTRADA_AGOSTO_2026_DERIVADO,
+)
+checar("2d.1. fechamento oficial ago/2026: Subtotal = 41737.98", r_oficial.subtotal == 41737.98)
+checar("2d.1. fechamento oficial ago/2026: Resultado = -1525.24", r_oficial.resultado == -1525.24)
+checar("2d.1. fechamento oficial ago/2026: Repasse = 0.0", r_oficial.aluguel_calculado == 0.0)
+checar("2d.1. fechamento oficial ago/2026: Prejuízo Acumulado final = -163696.78",
+       r_oficial.prejuizo_acumulado_saida == -163696.78)
+checar("2d.1. fechamento oficial ago/2026: extras['outras_despesas'] = 2400.0",
+       r_oficial.extras.get("outras_despesas") == 2400.0)
+checar("2d.1. fechamento oficial ago/2026: sem 'investimentos' nos extras (valor oficial = 0,00)",
+       "investimentos" not in r_oficial.extras)
+
+# 2d.2: outras_despesas e investimentos SIMULTÂNEOS, cada um na sua etapa —
+# outras_despesas dentro de "resultado", investimentos só depois.
+cfg_ambos_novos = {
+    "id": "viva_ambos_like", "aliquota_imposto": 0.0, "percentual_aluguel": 0.85,
+    "custos_variaveis": {"outras_despesas": 500.0, "investimentos": 1000.0},
+}
+r_ambos_novos = calcular_com_aliquota_cumul(cfg_ambos_novos, "2026-08", faturamento=10000.0, saldo_override=0.0)
+# resultado = 10000 - 500 = 9500 (já líquido de outras_despesas)
+# disponivel = 9500 - 1000 = 8500; aluguel = 0.85*8500 = 7225
+checar("2d.2. outras_despesas já descontado em 'resultado' (9500.0, não no repasse)",
+       r_ambos_novos.resultado == 9500.0)
+checar("2d.2. investimentos descontado DEPOIS de resultado, repasse = 7225.0",
+       r_ambos_novos.aluguel_calculado == 7225.0)
+checar("2d.2. extras tem outras_despesas E investimentos, os dois presentes ao mesmo tempo",
+       r_ambos_novos.extras.get("outras_despesas") == 500.0
+       and r_ambos_novos.extras.get("investimentos") == 1000.0)
+
+# 2d.3: schema — outras_despesas é campo próprio de COM_ALIQUOTA_CUMUL,
+# versionável por competência, e não substitui investimentos.
+_chaves_cumul_atualizadas = [c["chave"] for c in SCHEMAS_POR_TIPO["COM_ALIQUOTA_CUMUL"]["campos"]]
+checar("2d.3. schema COM_ALIQUOTA_CUMUL tem custos_variaveis.outras_despesas",
+       "custos_variaveis.outras_despesas" in _chaves_cumul_atualizadas)
+checar("2d.3. schema COM_ALIQUOTA_CUMUL continua com custos_variaveis.investimentos (não substituído)",
+       "custos_variaveis.investimentos" in _chaves_cumul_atualizadas)
+_campo_outras_despesas = next(
+    c for c in SCHEMAS_POR_TIPO["COM_ALIQUOTA_CUMUL"]["campos"]
+    if c["chave"] == "custos_variaveis.outras_despesas"
+)
+checar("2d.3. outras_despesas aceita vigência (versionável por competência)",
+       _campo_outras_despesas.get("aceita_vigencia") is True)
+
 print("--- 2e-2f: fundo_recomposicao (W Tower) — comportamento ANTIGO inalterado ---")
 cfg_wtower = {
     "id": "w_tower_like", "aliquota_imposto": 0.0, "percentual_aluguel": 0.80,
@@ -386,6 +451,23 @@ idx_repasse = labels_viva.index("Repasse")
 checar("2g. ordem no PDF: Resultado -> Investimentos -> Prejuízo -> Repasse",
        idx_resultado < idx_investimentos < idx_prejuizo < idx_repasse)
 checar("2g. PDF NÃO mostra mais 'Saldo a Pagar' para Viva Trindade", "Saldo a Pagar" not in labels_viva)
+
+print("--- 2g.1: PDF — ordem completa com Outras Despesas + Investimentos juntos ---")
+cfg_pdf_viva_completo = {"relatorio": {"linhas": ["resultado", "prejuizo", "aluguel"]}}
+r_pdf_viva_completo = ResultadoUnidade(
+    unidade_id="viva_trindade", mes_referencia="2026-08", faturamento=10000.0,
+    resultado=9500.0, prejuizo_acumulado_entrada=0.0, prejuizo_acumulado_saida=0.0,
+    aluguel_calculado=7225.0, extras={"outras_despesas": 500.0, "investimentos": 1000.0},
+)
+prestacao_completa = _prestacao_padrao(r_pdf_viva_completo, cfg_pdf_viva_completo)
+labels_completa = [l.descricao for l in prestacao_completa.linhas]
+idx_outras = labels_completa.index("(-) Outras Despesas")
+idx_resultado_c = labels_completa.index("Resultado")
+idx_investimentos_c = labels_completa.index("(-) Investimentos")
+idx_prejuizo_c = labels_completa.index("(+/-) Prejuízo Acumulado")
+idx_repasse_c = labels_completa.index("Repasse")
+checar("2g.1. ordem completa: Outras Despesas -> Resultado -> Investimentos -> Prejuízo -> Repasse",
+       idx_outras < idx_resultado_c < idx_investimentos_c < idx_prejuizo_c < idx_repasse_c)
 
 print("--- 2h: PDF — FK/COM_ALIQUOTA (sem 'prejuizo') continua no formato ANTIGO ---")
 cfg_pdf_fk = {"relatorio": {"linhas": ["resultado", "aluguel"]}}  # sem "prejuizo" — não é CUMUL

@@ -320,6 +320,14 @@ def _prestacao_padrao(r: ResultadoUnidade, cfg: dict) -> Prestacao:
         if v:
             linhas.append(LinhaPrestacao(f"(-) {_custo_label(k)}", -v, "deducao"))
 
+    # v1.2.0 (Viva Trindade / COM_ALIQUOTA_CUMUL): Outras Despesas entra
+    # junto do PE/custos mensais — ANTES de Resultado, categoria diferente
+    # de Investimentos (que entra depois de Resultado — ver mais abaixo). O
+    # valor já foi descontado de r.resultado pelo calculator; esta linha é
+    # só a memória do cálculo.
+    if extras.get("outras_despesas"):
+        linhas.append(LinhaPrestacao("(-) Outras Despesas", -extras["outras_despesas"], "deducao"))
+
     if "resultado" in linhas_cfg:
         linhas.append(LinhaPrestacao("Resultado", r.resultado, "destaque"))
 
