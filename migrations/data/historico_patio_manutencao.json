@@ -1,0 +1,498 @@
+{
+  "patio_manutencao": [
+    {
+      "mes_referencia": "2023-04",
+      "faturamento": 5000.0,
+      "retencao_iss": 250.0,
+      "total_liquido": 4750.0,
+      "total_despesas": 3075.09,
+      "custos": {
+        "aucon": 3075.09,
+        "instalacoes": 0.0
+      },
+      "resultado": 1674.91,
+      "saldo_acumulado": 1674.91
+    },
+    {
+      "mes_referencia": "2023-05",
+      "faturamento": 5000.0,
+      "retencao_iss": 250.0,
+      "total_liquido": 4750.0,
+      "total_despesas": 1122.37,
+      "custos": {
+        "aucon": 0.0,
+        "instalacoes": 1122.37
+      },
+      "resultado": 3627.63,
+      "saldo_acumulado": 5302.54
+    },
+    {
+      "mes_referencia": "2023-06",
+      "faturamento": 5000.0,
+      "retencao_iss": 250.0,
+      "total_liquido": 4750.0,
+      "total_despesas": 10663.33,
+      "custos": {
+        "aucon": 0.0,
+        "instalacoes": 10663.33
+      },
+      "resultado": -5913.33,
+      "saldo_acumulado": -610.79
+    },
+    {
+      "mes_referencia": "2023-07",
+      "faturamento": 5000.0,
+      "retencao_iss": 250.0,
+      "total_liquido": 4750.0,
+      "total_despesas": 11113.62,
+      "custos": {
+        "aucon": 450.29,
+        "instalacoes": 10663.33
+      },
+      "resultado": -6363.62,
+      "saldo_acumulado": -6974.41
+    },
+    {
+      "mes_referencia": "2023-08",
+      "faturamento": 5000.0,
+      "retencao_iss": 250.0,
+      "total_liquido": 4750.0,
+      "total_despesas": 13862.53,
+      "custos": {
+        "aucon": 0.0,
+        "instalacoes": 13862.53
+      },
+      "resultado": -9112.53,
+      "saldo_acumulado": -16086.94
+    },
+    {
+      "mes_referencia": "2023-09",
+      "faturamento": 5000.0,
+      "retencao_iss": 250.0,
+      "total_liquido": 4750.0,
+      "total_despesas": 0.0,
+      "custos": {
+        "aucon": 0.0,
+        "instalacoes": 0.0
+      },
+      "resultado": 4750.0,
+      "saldo_acumulado": -11336.94
+    },
+    {
+      "mes_referencia": "2023-10",
+      "faturamento": 5000.0,
+      "retencao_iss": 250.0,
+      "total_liquido": 4750.0,
+      "total_despesas": 0.0,
+      "custos": {
+        "aucon": 0.0,
+        "instalacoes": 0.0
+      },
+      "resultado": 4750.0,
+      "saldo_acumulado": -6586.94
+    },
+    {
+      "mes_referencia": "2023-11",
+      "faturamento": 5000.0,
+      "retencao_iss": 250.0,
+      "total_liquido": 4750.0,
+      "total_despesas": 2950.15,
+      "custos": {
+        "aucon": 0.0,
+        "instalacoes": 2950.15
+      },
+      "resultado": 1799.85,
+      "saldo_acumulado": -4787.09
+    },
+    {
+      "mes_referencia": "2023-12",
+      "faturamento": 5000.0,
+      "retencao_iss": 250.0,
+      "total_liquido": 4750.0,
+      "total_despesas": 3689.01,
+      "custos": {
+        "aucon": 0.0,
+        "instalacoes": 3689.01
+      },
+      "resultado": 1060.99,
+      "saldo_acumulado": -3726.1
+    },
+    {
+      "mes_referencia": "2024-01",
+      "faturamento": 5000.0,
+      "retencao_iss": 250.0,
+      "total_liquido": 4750.0,
+      "total_despesas": 572.84,
+      "custos": {
+        "aucon": 0.0,
+        "instalacoes": 572.84
+      },
+      "resultado": 4177.16,
+      "saldo_acumulado": 451.06
+    },
+    {
+      "mes_referencia": "2024-02",
+      "faturamento": 5000.0,
+      "retencao_iss": 250.0,
+      "total_liquido": 4750.0,
+      "total_despesas": 37928.0,
+      "custos": {
+        "aucon": 0.0,
+        "instalacoes": 37928.0
+      },
+      "resultado": -33178.0,
+      "saldo_acumulado": -32726.94
+    },
+    {
+      "mes_referencia": "2024-03",
+      "faturamento": 5000.0,
+      "retencao_iss": 250.0,
+      "total_liquido": 4750.0,
+      "total_despesas": 0.0,
+      "custos": {
+        "aucon": 0.0,
+        "instalacoes": 0.0
+      },
+      "resultado": 4750.0,
+      "saldo_acumulado": -27976.94
+    },
+    {
+      "mes_referencia": "2024-04",
+      "faturamento": 5196.5,
+      "retencao_iss": 259.82,
+      "total_liquido": 4936.68,
+      "total_despesas": 983.27,
+      "custos": {
+        "aucon": 983.27,
+        "instalacoes": 0.0
+      },
+      "resultado": 3953.41,
+      "saldo_acumulado": -24023.53
+    },
+    {
+      "mes_referencia": "2024-05",
+      "faturamento": 5196.5,
+      "retencao_iss": 259.82,
+      "total_liquido": 4936.68,
+      "total_despesas": 0.0,
+      "custos": {
+        "aucon": 0.0,
+        "instalacoes": 0.0
+      },
+      "resultado": 4936.68,
+      "saldo_acumulado": -19086.86
+    },
+    {
+      "mes_referencia": "2024-06",
+      "faturamento": 5196.5,
+      "retencao_iss": 259.82,
+      "total_liquido": 4936.68,
+      "total_despesas": 280.0,
+      "custos": {
+        "aucon": 0.0,
+        "instalacoes": 280.0
+      },
+      "resultado": 4656.68,
+      "saldo_acumulado": -14430.19
+    },
+    {
+      "mes_referencia": "2024-07",
+      "faturamento": 5196.5,
+      "retencao_iss": 259.82,
+      "total_liquido": 4936.68,
+      "total_despesas": 4410.74,
+      "custos": {
+        "aucon": 4410.74,
+        "instalacoes": 0.0
+      },
+      "resultado": 525.94,
+      "saldo_acumulado": -13904.25
+    },
+    {
+      "mes_referencia": "2024-08",
+      "faturamento": 5196.5,
+      "retencao_iss": 259.82,
+      "total_liquido": 4936.68,
+      "total_despesas": 5472.75,
+      "custos": {
+        "aucon": 5472.75,
+        "instalacoes": 0.0
+      },
+      "resultado": -536.07,
+      "saldo_acumulado": -14440.33
+    },
+    {
+      "mes_referencia": "2024-09",
+      "faturamento": 5196.5,
+      "retencao_iss": 259.82,
+      "total_liquido": 4936.68,
+      "total_despesas": 0.0,
+      "custos": {
+        "aucon": 0.0,
+        "instalacoes": 0.0
+      },
+      "resultado": 4936.68,
+      "saldo_acumulado": -9503.65
+    },
+    {
+      "mes_referencia": "2024-10",
+      "faturamento": 5196.5,
+      "retencao_iss": 259.82,
+      "total_liquido": 4936.68,
+      "total_despesas": 5079.86,
+      "custos": {
+        "aucon": 5079.86,
+        "instalacoes": 0.0
+      },
+      "resultado": -143.18,
+      "saldo_acumulado": -9646.84
+    },
+    {
+      "mes_referencia": "2024-11",
+      "faturamento": 5196.5,
+      "retencao_iss": 259.82,
+      "total_liquido": 4936.68,
+      "total_despesas": 3702.73,
+      "custos": {
+        "aucon": 0.0,
+        "instalacoes": 3702.73
+      },
+      "resultado": 1233.95,
+      "saldo_acumulado": -8412.89
+    },
+    {
+      "mes_referencia": "2024-12",
+      "faturamento": 5196.5,
+      "retencao_iss": 259.82,
+      "total_liquido": 4936.68,
+      "total_despesas": 0.0,
+      "custos": {
+        "aucon": 0.0,
+        "instalacoes": 0.0
+      },
+      "resultado": 4936.68,
+      "saldo_acumulado": -3476.22
+    },
+    {
+      "mes_referencia": "2025-01",
+      "faturamento": 5196.5,
+      "retencao_iss": 259.82,
+      "total_liquido": 4936.68,
+      "total_despesas": 4862.97,
+      "custos": {
+        "aucon": 1384.4,
+        "instalacoes": 3478.57
+      },
+      "resultado": 73.7,
+      "saldo_acumulado": -3402.51
+    },
+    {
+      "mes_referencia": "2025-02",
+      "faturamento": 5196.5,
+      "retencao_iss": 259.82,
+      "total_liquido": 4936.68,
+      "total_despesas": 5217.87,
+      "custos": {
+        "aucon": 0.0,
+        "instalacoes": 5217.87
+      },
+      "resultado": -281.19,
+      "saldo_acumulado": -3683.71
+    },
+    {
+      "mes_referencia": "2025-03",
+      "faturamento": 5196.5,
+      "retencao_iss": 259.82,
+      "total_liquido": 4936.68,
+      "total_despesas": 0.0,
+      "custos": {
+        "aucon": 0.0,
+        "instalacoes": 0.0
+      },
+      "resultado": 4936.68,
+      "saldo_acumulado": 1252.97
+    },
+    {
+      "mes_referencia": "2025-04",
+      "faturamento": 5481.26,
+      "retencao_iss": 274.06,
+      "total_liquido": 5207.2,
+      "total_despesas": 4040.0,
+      "custos": {
+        "aucon": 0.0,
+        "instalacoes": 4040.0
+      },
+      "resultado": 1167.2,
+      "saldo_acumulado": 2420.17
+    },
+    {
+      "mes_referencia": "2025-05",
+      "faturamento": 5481.26,
+      "retencao_iss": 274.06,
+      "total_liquido": 5207.2,
+      "total_despesas": 6857.51,
+      "custos": {
+        "aucon": 0.0,
+        "instalacoes": 6857.51
+      },
+      "resultado": -1650.31,
+      "saldo_acumulado": 769.85
+    },
+    {
+      "mes_referencia": "2025-06",
+      "faturamento": 5481.26,
+      "retencao_iss": 274.06,
+      "total_liquido": 5207.2,
+      "total_despesas": 2599.5,
+      "custos": {
+        "aucon": 2599.5,
+        "instalacoes": 0.0
+      },
+      "resultado": 2607.7,
+      "saldo_acumulado": 3377.55
+    },
+    {
+      "mes_referencia": "2025-07",
+      "faturamento": 5481.26,
+      "retencao_iss": 274.06,
+      "total_liquido": 5207.2,
+      "total_despesas": 1025.0,
+      "custos": {
+        "aucon": 0.0,
+        "instalacoes": 1025.0
+      },
+      "resultado": 4182.2,
+      "saldo_acumulado": 7559.75
+    },
+    {
+      "mes_referencia": "2025-08",
+      "faturamento": 5481.26,
+      "retencao_iss": 274.06,
+      "total_liquido": 5207.2,
+      "total_despesas": 13890.0,
+      "custos": {
+        "aucon": 0.0,
+        "instalacoes": 13890.0
+      },
+      "resultado": -8682.8,
+      "saldo_acumulado": -1123.05
+    },
+    {
+      "mes_referencia": "2025-09",
+      "faturamento": 5481.26,
+      "retencao_iss": 274.06,
+      "total_liquido": 5207.2,
+      "total_despesas": 13140.0,
+      "custos": {
+        "aucon": 0.0,
+        "instalacoes": 13140.0
+      },
+      "resultado": -7932.8,
+      "saldo_acumulado": -9055.86
+    },
+    {
+      "mes_referencia": "2025-10",
+      "faturamento": 5481.26,
+      "retencao_iss": 274.06,
+      "total_liquido": 5207.2,
+      "total_despesas": 687.9,
+      "custos": {
+        "aucon": 0.0,
+        "instalacoes": 687.9
+      },
+      "resultado": 4519.3,
+      "saldo_acumulado": -4536.56
+    },
+    {
+      "mes_referencia": "2025-11",
+      "faturamento": 5481.26,
+      "retencao_iss": 274.06,
+      "total_liquido": 5207.2,
+      "total_despesas": 600.0,
+      "custos": {
+        "aucon": 0.0,
+        "instalacoes": 600.0
+      },
+      "resultado": 4607.2,
+      "saldo_acumulado": 70.64
+    },
+    {
+      "mes_referencia": "2025-12",
+      "faturamento": 5481.26,
+      "retencao_iss": 274.06,
+      "total_liquido": 5207.2,
+      "total_despesas": 10089.88,
+      "custos": {
+        "aucon": 10089.88,
+        "instalacoes": 0.0
+      },
+      "resultado": -4882.68,
+      "saldo_acumulado": -4812.05
+    },
+    {
+      "mes_referencia": "2026-01",
+      "faturamento": 5481.26,
+      "retencao_iss": 274.06,
+      "total_liquido": 5207.2,
+      "total_despesas": 29353.34,
+      "custos": {
+        "aucon": 10089.86,
+        "instalacoes": 19263.48
+      },
+      "resultado": -24146.14,
+      "saldo_acumulado": -28958.19
+    },
+    {
+      "mes_referencia": "2026-02",
+      "faturamento": 5481.26,
+      "retencao_iss": 274.06,
+      "total_liquido": 5207.2,
+      "total_despesas": 10239.86,
+      "custos": {
+        "aucon": 10239.86,
+        "instalacoes": 0.0
+      },
+      "resultado": -5032.66,
+      "saldo_acumulado": -33990.85
+    },
+    {
+      "mes_referencia": "2026-03",
+      "faturamento": 5481.26,
+      "retencao_iss": 274.06,
+      "total_liquido": 5207.2,
+      "total_despesas": 12381.85,
+      "custos": {
+        "aucon": 10239.86,
+        "instalacoes": 2141.99
+      },
+      "resultado": -7174.65,
+      "saldo_acumulado": -41165.51
+    },
+    {
+      "mes_referencia": "2026-04",
+      "faturamento": 5481.26,
+      "retencao_iss": 274.06,
+      "total_liquido": 5207.2,
+      "total_despesas": 10314.74,
+      "custos": {
+        "aucon": 10089.86,
+        "instalacoes": 224.88
+      },
+      "resultado": -5107.54,
+      "saldo_acumulado": -46273.05
+    },
+    {
+      "mes_referencia": "2026-05",
+      "faturamento": 5481.26,
+      "retencao_iss": 274.06,
+      "total_liquido": 5207.2,
+      "total_despesas": 1158.0,
+      "custos": {
+        "aucon": 568.0,
+        "instalacoes": 590.0
+      },
+      "resultado": 4049.2,
+      "saldo_acumulado": -42223.85
+    }
+  ]
+}
