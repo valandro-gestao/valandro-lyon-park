@@ -7,8 +7,24 @@ Suporta:
   - custos mensais fixos (condomínio, IPTU etc.)
   - prejuízo acumulado entre meses
   - faixas_aluguel (se configurado no YAML)
-  - investimentos (dedução do aluguel → saldo_a_pagar)
+  - investimentos (dedução do RESULTADO, antes do prejuízo/repasse — v1.2.0,
+    ver bloco abaixo; regra confirmada pela operadora para Viva Trindade)
+  - fundo_recomposicao (dedução do ALUGUEL, depois do repasse — comportamento
+    antigo, inalterado; usado só por W Tower, fora de escopo desta correção)
   - adicional_fixo (ex: parcelamento de equipamentos)
+
+v1.2.0 — Investimentos (Viva Trindade): antes, `investimentos` era uma
+dedução PÓS-repasse (aluguel calculado sobre o resultado cheio, depois
+abatido por investimentos, virando "saldo_a_pagar") — igual ao que
+`fundo_recomposicao` ainda faz. A operadora confirmou que isso está errado:
+investimento precisa reduzir o resultado disponível ANTES de absorver ou
+gerar prejuízo acumulado, e o repasse só pode incidir sobre o que sobrar
+depois de prejuízo E investimento. Por isso `investimentos` agora entra na
+composição de `resultado_com_prejuizo` (abaixo), e deixou de gerar
+"saldo_a_pagar" — o valor de `aluguel_calculado` já sai líquido do
+investimento. `fundo_recomposicao` (W Tower) NÃO foi alterado — continua na
+regra antiga, pós-repasse — trata-se de um campo de W Tower, fora do
+escopo desta correção (só Viva Trindade foi confirmada pela operadora).
 
 Não suporta (removido, v1.2.0): taxa_admin_fixa como piso do repasse. Era
 usada só por MW Tristeza (4350.0) e a operadora confirmou que era controle
@@ -63,7 +79,19 @@ def calcular_com_aliquota_cumul(cfg: dict, mes: str, faturamento: float,
     total_custos = sum(custos.values())
 
     resultado_bruto = subtotal - pe - total_custos
-    resultado_com_prejuizo = resultado_bruto + prejuizo_entrada  # prejuizo é negativo
+
+    # v1.2.0: investimentos reduz o resultado ANTES do prejuízo/repasse (ver
+    # docstring do módulo — regra confirmada pela operadora para Viva
+    # Trindade). Resolução idêntica à anterior: custos_extras (entrada por
+    # cálculo) tem prioridade sobre o valor vigente em
+    # cfg["custos_variaveis"] (parametros_vigentes, versionado por
+    # competência via app.models.salvar_parametros).
+    investimento = float((custos_extras or {}).get("investimentos", 0.0))
+    if investimento == 0.0:
+        investimento = float((cfg.get("custos_variaveis") or {}).get("investimentos", 0.0))
+
+    resultado_liquido = resultado_bruto - investimento
+    resultado_com_prejuizo = resultado_liquido + prejuizo_entrada  # prejuizo é negativo
 
     # Aluguel: por faixas ou percentual simples
     faixas_aluguel = cfg.get("faixas_aluguel")
@@ -75,24 +103,32 @@ def calcular_com_aliquota_cumul(cfg: dict, mes: str, faturamento: float,
         prejuizo_saida = 0.0
     else:
         aluguel = 0.0
+        # já reflete o investimento absorvido, quando o resultado não é
+        # suficiente para cobri-lo (aumenta o prejuízo acumulado — regra
+        # confirmada pela operadora).
         prejuizo_saida = round(resultado_com_prejuizo, 2)
 
     extras: dict = {}
+    if investimento:
+        # Só informativo (mostrado no PDF antes do Prejuízo Acumulado — ver
+        # app.reporter._prestacao_padrao). Não gera mais "saldo_a_pagar":
+        # o repasse já sai líquido do investimento, calculado acima.
+        extras["investimentos"] = investimento
     if adicional:
         extras["adicional_fixo"] = adicional
         aluguel = round(aluguel + adicional, 2)
     if fat_carregadores:
         extras["fat_carregadores"] = fat_carregadores
 
-    # Deduções do aluguel → Saldo a Pagar (investimentos ou fundo_recomposicao)
-    for campo in ("investimentos", "fundo_recomposicao"):
-        val = float((custos_extras or {}).get(campo, 0.0))
-        if val == 0.0:
-            val = float((cfg.get("custos_variaveis") or {}).get(campo, 0.0))
-        if val:
-            extras[campo] = val
-            extras["saldo_a_pagar"] = round(aluguel - val, 2)
-            break
+    # Dedução PÓS-repasse — comportamento antigo, inalterado. Só
+    # fundo_recomposicao (W Tower) ainda usa este caminho; investimentos
+    # (Viva Trindade) foi movido para antes do prejuízo/repasse, acima.
+    fundo_recomposicao = float((custos_extras or {}).get("fundo_recomposicao", 0.0))
+    if fundo_recomposicao == 0.0:
+        fundo_recomposicao = float((cfg.get("custos_variaveis") or {}).get("fundo_recomposicao", 0.0))
+    if fundo_recomposicao:
+        extras["fundo_recomposicao"] = fundo_recomposicao
+        extras["saldo_a_pagar"] = round(aluguel - fundo_recomposicao, 2)
 
     return ResultadoUnidade(
         unidade_id=cfg["id"],

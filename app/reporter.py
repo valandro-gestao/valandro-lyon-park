@@ -110,10 +110,17 @@ def _comparativo_12m(lancamentos: list[dict]) -> list[ComparativoMes]:
     for l in exibidas:
         fat = l.get("faturamento", 0.0)
         res = l.get("resultado", 0.0)
-        repasse = l.get("aluguel_calculado", 0.0)
-        extras = l.get("extras") or {}
-        if isinstance(extras, dict):
-            repasse += extras.get("repasse_outros", 0.0)
+        # PATIO_MANUTENCAO não tem conceito de repasse — aluguel_calculado é
+        # só um valor técnico (= resultado) nessa calculadora (ver
+        # app.calculators.patio_manutencao) — fica "—" em vez de repetir o
+        # Resultado sob a coluna Repasse.
+        if l.get("unidade_id") == "patio_manutencao":
+            repasse = None
+        else:
+            repasse = l.get("aluguel_calculado", 0.0)
+            extras = l.get("extras") or {}
+            if isinstance(extras, dict):
+                repasse += extras.get("repasse_outros", 0.0)
 
         ano_str, mes_str = l["mes"].split("-")
         mes_ano_anterior = f"{int(ano_str) - 1}-{mes_str}"
@@ -232,14 +239,22 @@ def _historico_anual(unidade_id: str, mes_ref: str, resultado) -> Historico:
     if not por_ano:
         return Historico(colunas=[], linhas=[])
 
-    linhas = [
-        LinhaHistoricoAnual(
+    linhas = []
+    for ano, e in sorted(por_ano.items()):
+        valores = {label: e.get(campo) for campo, label in _HISTORICO_ANUAL_COLUNAS}
+        if unidade_id == "patio_manutencao":
+            # PATIO_MANUTENCAO não tem conceito de repasse — aluguel_calculado
+            # é só um valor técnico (= resultado) nessa calculadora (ver
+            # app.calculators.patio_manutencao). Mantém a coluna (estrutura
+            # compartilhada com todas as unidades — ver _HISTORICO_ANUAL_COLUNAS),
+            # só esvazia o valor, mesmo padrão já usado para anos sem dado
+            # confiável (ver _formatar_ano_label).
+            valores["Repasse"] = None
+        linhas.append(LinhaHistoricoAnual(
             ano=ano,
             ano_label=_formatar_ano_label(ano, e.get("quantidade_meses")),
-            valores={label: e.get(campo) for campo, label in _HISTORICO_ANUAL_COLUNAS},
-        )
-        for ano, e in sorted(por_ano.items())
-    ]
+            valores=valores,
+        ))
 
     return Historico(
         colunas=[label for _, label in _HISTORICO_ANUAL_COLUNAS],
@@ -308,12 +323,25 @@ def _prestacao_padrao(r: ResultadoUnidade, cfg: dict) -> Prestacao:
     if "resultado" in linhas_cfg:
         linhas.append(LinhaPrestacao("Resultado", r.resultado, "destaque"))
 
+    # v1.2.0 (Viva Trindade / COM_ALIQUOTA_CUMUL): quando investimentos é
+    # resolvido ANTES do prejuízo/repasse (app.calculators.cumulativo), o
+    # próprio aluguel_calculado já sai líquido — não há mais
+    # extras["saldo_a_pagar"] para esse campo. Mostra a dedução aqui, na
+    # ordem real do cálculo: Resultado -> (-) Investimentos -> (+/-)
+    # Prejuízo Acumulado -> Repasse. Não se aplica a FK/COM_ALIQUOTA
+    # (app.calculators.base), que ainda resolve investimentos DEPOIS do
+    # repasse e sempre grava saldo_a_pagar junto — ver o bloco pós-Repasse,
+    # abaixo, que continua tratando esse caso exatamente como antes.
+    if "prejuizo" in linhas_cfg and extras.get("investimentos") and "saldo_a_pagar" not in extras:
+        linhas.append(LinhaPrestacao("(-) Investimentos", -extras["investimentos"], "deducao"))
+
     if "prejuizo" in linhas_cfg:
         # Sempre mostra quando configurado — mesmo que zero. Mostra a SAÍDA
-        # (saldo já considerando o resultado deste mês), não a entrada —
-        # ver app.models.get_saldo_entrada: a entrada é só o ponto de
-        # partida do mês, a saída é o saldo real após o mês, que é o que a
-        # tela de cálculo já exibe corretamente (ver _mostrar_resultado_unit).
+        # (saldo já considerando o resultado deste mês, já líquido de
+        # investimentos quando aplicável), não a entrada — ver
+        # app.models.get_saldo_entrada: a entrada é só o ponto de partida
+        # do mês, a saída é o saldo real após o mês, que é o que a tela de
+        # cálculo já exibe corretamente (ver _mostrar_resultado_unit).
         linhas.append(LinhaPrestacao("(+/-) Prejuízo Acumulado",
                                       r.prejuizo_acumulado_saida, "deducao"))
 
@@ -329,10 +357,14 @@ def _prestacao_padrao(r: ResultadoUnidade, cfg: dict) -> Prestacao:
                                       taxa_admin, "total"))
     else:
         linhas.append(LinhaPrestacao("Repasse", repasse, "total"))
-        # Dedução pós-repasse: investimentos (FK) ou fundo_recomposicao (W Tower)
+        # Dedução pós-repasse (comportamento antigo, inalterado): FK
+        # (COM_ALIQUOTA/investimentos) e W Tower (fundo_recomposicao)
+        # sempre gravam saldo_a_pagar junto com a dedução — só dispara
+        # aqui, nunca para o investimentos pré-repasse de Viva Trindade
+        # (que não tem saldo_a_pagar, e já foi mostrado acima).
         for campo, label in (("investimentos", "(-) Investimentos"),
                               ("fundo_recomposicao", "(-) Fundo de Recomposição")):
-            if extras.get(campo):
+            if extras.get(campo) and "saldo_a_pagar" in extras:
                 linhas.append(LinhaPrestacao(label, -extras[campo], "deducao"))
                 linhas.append(LinhaPrestacao("Saldo a Pagar", extras["saldo_a_pagar"], "total"))
                 break
@@ -523,7 +555,14 @@ def build_report_data(resultado, mes_ref: str,
     tipo_rel = cfg.get("tipo_relatorio", "padrao")
     tipo_cal = cfg.get("tipo_calculo", "")
 
-    repasse = resultado.aluguel_calculado + (resultado.extras or {}).get("repasse_outros", 0.0)
+    # PATIO_MANUTENCAO não tem conceito de repasse — aluguel_calculado é só
+    # um valor técnico (= resultado) nessa calculadora, nunca um repasse
+    # real (ver app.calculators.patio_manutencao). Card fica "—" em vez de
+    # repetir o Resultado sob um rótulo que não se aplica.
+    if tipo_cal == "PATIO_MANUTENCAO":
+        repasse = None
+    else:
+        repasse = resultado.aluguel_calculado + (resultado.extras or {}).get("repasse_outros", 0.0)
 
     unidade = UnidadeInfo(
         nome=cfg["nome"],

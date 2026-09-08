@@ -1338,7 +1338,12 @@ def _secao_historico_unificada(uid: str, unit_run: dict):
 
             # Resultado e aluguel
             linhas.append(("Resultado",               lambda l: _v(l, "resultado")))
-            linhas.append(("Aluguel/Repasse",         lambda l: _v(l, "aluguel_calculado")))
+            # PATIO_MANUTENCAO não tem conceito de repasse — aluguel_calculado
+            # é só um valor técnico (= resultado) nessa calculadora, nunca um
+            # repasse real (ver app.calculators.patio_manutencao e a mesma
+            # exclusão já feita em _mostrar_resultado_unit).
+            if uid != "patio_manutencao":
+                linhas.append(("Aluguel/Repasse",     lambda l: _v(l, "aluguel_calculado")))
 
             return linhas
 

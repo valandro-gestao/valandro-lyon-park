@@ -20,7 +20,9 @@ class UnidadeInfo:
 class Cards:
     faturamento: float
     resultado: float
-    repasse: float
+    # None para unidades sem conceito de repasse (ex.: PATIO_MANUTENCAO) —
+    # o template já trata None como "—" (ver app.renderer._fmt_br).
+    repasse: Optional[float]
 
 
 @dataclass
@@ -31,7 +33,8 @@ class ComparativoMes:
     variacao_faturamento: Optional[float]   # None na primeira linha
     resultado: float
     variacao_resultado: Optional[float]
-    repasse: float
+    # None para unidades sem conceito de repasse (ex.: PATIO_MANUTENCAO).
+    repasse: Optional[float]
 
 
 @dataclass
