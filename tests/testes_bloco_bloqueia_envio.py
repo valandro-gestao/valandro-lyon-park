@@ -5,8 +5,14 @@ reprocessamento — pontos que não dependem de dado adicional):
   1. Migration 0011 — reconstrução determinística da cadeia de prejuízo
      acumulado legado (< 2026-06) de Dom Pedro e MW Tristeza, ancorada nos
      valores oficiais de saída de maio/2026. Viva Trindade e W Tower NUNCA
-     são tocados por esta migração (Viva Trindade já está correta; W Tower
-     não tem âncora oficial nem dados de fundo_recomposicao histórico).
+     são tocados por ESTA migração (Viva Trindade já está correta; W Tower,
+     na época de 0011, ainda não tinha âncora oficial nem dados de
+     fundo_recomposicao histórico — passou a ter depois, e foi corrigida
+     separadamente pela migration 0013; ver seção "1. Estado pré-existente"
+     de tests/testes_correcao_wtower.py). O espelho desta suíte roda
+     scripts/migrate.py, que aplica TODAS as migrações disponíveis — então
+     os valores de W Tower observados abaixo já refletem 0013 também, não
+     só 0011.
   2. COM_ALIQUOTA_CUMUL (Viva Trindade) — duas categorias de despesa,
      confirmadas pela operadora em momentos diferentes, com incidências
      DIFERENTES: outras_despesas entra junto do PE/custos mensais, ANTES de
@@ -148,13 +154,19 @@ legados_mw = [d for d in todos_mw if d["mes_referencia"] < "2026-06"]
 checar("MW Tristeza: nenhum mês legado tem aluguel_calculado > 0",
        all(d["aluguel_calculado"] == 0.0 for d in legados_mw))
 
-# Viva Trindade / W Tower — intocados
+# Viva Trindade — fora do escopo de 0011 e de 0013 (nenhuma das duas toca
+# esta unidade); W Tower — fora do escopo de 0011 especificamente, mas o
+# espelho roda TODAS as migrações (scripts/migrate.py), então já reflete a
+# correção da migration 0013: 2022-03 estava em prejuízo profundo (repasse
+# real = 0, não os 535.56 que o bootstrap original calculava mês a mês
+# ignorando o prejuízo acumulado) — ver tests/testes_correcao_wtower.py
+# para a cobertura completa de 0013.
 viva_mai25 = _lancamento("viva_trindade", "2025-05", DIR_A)
 wtower_mar22 = _lancamento("w_tower_caxias", "2022-03", DIR_A)
 checar("Viva Trindade: NÃO foi tocado (fora do escopo desta migração)",
        viva_mai25 is not None and viva_mai25["aluguel_calculado"] == 0.0)
-checar("W Tower: NÃO foi tocado — 2022-03 continua com o repasse legado antigo (535.56)",
-       wtower_mar22["aluguel_calculado"] == 535.56)
+checar("W Tower 2022-03: corrigido pela migration 0013 (0.0, não mais o repasse legado indevido de 535.56)",
+       wtower_mar22["aluguel_calculado"] == 0.0)
 
 with _raw_conn(DIR_A) as conn:
     hist_dp = conn.execute(

@@ -1,0 +1,448 @@
+{
+  "w_tower_caxias": [
+    {
+      "mes_referencia": "2022-01",
+      "faturamento": 24229.09,
+      "resultado": -2222.45,
+      "prejuizo_acumulado_entrada": -89480.14,
+      "prejuizo_acumulado_saida": -91702.59,
+      "aluguel_calculado": 0.0
+    },
+    {
+      "mes_referencia": "2022-02",
+      "faturamento": 22056.78,
+      "resultado": -3940.36,
+      "prejuizo_acumulado_entrada": -91702.59,
+      "prejuizo_acumulado_saida": -95642.95,
+      "aluguel_calculado": 0.0
+    },
+    {
+      "mes_referencia": "2022-03",
+      "faturamento": 29610.2,
+      "resultado": 669.45,
+      "prejuizo_acumulado_entrada": -95642.95,
+      "prejuizo_acumulado_saida": -94973.51,
+      "aluguel_calculado": 0.0
+    },
+    {
+      "mes_referencia": "2022-04",
+      "faturamento": 30162.74,
+      "resultado": -4094.45,
+      "prejuizo_acumulado_entrada": -94973.51,
+      "prejuizo_acumulado_saida": -99067.96,
+      "aluguel_calculado": 0.0
+    },
+    {
+      "mes_referencia": "2022-05",
+      "faturamento": 29363.39,
+      "resultado": -4737.67,
+      "prejuizo_acumulado_entrada": -99067.96,
+      "prejuizo_acumulado_saida": -103805.63,
+      "aluguel_calculado": 0.0
+    },
+    {
+      "mes_referencia": "2022-06",
+      "faturamento": 33044.56,
+      "resultado": -1363.89,
+      "prejuizo_acumulado_entrada": -103805.63,
+      "prejuizo_acumulado_saida": -105169.52,
+      "aluguel_calculado": 0.0
+    },
+    {
+      "mes_referencia": "2022-07",
+      "faturamento": 30723.56,
+      "resultado": -3822.26,
+      "prejuizo_acumulado_entrada": -105169.52,
+      "prejuizo_acumulado_saida": -108991.78,
+      "aluguel_calculado": 0.0
+    },
+    {
+      "mes_referencia": "2022-08",
+      "faturamento": 31076.02,
+      "resultado": 1875.71,
+      "prejuizo_acumulado_entrada": -108991.78,
+      "prejuizo_acumulado_saida": -107116.08,
+      "aluguel_calculado": 0.0
+    },
+    {
+      "mes_referencia": "2022-09",
+      "faturamento": 27743.84,
+      "resultado": -974.45,
+      "prejuizo_acumulado_entrada": -107116.08,
+      "prejuizo_acumulado_saida": -108090.53,
+      "aluguel_calculado": 0.0
+    },
+    {
+      "mes_referencia": "2022-10",
+      "faturamento": 36810.33,
+      "resultado": 6838.34,
+      "prejuizo_acumulado_entrada": -108090.53,
+      "prejuizo_acumulado_saida": -101252.18,
+      "aluguel_calculado": 0.0
+    },
+    {
+      "mes_referencia": "2022-11",
+      "faturamento": 32885.15,
+      "resultado": 3470.09,
+      "prejuizo_acumulado_entrada": -101252.18,
+      "prejuizo_acumulado_saida": -97782.1,
+      "aluguel_calculado": 0.0
+    },
+    {
+      "mes_referencia": "2022-12",
+      "faturamento": 37982.87,
+      "resultado": 7851.41,
+      "prejuizo_acumulado_entrada": -97782.1,
+      "prejuizo_acumulado_saida": -89930.69,
+      "aluguel_calculado": 0.0
+    },
+    {
+      "mes_referencia": "2023-01",
+      "faturamento": 32212.41,
+      "resultado": 3075.84,
+      "prejuizo_acumulado_entrada": -89930.69,
+      "prejuizo_acumulado_saida": -86854.85,
+      "aluguel_calculado": 0.0
+    },
+    {
+      "mes_referencia": "2023-02",
+      "faturamento": 33251.65,
+      "resultado": 2759.16,
+      "prejuizo_acumulado_entrada": -86854.85,
+      "prejuizo_acumulado_saida": -84095.69,
+      "aluguel_calculado": 0.0
+    },
+    {
+      "mes_referencia": "2023-03",
+      "faturamento": 35390.81,
+      "resultado": 4400.69,
+      "prejuizo_acumulado_entrada": -84095.69,
+      "prejuizo_acumulado_saida": -79695.01,
+      "aluguel_calculado": 0.0
+    },
+    {
+      "mes_referencia": "2023-04",
+      "faturamento": 34067.86,
+      "resultado": 3221.05,
+      "prejuizo_acumulado_entrada": -79695.01,
+      "prejuizo_acumulado_saida": -76473.96,
+      "aluguel_calculado": 0.0
+    },
+    {
+      "mes_referencia": "2023-05",
+      "faturamento": 37298.13,
+      "resultado": 5934.65,
+      "prejuizo_acumulado_entrada": -76473.96,
+      "prejuizo_acumulado_saida": -70539.31,
+      "aluguel_calculado": 0.0
+    },
+    {
+      "mes_referencia": "2023-06",
+      "faturamento": 39361.12,
+      "resultado": 7664.87,
+      "prejuizo_acumulado_entrada": -70539.31,
+      "prejuizo_acumulado_saida": -62874.44,
+      "aluguel_calculado": 0.0
+    },
+    {
+      "mes_referencia": "2023-07",
+      "faturamento": 38316.32,
+      "resultado": 6419.02,
+      "prejuizo_acumulado_entrada": -62874.44,
+      "prejuizo_acumulado_saida": -56455.42,
+      "aluguel_calculado": 0.0
+    },
+    {
+      "mes_referencia": "2023-08",
+      "faturamento": 41414.79,
+      "resultado": 9204.77,
+      "prejuizo_acumulado_entrada": -56455.42,
+      "prejuizo_acumulado_saida": -47250.65,
+      "aluguel_calculado": 0.0
+    },
+    {
+      "mes_referencia": "2023-09",
+      "faturamento": 40534.58,
+      "resultado": 8432.4,
+      "prejuizo_acumulado_entrada": -47250.65,
+      "prejuizo_acumulado_saida": -38818.25,
+      "aluguel_calculado": 0.0
+    },
+    {
+      "mes_referencia": "2023-10",
+      "faturamento": 43649.62,
+      "resultado": 11045.18,
+      "prejuizo_acumulado_entrada": -38818.25,
+      "prejuizo_acumulado_saida": -27773.08,
+      "aluguel_calculado": 0.0
+    },
+    {
+      "mes_referencia": "2023-11",
+      "faturamento": 45070.27,
+      "resultado": 12273.19,
+      "prejuizo_acumulado_entrada": -27773.08,
+      "prejuizo_acumulado_saida": -15499.89,
+      "aluguel_calculado": 0.0
+    },
+    {
+      "mes_referencia": "2023-12",
+      "faturamento": 41180.92,
+      "resultado": 8631.93,
+      "prejuizo_acumulado_entrada": -15499.89,
+      "prejuizo_acumulado_saida": -6867.96,
+      "aluguel_calculado": 0.0
+    },
+    {
+      "mes_referencia": "2024-01",
+      "faturamento": 48225.76,
+      "resultado": 14208.6,
+      "prejuizo_acumulado_entrada": -6867.96,
+      "prejuizo_acumulado_saida": 0.0,
+      "aluguel_calculado": 5872.51
+    },
+    {
+      "mes_referencia": "2024-02",
+      "faturamento": 40873.68,
+      "resultado": 7707.54,
+      "prejuizo_acumulado_entrada": 0.0,
+      "prejuizo_acumulado_saida": 0.0,
+      "aluguel_calculado": 6166.03
+    },
+    {
+      "mes_referencia": "2024-03",
+      "faturamento": 43522.64,
+      "resultado": 10142.82,
+      "prejuizo_acumulado_entrada": 0.0,
+      "prejuizo_acumulado_saida": 0.0,
+      "aluguel_calculado": 8114.26
+    },
+    {
+      "mes_referencia": "2024-04",
+      "faturamento": 46986.82,
+      "resultado": 7511.61,
+      "prejuizo_acumulado_entrada": 0.0,
+      "prejuizo_acumulado_saida": 0.0,
+      "aluguel_calculado": 6009.29
+    },
+    {
+      "mes_referencia": "2024-05",
+      "faturamento": 44698.57,
+      "resultado": 4908.3,
+      "prejuizo_acumulado_entrada": 0.0,
+      "prejuizo_acumulado_saida": 0.0,
+      "aluguel_calculado": 3926.64
+    },
+    {
+      "mes_referencia": "2024-06",
+      "faturamento": 44786.35,
+      "resultado": 4518.46,
+      "prejuizo_acumulado_entrada": 0.0,
+      "prejuizo_acumulado_saida": 0.0,
+      "aluguel_calculado": 3614.77,
+      "fundo_recomposicao": 717.38,
+      "saldo_a_pagar": 2897.39
+    },
+    {
+      "mes_referencia": "2024-07",
+      "faturamento": 47521.57,
+      "resultado": 7483.31,
+      "prejuizo_acumulado_entrada": 0.0,
+      "prejuizo_acumulado_saida": 0.0,
+      "aluguel_calculado": 5986.65,
+      "fundo_recomposicao": 717.38,
+      "saldo_a_pagar": 5269.27
+    },
+    {
+      "mes_referencia": "2024-08",
+      "faturamento": 46318.38,
+      "resultado": 11893.16,
+      "prejuizo_acumulado_entrada": 0.0,
+      "prejuizo_acumulado_saida": 0.0,
+      "aluguel_calculado": 9514.53,
+      "fundo_recomposicao": 717.38,
+      "saldo_a_pagar": 8797.15
+    },
+    {
+      "mes_referencia": "2024-09",
+      "faturamento": 50328.57,
+      "resultado": 15403.6,
+      "prejuizo_acumulado_entrada": 0.0,
+      "prejuizo_acumulado_saida": 0.0,
+      "aluguel_calculado": 12322.88,
+      "fundo_recomposicao": 717.38,
+      "saldo_a_pagar": 11605.5
+    },
+    {
+      "mes_referencia": "2024-10",
+      "faturamento": 46489.75,
+      "resultado": 12172.76,
+      "prejuizo_acumulado_entrada": 0.0,
+      "prejuizo_acumulado_saida": 0.0,
+      "aluguel_calculado": 9738.21,
+      "fundo_recomposicao": 717.38,
+      "saldo_a_pagar": 9020.83
+    },
+    {
+      "mes_referencia": "2024-11",
+      "faturamento": 45089.69,
+      "resultado": 10914.5,
+      "prejuizo_acumulado_entrada": 0.0,
+      "prejuizo_acumulado_saida": 0.0,
+      "aluguel_calculado": 8731.6,
+      "fundo_recomposicao": 717.38,
+      "saldo_a_pagar": 8014.22
+    },
+    {
+      "mes_referencia": "2024-12",
+      "faturamento": 41743.03,
+      "resultado": 7005.25,
+      "prejuizo_acumulado_entrada": 0.0,
+      "prejuizo_acumulado_saida": 0.0,
+      "aluguel_calculado": 5604.2,
+      "fundo_recomposicao": 717.38,
+      "saldo_a_pagar": 4886.82
+    },
+    {
+      "mes_referencia": "2025-01",
+      "faturamento": 40869.83,
+      "resultado": 6463.56,
+      "prejuizo_acumulado_entrada": 0.0,
+      "prejuizo_acumulado_saida": 0.0,
+      "aluguel_calculado": 5170.85,
+      "fundo_recomposicao": 717.38,
+      "saldo_a_pagar": 4453.47
+    },
+    {
+      "mes_referencia": "2025-02",
+      "faturamento": 41204.98,
+      "resultado": 6784.78,
+      "prejuizo_acumulado_entrada": 0.0,
+      "prejuizo_acumulado_saida": 0.0,
+      "aluguel_calculado": 5427.82,
+      "fundo_recomposicao": 717.38,
+      "saldo_a_pagar": 4710.44
+    },
+    {
+      "mes_referencia": "2025-03",
+      "faturamento": 43606.29,
+      "resultado": 8916.69,
+      "prejuizo_acumulado_entrada": 0.0,
+      "prejuizo_acumulado_saida": 0.0,
+      "aluguel_calculado": 7133.35,
+      "fundo_recomposicao": 717.38,
+      "saldo_a_pagar": 6415.97
+    },
+    {
+      "mes_referencia": "2025-04",
+      "faturamento": 49741.86,
+      "resultado": 8415.32,
+      "prejuizo_acumulado_entrada": 0.0,
+      "prejuizo_acumulado_saida": 0.0,
+      "aluguel_calculado": 6732.26
+    },
+    {
+      "mes_referencia": "2025-05",
+      "faturamento": 48576.07,
+      "resultado": 6585.39,
+      "prejuizo_acumulado_entrada": 0.0,
+      "prejuizo_acumulado_saida": 0.0,
+      "aluguel_calculado": 5268.31
+    },
+    {
+      "mes_referencia": "2025-06",
+      "faturamento": 48980.34,
+      "resultado": 7055.39,
+      "prejuizo_acumulado_entrada": 0.0,
+      "prejuizo_acumulado_saida": 0.0,
+      "aluguel_calculado": 5644.32
+    },
+    {
+      "mes_referencia": "2025-07",
+      "faturamento": 50100.18,
+      "resultado": 7900.08,
+      "prejuizo_acumulado_entrada": 0.0,
+      "prejuizo_acumulado_saida": 0.0,
+      "aluguel_calculado": 6320.06
+    },
+    {
+      "mes_referencia": "2025-08",
+      "faturamento": 52023.34,
+      "resultado": 15340.75,
+      "prejuizo_acumulado_entrada": 0.0,
+      "prejuizo_acumulado_saida": 0.0,
+      "aluguel_calculado": 12272.6
+    },
+    {
+      "mes_referencia": "2025-09",
+      "faturamento": 52379.02,
+      "resultado": 15175.7,
+      "prejuizo_acumulado_entrada": 0.0,
+      "prejuizo_acumulado_saida": 0.0,
+      "aluguel_calculado": 12140.56
+    },
+    {
+      "mes_referencia": "2025-10",
+      "faturamento": 55155.13,
+      "resultado": 17275.17,
+      "prejuizo_acumulado_entrada": 0.0,
+      "prejuizo_acumulado_saida": 0.0,
+      "aluguel_calculado": 13820.13
+    },
+    {
+      "mes_referencia": "2025-11",
+      "faturamento": 53807.42,
+      "resultado": 16364.12,
+      "prejuizo_acumulado_entrada": 0.0,
+      "prejuizo_acumulado_saida": 0.0,
+      "aluguel_calculado": 13091.29
+    },
+    {
+      "mes_referencia": "2025-12",
+      "faturamento": 51223.45,
+      "resultado": 13049.93,
+      "prejuizo_acumulado_entrada": 0.0,
+      "prejuizo_acumulado_saida": 0.0,
+      "aluguel_calculado": 10439.95
+    },
+    {
+      "mes_referencia": "2026-01",
+      "faturamento": 49193.73,
+      "resultado": 11691.26,
+      "prejuizo_acumulado_entrada": 0.0,
+      "prejuizo_acumulado_saida": 0.0,
+      "aluguel_calculado": 9353.01
+    },
+    {
+      "mes_referencia": "2026-02",
+      "faturamento": 45418.73,
+      "resultado": 8962.13,
+      "prejuizo_acumulado_entrada": 0.0,
+      "prejuizo_acumulado_saida": 0.0,
+      "aluguel_calculado": 7169.7
+    },
+    {
+      "mes_referencia": "2026-03",
+      "faturamento": 62334.57,
+      "resultado": 23274.77,
+      "prejuizo_acumulado_entrada": 0.0,
+      "prejuizo_acumulado_saida": 0.0,
+      "aluguel_calculado": 18619.82
+    },
+    {
+      "mes_referencia": "2026-04",
+      "faturamento": 61161.61,
+      "resultado": 15975.64,
+      "prejuizo_acumulado_entrada": 0.0,
+      "prejuizo_acumulado_saida": 0.0,
+      "aluguel_calculado": 12780.51
+    },
+    {
+      "mes_referencia": "2026-05",
+      "faturamento": 57598.92,
+      "resultado": 12529.94,
+      "prejuizo_acumulado_entrada": 0.0,
+      "prejuizo_acumulado_saida": 0.0,
+      "aluguel_calculado": 10023.95
+    }
+  ]
+}
