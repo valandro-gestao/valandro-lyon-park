@@ -32,9 +32,13 @@ reprocessamento — pontos que não dependem de dado adicional):
 Seção 1 roda contra um espelho real de data/seed.db (só leitura da fonte,
 gravação só no espelho temporário — scripts/migrate.py) porque data/seed.db
 já contém o histórico legado real de Dom Pedro/MW Tristeza/Viva
-Trindade/W Tower (com a mesma lacuna real de 2021-03 em Dom Pedro) — é o
-mesmo padrão já usado pelas outras suítes desta etapa para cenários que
-precisam de unidades reais.
+Trindade/W Tower — é o mesmo padrão já usado pelas outras suítes desta
+etapa para cenários que precisam de unidades reais. dom_pedro/2021-03 era
+uma lacuna real na época em que esta suíte foi escrita (a migration 0011
+não a preenche, é fora do seu escopo) — desde a migration 0014
+(homologação set/2026) ela foi restaurada a partir da planilha original,
+então o espelho completo (que roda 0001..0015 via scripts/migrate.py) já
+reflete essa restauração; ver as asserções específicas na seção 1 abaixo.
 
 Execução: python3 tests/testes_bloco_bloqueia_envio.py
 """
@@ -138,12 +142,29 @@ checar("Dom Pedro: saída reconstruída de 2026-05 bate com a âncora oficial (-
 checar("MW Tristeza: saída reconstruída de 2026-05 bate com a âncora oficial (-632029.12)",
        abs(mw_mai26["prejuizo_acumulado_saida"] - (-632029.12)) < 0.005)
 
-checar("Dom Pedro: março/2021 continua ausente (lacuna real preservada, nada foi criado)",
-       _lancamento("dom_pedro", "2021-03", DIR_A) is None)
+# Dom Pedro/2021-03 era uma lacuna real na época da migration 0011 — desde
+# a migration 0014 (homologação set/2026, revisão do ponto 1) ela foi
+# restaurada a partir da própria planilha original (Faturamento 0,00,
+# Resultado -9950,00), então o espelho completo (que roda 0001..0015) já
+# reflete essa restauração.
+dp_mar21 = _lancamento("dom_pedro", "2021-03", DIR_A)
+checar("Dom Pedro: março/2021 foi restaurado pela migration 0014 (Faturamento 0.00)",
+       dp_mar21 is not None and dp_mar21["faturamento"] == 0.00)
+checar("Dom Pedro: março/2021 restaurado com Resultado -9950.00 (planilha)",
+       dp_mar21["resultado"] == -9950.00)
 dp_fev21 = _lancamento("dom_pedro", "2021-02", DIR_A)
 dp_abr21 = _lancamento("dom_pedro", "2021-04", DIR_A)
-checar("Dom Pedro: cadeia salta corretamente fev/2021 -> abr/2021 (sem mar/2021)",
-       abs(dp_fev21["prejuizo_acumulado_saida"] - dp_abr21["prejuizo_acumulado_entrada"]) < 0.005)
+checar("Dom Pedro: março/2021 é internamente consistente (entrada + resultado = saída)",
+       abs(dp_mar21["prejuizo_acumulado_entrada"] + dp_mar21["resultado"] - dp_mar21["prejuizo_acumulado_saida"]) < 0.005)
+checar("Dom Pedro: entrada de março = saída de fevereiro (continuidade com o mês anterior)",
+       abs(dp_mar21["prejuizo_acumulado_entrada"] - dp_fev21["prejuizo_acumulado_saida"]) < 0.005)
+# Descontinuidade cosmética CONHECIDA e documentada (migration 0014): a
+# migration 0011 já tinha rodado sem saber de março, então a entrada de
+# abril/2021 continua igual à saída de fevereiro/2021 (o "salto" que a
+# 0011 documentou) — não à nova saída de março. Diferença = resultado de
+# março (-9950,00), sem efeito funcional (fora de CADEIA_SALDO_DESDE).
+checar("Dom Pedro: descontinuidade março->abril é exatamente o resultado de março (-9950.00, cosmética)",
+       abs((dp_abr21["prejuizo_acumulado_entrada"] - dp_mar21["prejuizo_acumulado_saida"]) - 9950.00) < 0.005)
 
 todos_dp = [json.loads(j) for j in _todos_lancamentos("dom_pedro", DIR_A) ]
 legados_dp = [d for d in todos_dp if d["mes_referencia"] < "2026-06"]
@@ -239,19 +260,28 @@ with _raw_conn(DIR_A) as conn:
     hist_outras_antes = [tuple(r) for r in hist_outras_antes]
 
 # --- Idempotência: chamar apply() de novo (fora do runner) não altera nada -
+# O espelho DIR_A roda TODAS as migrações em ordem (scripts/migrate.py),
+# então quando 0011 rodou pela primeira vez aqui, dom_pedro/2021-03 ainda
+# não existia (0014, que o restaura, só roda depois, na ordem numérica).
+# A primeira chamada MANUAL a apply() abaixo, portanto, legitimamente AJUSTA
+# jan-mar/2021 para incorporar março (que passou a existir) — só a SEGUNDA
+# chamada, já a partir desse estado estável, precisa ser um no-op de
+# verdade. Ver migrations/0014_backfill_dom_pedro_2021_03.py.
 with _raw_conn(DIR_A) as conn:
+    _mod_0011.apply(conn)  # primeira chamada manual — absorve março, mudança esperada
     antes = conn.execute(
         "SELECT id, resultado_json FROM lancamentos WHERE unidade_id IN ('dom_pedro','mw_tristeza')"
         " ORDER BY id"
     ).fetchall()
     estado_antes = [(r["id"], r["resultado_json"]) for r in antes]
-    _mod_0011.apply(conn)
+    _mod_0011.apply(conn)  # segunda chamada — a partir daqui, sim, precisa ser idempotente
     depois = conn.execute(
         "SELECT id, resultado_json FROM lancamentos WHERE unidade_id IN ('dom_pedro','mw_tristeza')"
         " ORDER BY id"
     ).fetchall()
     estado_depois = [(r["id"], r["resultado_json"]) for r in depois]
-checar("idempotência: chamar apply() de novo não altera nenhuma linha", estado_antes == estado_depois)
+checar("idempotência: chamar apply() de novo (a partir de um estado já estável) não altera nenhuma linha",
+       estado_antes == estado_depois)
 
 dp_sentinela_depois = _lancamento("dom_pedro", "2026-06", DIR_A)
 mw_sentinela_depois = _lancamento("mw_tristeza", "2026-06", DIR_A)

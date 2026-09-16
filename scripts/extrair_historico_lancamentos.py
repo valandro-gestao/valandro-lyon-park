@@ -33,6 +33,31 @@ fórmula conhecida (a mesma que o calculador usa), não invenção de dado:
   Park Tower (COM_ALIQUOTA, PE=0): resultado == subtotal
   Monza      (COM_FAIXAS, sem PE/alíquota): resultado == faturamento
 
+Regra de descarte de linha — CORRIGIDA (homologação set/2026, Dom Pedro
+2021): toda função de extração abaixo decide se uma linha da planilha
+representa uma competência real checando o Faturamento da linha. A versão
+original confundia "faturamento zero" (`fat == 0`, um mês genuinamente sem
+receita — dado real, válido) com "faturamento ausente" (`fat is None`, a
+célula em branco — não é uma competência) e descartava os dois casos
+igualmente. Isso perdeu uma linha real: dom_pedro/2021-03, que tem
+Faturamento=0,00 e Resultado=-9950,00 (= -PE, mesma fórmula de todo mês) —
+o único mês de Dom Pedro em todo o histórico com faturamento exatamente
+zero. `_num()` já distinguia os dois casos internamente (célula em branco
+vira None; célula com "0" vira 0.0) — o bug era só a condição de descarte
+não usar essa distinção. A regra agora é `if fat is None: continue`, sem a
+cláusula `or fat == 0`, nas quatro funções de extração ("mês em linha",
+"resultado derivado", "transposto" e Pátio).
+
+Esta correção vale para EXTRAÇÕES FUTURAS — não regenera
+migrations/data/historico_lancamentos.json (publicado pela migração 0002;
+ver aviso em MES_CORTE acima — nunca deve ser regenerado) nem reabre o
+bootstrap de nenhuma unidade já migrada. A lacuna já conhecida que esta
+regra causou (dom_pedro/2021-03) foi corrigida à parte, por um backfill
+pontual e defensivo (migrations/0014_backfill_dom_pedro_2021_03.py) — não
+por uma nova execução deste script. Se este script for reaproveitado no
+futuro para extrair uma unidade ainda não migrada, a regra corrigida evita
+repetir o mesmo tipo de perda de dado.
+
 Uso:
   .venv/bin/python scripts/extrair_historico_lancamentos.py
 """
@@ -168,7 +193,7 @@ def _extrair_linha(wb, aba, col_fat, rot_fat, col_res, rot_res, col_al1, rot_al1
         if not _deve_incluir(mes, apenas_mes):
             continue
         fat = _num(row[col_fat]) if col_fat < len(row) else None
-        if fat is None or fat == 0:
+        if fat is None:
             continue
         resultado = _num(row[col_res]) if col_res is not None and col_res < len(row) else None
         aluguel = _floor0(_num(row[col_al1])) if col_al1 < len(row) else 0.0
@@ -205,7 +230,7 @@ def _extrair_linha_resultado_derivado(wb, aba, col_fat, rot_fat, col_res_fonte, 
         if not _deve_incluir(mes, apenas_mes):
             continue
         fat = _num(row[col_fat]) if col_fat < len(row) else None
-        if fat is None or fat == 0:
+        if fat is None:
             continue
         resultado = fat if col_res_fonte is None else (
             _num(row[col_res_fonte]) if col_res_fonte < len(row) else None
@@ -270,7 +295,7 @@ def _extrair_transposto(wb, aba, row_fat, rot_fat, row_res, rot_res, row_alug, r
             continue  # sem marcador de ano à direita — não há como inferir com segurança
 
         fat = _num(fat_row[col_idx]) if col_idx < len(fat_row) else None
-        if fat is None or fat == 0:
+        if fat is None:
             continue
         mes_referencia = f"{ano_col:04d}-{mes_num:02d}"
         if not _deve_incluir(mes_referencia, apenas_mes):
@@ -320,7 +345,7 @@ def _extrair_patio(wb, apenas_mes=None):
             continue
 
         fat_real = _num(row[c["fat_real"]]) if len(row) > c["fat_real"] else None
-        if fat_real:
+        if fat_real is not None:
             res_real = _num(row[c["res_real"]]) if len(row) > c["res_real"] else None
             alug_real = _floor0(_num(row[c["alug_real"]])) if len(row) > c["alug_real"] else 0.0
             outros_real = _floor0(_num(row[c["outros_real"]])) if len(row) > c["outros_real"] else 0.0
@@ -333,7 +358,7 @@ def _extrair_patio(wb, apenas_mes=None):
             })
 
         fat_maio = _num(row[c["fat_maio"]]) if len(row) > c["fat_maio"] else None
-        if fat_maio:
+        if fat_maio is not None:
             res_maio = _num(row[c["res_maio"]]) if len(row) > c["res_maio"] else None
             alug_maio = _floor0(_num(row[c["alug_maio"]])) if len(row) > c["alug_maio"] else 0.0
             outros_maio = _floor0(_num(row[c["outros_maio"]])) if len(row) > c["outros_maio"] else 0.0

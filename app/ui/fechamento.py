@@ -436,6 +436,26 @@ def _get_params_competencia(uid: str, mes_ref: str) -> dict:
     (ver _diff_html) — nunca para o cálculo em si."""
     from app.models import get_parametros_vigentes
     from app.rubricas import por_id
+    from app.calculadora_schema import SCHEMAS_POR_TIPO
+
+    # Nem todo parâmetro de valor LISTA é uma rubrica (mapa_rubricas —
+    # custos_mensais/custos_variaveis): faixas/faixas_aluguel/splits/repasses
+    # também são listas (natureza "lista_estruturada"), mas seus itens não
+    # têm necessariamente um "id" técnico (ex.: COM_FAIXAS.faixas só tem
+    # {ate, percentual} — sem coluna de identidade, ver app.calculadora_schema).
+    # Tratar QUALQUER lista como rubrica e chamar normalizar_rubricas nela
+    # cegamente quebra com KeyError('id') para essas unidades — reproduzido
+    # com uma unidade COM_FAIXAS criada só pela Administração (ex.: EKOS),
+    # sem depender de nenhum YAML. Aqui só entra no caminho de rubrica quando
+    # o próprio schema da unidade declara o campo como natureza="mapa_rubricas"
+    # — para qualquer outra lista, o destaque por item simplesmente não se
+    # aplica (essas listas nunca são editadas nesta tela, só na Administração).
+    tipo_calculo = get_unit(uid).get("tipo_calculo", "")
+    campos_mapa_rubricas = {
+        campo["chave"] for campo in SCHEMAS_POR_TIPO.get(tipo_calculo, {}).get("campos", [])
+        if campo.get("natureza") == "mapa_rubricas"
+    }
+
     params = {}
     vigentes = get_parametros_vigentes(uid, mes_ref)
     # Flatten de volta para dot-notation
@@ -447,6 +467,8 @@ def _get_params_competencia(uid: str, mes_ref: str) -> dict:
             elif isinstance(v, (int, float)) and not isinstance(v, bool):
                 params[chave] = v
             elif isinstance(v, list):
+                if chave not in campos_mapa_rubricas:
+                    continue
                 # mapa_rubricas no formato novo (ver app.rubricas) — chaveia
                 # por id (estável entre renomeações), não por posição, para
                 # o destaque de "mudou" continuar funcionando por rubrica

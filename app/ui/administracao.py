@@ -629,6 +629,16 @@ def _valor_para_armazenado_editor(sub: dict, valor):
     return valor
 
 
+# Nota fixa de formato, anexada a TODO campo percentual da tela de
+# Administração (escalar ou coluna de tabela) — ponto único de texto,
+# nunca duplicado. Resolve a ambiguidade "digito 80 ou 0,80?" (homologação
+# set/2026, EKOS): o valor é sempre armazenado internamente como fração
+# decimal (0.80), mas a UI SEMPRE pede o número em pontos percentuais
+# (80) — nunca a fração. Ver _pct_armazenado_para_ui/_pct_ui_para_armazenado,
+# ponto único de conversão.
+_AJUDA_FORMATO_PERCENTUAL = "Digite em pontos percentuais, de 0 a 100 — ex.: 80 para 80%. Não digite a fração (0,80)."
+
+
 def _column_config_editor(sub: dict):
     tipo_dado = sub.get("tipo_dado", "texto")
     obrigatorio = bool(sub.get("obrigatorio"))
@@ -641,7 +651,8 @@ def _column_config_editor(sub: dict):
 
     if tipo_dado == "percentual":
         return st.column_config.NumberColumn(
-            sub["label"], format="%.2f%%", step=0.5, required=obrigatorio, **kwargs
+            sub["label"], format="%.2f%%", step=0.5, required=obrigatorio,
+            help=_AJUDA_FORMATO_PERCENTUAL, **kwargs
         )
     if tipo_dado == "moeda":
         return st.column_config.NumberColumn(
@@ -789,7 +800,7 @@ def _editor_faixas_com_limite(uid: str, competencia_ref: str, campo: dict, valor
         pct_default = _pct_armazenado_para_ui(item_sem_limite[sub_percentual["chave"]]) if item_sem_limite else 0.0
         pct_ui = st.number_input(
             f"{sub_percentual['label']} da faixa sem limite (%)", value=pct_default,
-            step=0.5, format="%.2f", key=pct_key,
+            step=0.5, format="%.2f", key=pct_key, help=_AJUDA_FORMATO_PERCENTUAL,
         )
         itens.append({campo_limite: None, sub_percentual["chave"]: _pct_ui_para_armazenado(pct_ui)})
 
@@ -920,9 +931,11 @@ def _aba_parametros(uid: str, u: dict):
             )
         elif tipo_dado == "percentual":
             valor_ui = _pct_armazenado_para_ui(valor_atual)
+            ajuda = campo.get("descricao")
+            ajuda = f"{ajuda} {_AJUDA_FORMATO_PERCENTUAL}" if ajuda else _AJUDA_FORMATO_PERCENTUAL
             novo_valor_ui = st.number_input(
                 f"{label} (%)", value=valor_ui, step=0.5, format="%.2f",
-                key=widget_key, help=campo.get("descricao"),
+                key=widget_key, help=ajuda,
             )
             novo_valor = _pct_ui_para_armazenado(novo_valor_ui)
         elif tipo_dado == "moeda":
@@ -943,6 +956,12 @@ def _aba_parametros(uid: str, u: dict):
 
         if campo.get("descricao"):
             st.caption(campo["descricao"])
+        if campo.get("condicao"):
+            # Metadado já existia no schema (ex.: taxa_cobranca só é
+            # relevante quando "Tem Taxa de Cobrança" está ligado) mas nunca
+            # tinha sido renderizado — o campo aparecia sem nenhuma indicação
+            # de que dependia de outro toggle (homologação set/2026, EKOS).
+            st.caption(f"ℹ️ {campo['condicao']}")
         valores_editados[chave] = novo_valor
 
     st.divider()
