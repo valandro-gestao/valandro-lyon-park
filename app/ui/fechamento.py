@@ -408,6 +408,79 @@ def _status_chip_html(status: str) -> str:
 # esta função — ver app.rubricas.normalizar_rubricas.
 
 
+# ─── rubricas mensais de custos_variaveis que NÃO são vigência permanente ────
+# (homologação set/2026 — Viva Trindade / Investimentos).
+#
+# Causa raiz investigada: `custos_variaveis.investimentos` e
+# `custos_variaveis.outras_despesas` (COM_ALIQUOTA_CUMUL — ver
+# app.calculators.cumulativo) são reservados como campos "escalar" no
+# schema, mas o dict reconstruído `cfg["custos_variaveis"]` (dot-notation
+# -> nested, ver app.models.get_parametros_vigentes) tem, por coincidência
+# de forma, o mesmo shape de um mapa_rubricas legado — por isso aparecem
+# aqui, no editor genérico de Custos Variáveis, junto de rubricas
+# genuinamente recorrentes. Até esta correção, TODA aprovação varria o
+# valor digitado de volta para `parametros_vigentes` como uma vigência
+# NOVA E ABERTA (sem data de fim) — exatamente o que
+# app.models.salvar_parametros faz para um parâmetro contratual de
+# verdade (condomínio, IPTU, percentual de aluguel...). Isso é correto
+# para esses parâmetros contratuais, mas errado para Investimentos e
+# Outras Despesas: os dois são eventos financeiros de UM mês específico,
+# não um valor que deveria "grudar" e se repetir em todo mês seguinte.
+# Reproduzido: digitar Investimentos em julho e aprovar cria uma vigência
+# aberta a partir de julho — abrir agosto em seguida já mostra o mesmo
+# valor como default (somando indevidamente no prejuízo de um mês em que
+# a operadora nunca digitou nada), e corrigir agosto para 0 fecha a
+# vigência de julho exatamente em julho (comportamento correto para
+# julho em si, mas o vazamento para a frente já tinha acontecido).
+#
+# `fundo_recomposicao` (W Tower) FICA DE FORA desta lista, deliberadamente
+# — é o único dos três campos reservados que representa um valor
+# genuinamente recorrente/contratual (mesmo valor por vários meses
+# seguidos, configurado via Administração), homologado e sem relato de
+# problema; seu mecanismo de vigência permanece exatamente como estava.
+_RUBRICAS_MENSAIS_NAO_VIGENCIA = frozenset({"investimentos", "outras_despesas"})
+
+
+def _e_rubrica_mensal_nao_vigente(tipo_calculo: str, item_id: str) -> bool:
+    """True quando `item_id` (dentro de custos_variaveis) é uma rubrica
+    mensal (não deve virar vigência automática ao aprovar) — combina o id
+    conhecido com uma checagem de schema (custos_variaveis NÃO é
+    natureza="mapa_rubricas" para este tipo_calculo) para nunca confundir
+    isto com uma rubrica genuína de outra unidade que por acaso tenha o
+    mesmo nome técnico."""
+    if item_id not in _RUBRICAS_MENSAIS_NAO_VIGENCIA:
+        return False
+    from app.calculadora_schema import SCHEMAS_POR_TIPO
+    campos = SCHEMAS_POR_TIPO.get(tipo_calculo, {}).get("campos", [])
+    cv_e_mapa_rubricas = any(
+        c["chave"] == "custos_variaveis" and c.get("natureza") == "mapa_rubricas"
+        for c in campos
+    )
+    return not cv_e_mapa_rubricas
+
+
+def _valor_ja_lancado(uid: str, mes_ref: str, item_id: str) -> float | None:
+    """Valor de `extras.<item_id>` já congelado no lançamento desta
+    competência (se existir) — usado como default do widget para as
+    rubricas mensais não-vigência acima, no lugar do valor vigente (que,
+    depois desta correção, não reflete mais entradas mensais). Sem isto,
+    reabrir uma competência já calculada/aprovada mostraria sempre 0 (ou o
+    default estático da Administração), escondendo o que a operadora
+    realmente digitou naquele mês."""
+    with get_db() as conn:
+        row = conn.execute(
+            "SELECT resultado_json FROM lancamentos WHERE unidade_id=? AND mes_referencia=?",
+            (uid, mes_ref),
+        ).fetchone()
+    if row is None:
+        return None
+    try:
+        extras = json.loads(row["resultado_json"]).get("extras") or {}
+    except (json.JSONDecodeError, TypeError):
+        return None
+    return extras.get(item_id)
+
+
 # ─── histórico da unidade por lançamentos ────────────────────────────────────
 
 def _get_historico_lancamentos(uid: str) -> list[dict]:
@@ -1140,16 +1213,32 @@ def _inputs_parametros(uid: str, u: dict, mes_ref: str,
         cv = st.columns(n)
         for i, item in enumerate(itens_custos_variaveis):
             chave_db = f"custos_variaveis.{item.id}"
+            mensal_nao_vigente = _e_rubrica_mensal_nao_vigente(tc, item.id)
+            if f"cv_{uid}_{item.id}" in st.session_state:
+                default = st.session_state[f"cv_{uid}_{item.id}"]
+            elif mensal_nao_vigente:
+                # Rubrica mensal (Investimentos/Outras Despesas): o default
+                # é o que já foi lançado NESTA competência, não o vigente
+                # (que deixou de ser atualizado a cada aprovação — ver
+                # _RUBRICAS_MENSAIS_NAO_VIGENCIA). Sem lançamento ainda
+                # (mês novo, nada digitado), cai para 0 — nunca herda o
+                # valor de outro mês.
+                default = _valor_ja_lancado(uid, mes_ref, item.id)
+                if default is None:
+                    default = 0.0
+            else:
+                default = item.valor
             with cv[i % n]:
                 val = st.number_input(
                     f"{item.nome} (R$)",
                     min_value=0.0, step=10.0, format="%.2f",
-                    value=float(st.session_state.get(f"cv_{uid}_{item.id}", item.valor)),
+                    value=float(default),
                     key=f"cv_{uid}_{item.id}",
                 )
-                diff = _diff_html(chave_db)
-                if diff:
-                    st.markdown(f'<div class="vd-param-diff">{diff}</div>', unsafe_allow_html=True)
+                if not mensal_nao_vigente:
+                    diff = _diff_html(chave_db)
+                    if diff:
+                        st.markdown(f'<div class="vd-param-diff">{diff}</div>', unsafe_allow_html=True)
                 custos_extras[item.id] = val
 
     # Rascunho de trabalho: persiste o estado atual de todos os campos acima
@@ -1996,6 +2085,7 @@ def _coletar_params_usados(uid: str, u_cfg: dict,
                             pe_override: float | None,
                             custos_extras: dict) -> dict:
     from app.models import _extrair_editaveis
+    tipo_calculo = u_cfg.get("tipo_calculo", "")
     params: dict = {}
     _extrair_editaveis(u_cfg, params)
     if pe_override is not None:
@@ -2015,8 +2105,26 @@ def _coletar_params_usados(uid: str, u_cfg: dict,
         if item.id in custos_extras:
             params[f"custos_mensais.{item.id}"] = custos_extras[item.id]
     for item in normalizar_rubricas(u_cfg.get("custos_variaveis")):
+        if _e_rubrica_mensal_nao_vigente(tipo_calculo, item.id):
+            # Investimentos/Outras Despesas: rubrica MENSAL, não um
+            # parâmetro contratual — nunca vira vigência automática ao
+            # aprovar (ver _RUBRICAS_MENSAIS_NAO_VIGENCIA). O valor
+            # realmente usado já fica congelado em lancamentos.
+            # resultado_json.extras via salvar_lancamento, chamado antes
+            # desta função em _barra_decisao_final — não precisa (e não
+            # deve) também virar linha em parametros_vigentes.
+            continue
         if item.id in custos_extras:
             params[f"custos_variaveis.{item.id}"] = custos_extras[item.id]
+    # _extrair_editaveis (acima) também varreu custos_variaveis.investimentos/
+    # outras_despesas diretamente do cfg resolvido (antes mesmo do loop
+    # acima) — remove aqui pelo mesmo motivo, para as duas chamadas nunca
+    # divergirem sobre o que é "mensal, não vigência".
+    for campo in list(params):
+        if campo.startswith("custos_variaveis."):
+            item_id = campo.split(".", 1)[1]
+            if _e_rubrica_mensal_nao_vigente(tipo_calculo, item_id):
+                del params[campo]
     return params
 
 

@@ -41,6 +41,8 @@ nativo no componente; a formatação com vírgula (`_formatar_valor`) é usada
 nos textos de leitura (histórico, valores compostos), não dentro do campo
 editável em si.
 """
+import hashlib
+import json
 import re
 import unicodedata
 from datetime import date
@@ -675,6 +677,41 @@ def _celula_vazia(valor) -> bool:
     return valor is None or valor == "" or (isinstance(valor, float) and pd.isna(valor))
 
 
+def _fingerprint(valor) -> str:
+    """Hash curto e determinístico do valor PERSISTIDO de um campo composto
+    (lista_estruturada/mapa_rubricas) — usado para tornar a key dos widgets
+    de edição (data_editor e companhia) sensível ao conteúdo, não só à
+    identidade (unidade, competência, campo).
+
+    Causa raiz investigada (homologação set/2026 — FIERGS, linhas de
+    despesa que "desapareciam" depois de salvar duas vezes): `st.data_editor`
+    com `num_rows="dynamic"` mantém seu PRÓPRIO estado interno de
+    linhas adicionadas/editadas/removidas, indexado pela `key` do widget —
+    não pelo argumento `value=df` recebido a cada rerender. A key usada
+    aqui sempre foi estática (só unidade+competência+campo), então depois
+    de Salvar → salvar_parametros grava a lista nova no banco → st.rerun()
+    recarrega a tela → o data_editor é criado de novo com a MESMA key de
+    antes — e o Streamlit tenta reconciliar o `df` recém-carregado (já com
+    as linhas novas e seus ids gerados) contra o estado interno ainda
+    "pendente" da rodada anterior (linhas novas com id em branco, do jeito
+    que o usuário as digitou, antes de qualquer id ser gerado). Dependendo
+    da reconciliação, a segunda tentativa de salvar reconstrói o `id` a
+    partir de um estado incoerente — o efeito observado (linhas some depois
+    de salvar de novo).
+
+    A correção recomendada pela própria documentação do Streamlit para
+    "preciso que o widget esqueça o estado anterior quando os dados mudam
+    de baixo pra cima" é trocar a `key` quando o dado mudar — nunca tentar
+    sincronizar manualmente o estado interno do data_editor. Incluir este
+    fingerprint na key garante que, assim que `salvar_parametros` muda o
+    valor persistido, o próximo render usa uma key DIFERENTE — o Streamlit
+    descarta o estado antigo (que já foi salvo, não se perde nada) e
+    inicializa o widget do zero com o `df` fresco do banco, sem nenhuma
+    reconciliação implícita entre os dois."""
+    bruto = json.dumps(valor, ensure_ascii=False, sort_keys=True, default=str)
+    return hashlib.md5(bruto.encode("utf-8")).hexdigest()[:10]
+
+
 def _linhas_para_dataframe(itens: list, colunas: list, campo_id: str | None):
     """Monta o DataFrame de entrada do data_editor. Quando há campo_id, ele
     entra como uma coluna REAL do DataFrame (não um estado paralelo) — é
@@ -741,7 +778,12 @@ def _editor_tabela_simples(uid: str, competencia_ref: str, campo: dict, valor_at
         "Clique na última linha (em branco) para adicionar. Selecione uma linha pelo "
         "checkbox à esquerda e pressione Delete para remover."
     )
-    editor_key = f"param_editor_{uid}_{competencia_ref}_{campo['chave']}"
+    # A key inclui um fingerprint do valor vigente — ver _fingerprint: sem
+    # isso, salvar e recarregar (mesma competência) reabre o data_editor com
+    # a MESMA key de antes, e o Streamlit reconcilia o df novo (já persistido)
+    # contra o estado interno ainda pendente da rodada anterior, em vez de
+    # simplesmente adotar o valor fresco do banco.
+    editor_key = f"param_editor_{uid}_{competencia_ref}_{campo['chave']}_{_fingerprint(valor_atual)}"
     df_editado = st.data_editor(
         df, num_rows="dynamic", key=editor_key, use_container_width=True,
         hide_index=True, column_config=column_config,
@@ -783,20 +825,22 @@ def _editor_faixas_com_limite(uid: str, competencia_ref: str, campo: dict, valor
         "Clique na última linha (em branco) para adicionar. Selecione uma linha pelo "
         "checkbox à esquerda e pressione Delete para remover."
     )
-    editor_key = f"param_editor_{uid}_{competencia_ref}_{campo['chave']}"
+    # Fingerprint do valor vigente na key — mesma razão de _editor_tabela_simples.
+    editor_key = f"param_editor_{uid}_{competencia_ref}_{campo['chave']}_{_fingerprint(valor_atual)}"
     df_editado = st.data_editor(
         df, num_rows="dynamic", key=editor_key, use_container_width=True,
         hide_index=True, column_config=column_config,
     )
     itens = _dataframe_para_itens(df_editado, colunas, campo_id=None)
 
-    toggle_key = f"param_semlimite_{uid}_{competencia_ref}_{campo['chave']}"
+    _fp_sem_limite = _fingerprint([tem_sem_limite, item_sem_limite])
+    toggle_key = f"param_semlimite_{uid}_{competencia_ref}_{campo['chave']}_{_fp_sem_limite}"
     tem_sem_limite_novo = st.checkbox(
         "Faixa final sem limite (vale para tudo que passar da última faixa acima)",
         value=tem_sem_limite, key=toggle_key,
     )
     if tem_sem_limite_novo:
-        pct_key = f"param_semlimite_pct_{uid}_{competencia_ref}_{campo['chave']}"
+        pct_key = f"param_semlimite_pct_{uid}_{competencia_ref}_{campo['chave']}_{_fp_sem_limite}"
         pct_default = _pct_armazenado_para_ui(item_sem_limite[sub_percentual["chave"]]) if item_sem_limite else 0.0
         pct_ui = st.number_input(
             f"{sub_percentual['label']} da faixa sem limite (%)", value=pct_default,
