@@ -584,6 +584,47 @@ def _formatar_valor(tipo_dado: str, valor) -> str:
     return str(valor)
 
 
+def _formatar_item_composto(campo: dict, item: dict) -> str:
+    """Uma linha de um campo lista_estruturada/mapa_rubricas (uma rubrica,
+    uma faixa, um split...) formatada para a tela de revisão — sempre nome
+    e valor de cada sub-campo, na mesma ordem do item_schema, nunca o dict
+    Python cru. Ignora o sub-campo gerado automaticamente (id técnico) —
+    não é informação que a operadora precisa conferir."""
+    partes = []
+    for sub in campo.get("item_schema", []):
+        if sub.get("gerado_automaticamente"):
+            continue
+        valor = item.get(sub["chave"]) if isinstance(item, dict) else None
+        partes.append(f"{sub['label']}: {_formatar_valor(sub.get('tipo_dado', 'texto'), valor)}")
+    return " · ".join(partes) if partes else "(sem sub-campos)"
+
+
+def _renderizar_revisao_alteracoes(campos: list, valores_editados: dict) -> None:
+    """Mostra exatamente o que `salvar_parametros` vai gravar — campo a
+    campo, e para lista_estruturada/mapa_rubricas, item a item (nome e
+    valor) — nunca um resumo tipo "3 item(ns) cadastrado(s)". Usada pelo
+    fluxo de revisão em duas etapas (ver _aba_parametros) para os campos
+    dinâmicos, e reaproveitável por qualquer outra tela que precise do
+    mesmo tipo de conferência antes de salvar."""
+    if not valores_editados:
+        st.caption("Nenhuma alteração — os valores atuais serão apenas reafirmados.")
+        return
+    campos_por_chave = {c["chave"]: c for c in campos}
+    for chave, valor in valores_editados.items():
+        campo = campos_por_chave.get(chave)
+        label = campo["label"] if campo else chave
+        natureza = campo.get("natureza", "escalar") if campo else "escalar"
+        st.markdown(f"**{label}**")
+        if natureza in ("lista_estruturada", "mapa_rubricas"):
+            if not valor:
+                st.caption("Lista vazia.")
+            else:
+                for item in valor:
+                    st.write(f"- {_formatar_item_composto(campo, item)}")
+        else:
+            st.write(_formatar_valor(campo.get("tipo_dado", "texto") if campo else "texto", valor))
+
+
 def _editor_mapa_rubricas(uid, competencia_ref, campo, valor_atual, params_atuais, tipo_calculo):
     """Editor de um campo `mapa_rubricas` (custos_mensais/custos_variaveis,
     v1.2.0 — rubricas dinâmicas). Não é um editor novo: normaliza o valor
@@ -683,31 +724,28 @@ def _fingerprint(valor) -> str:
     de edição (data_editor e companhia) sensível ao conteúdo, não só à
     identidade (unidade, competência, campo).
 
-    Causa raiz investigada (homologação set/2026 — FIERGS, linhas de
-    despesa que "desapareciam" depois de salvar duas vezes): `st.data_editor`
-    com `num_rows="dynamic"` mantém seu PRÓPRIO estado interno de
-    linhas adicionadas/editadas/removidas, indexado pela `key` do widget —
-    não pelo argumento `value=df` recebido a cada rerender. A key usada
-    aqui sempre foi estática (só unidade+competência+campo), então depois
-    de Salvar → salvar_parametros grava a lista nova no banco → st.rerun()
-    recarrega a tela → o data_editor é criado de novo com a MESMA key de
-    antes — e o Streamlit tenta reconciliar o `df` recém-carregado (já com
-    as linhas novas e seus ids gerados) contra o estado interno ainda
-    "pendente" da rodada anterior (linhas novas com id em branco, do jeito
-    que o usuário as digitou, antes de qualquer id ser gerado). Dependendo
-    da reconciliação, a segunda tentativa de salvar reconstrói o `id` a
-    partir de um estado incoerente — o efeito observado (linhas some depois
-    de salvar de novo).
+    IMPORTANTE (revisado na homologação set/2026, FIERGS — não trate isto
+    como a correção das linhas que "desapareciam"): a causa raiz comprovada
+    daquele bug é outra — uma célula do `st.data_editor` ainda em edição
+    ativa (aberta, nunca confirmada com Enter/Tab/clique fora) só sincroniza
+    seu valor para o Python num rerun POSTERIOR ao clique que o dispara,
+    nunca no mesmo. Reproduzido ao vivo, com `st.data_editor` de verdade
+    (não bypassado), inclusive DENTRO de `st.form` — `st.form` não resolve
+    esse caso, porque o problema é a célula em si nunca ter sido
+    "confirmada", não a falta de agrupamento de widgets. A correção real é
+    o fluxo de revisão em duas etapas (ver `_aba_parametros`): "Revisar
+    alterações" força o ciclo de rerun que consolida a edição pendente, e a
+    revisão sempre mostra fielmente o que será gravado antes de confirmar.
 
-    A correção recomendada pela própria documentação do Streamlit para
-    "preciso que o widget esqueça o estado anterior quando os dados mudam
-    de baixo pra cima" é trocar a `key` quando o dado mudar — nunca tentar
-    sincronizar manualmente o estado interno do data_editor. Incluir este
-    fingerprint na key garante que, assim que `salvar_parametros` muda o
-    valor persistido, o próximo render usa uma key DIFERENTE — o Streamlit
-    descarta o estado antigo (que já foi salvo, não se perde nada) e
-    inicializa o widget do zero com o `df` fresco do banco, sem nenhuma
-    reconciliação implícita entre os dois."""
+    O que este fingerprint continua resolvendo, de verdade: sem ele, a key
+    do widget era estática (só unidade+competência+campo) — depois de um
+    save bem-sucedido that muda o valor persistido, reabrir a mesma tela
+    reconstruía o data_editor com a MESMA key de antes, e o Streamlit podia
+    reconciliar o `df` fresco do banco contra estado interno antigo do
+    componente em vez de simplesmente adotá-lo. Incluir o fingerprint aqui
+    garante que, sempre que o valor persistido mudar, o próximo render use
+    uma key DIFERENTE — o widget nasce do zero com o dado fresco, sem
+    nenhuma reconciliação implícita. Continua válido e não foi removido."""
     bruto = json.dumps(valor, ensure_ascii=False, sort_keys=True, default=str)
     return hashlib.md5(bruto.encode("utf-8")).hexdigest()[:10]
 
@@ -1046,14 +1084,81 @@ def _aba_parametros(uid: str, u: dict):
         )
         pode_salvar = False
 
-    if st.button("Salvar parâmetros", type="primary", key=f"param_salvar_{uid}", disabled=not pode_salvar):
-        usuario = st.session_state.get("username") or "administracao"
-        salvar_parametros(uid, vigente_a_partir, valores_editados, alterado_por=usuario)
-        load_units(force=True)
-        st.session_state.admin_msg = (
-            f"Parâmetros salvos — vigentes a partir de {_fmt_competencia(vigente_a_partir)}."
+    # Fluxo em duas etapas (Revisar -> Confirmar) só para tipos de cálculo
+    # que têm pelo menos um campo dinâmico (lista_estruturada/mapa_rubricas)
+    # — homologação set/2026, FIERGS: uma célula do `st.data_editor` ainda
+    # em edição ativa (aberta, nunca confirmada com Enter/Tab/clique fora)
+    # só sincroniza seu valor para o Python num rerun POSTERIOR ao clique
+    # que o dispara — nunca no mesmo. "Salvar parâmetros" direto podia
+    # persistir uma grade sem a última linha/edição digitada, silenciosamente
+    # (comprovado com uma reprodução mínima, dentro e fora de st.form — a
+    # causa não é ausência de st.form). "Revisar alterações" primeiro força
+    # exatamente o ciclo de rerun que consolida esse estado, e a revisão
+    # sempre mostra fielmente o que será gravado — nunca relê os widgets no
+    # momento de confirmar. Tipos sem nenhum campo dinâmico (PERCENTUAL_
+    # SIMPLES, COM_ALIQUOTA) mantêm o salvamento direto — não têm esse risco.
+    tem_campo_dinamico = any(
+        c.get("natureza") in ("lista_estruturada", "mapa_rubricas") for c in campos
+    )
+
+    if not tem_campo_dinamico:
+        if st.button("Salvar parâmetros", type="primary", key=f"param_salvar_{uid}", disabled=not pode_salvar):
+            usuario = st.session_state.get("username") or "administracao"
+            salvar_parametros(uid, vigente_a_partir, valores_editados, alterado_por=usuario)
+            load_units(force=True)
+            st.session_state.admin_msg = (
+                f"Parâmetros salvos — vigentes a partir de {_fmt_competencia(vigente_a_partir)}."
+            )
+            st.rerun()
+    else:
+        st.caption(
+            "Antes de revisar: finalize a edição da última célula das tabelas acima "
+            "(pressione Enter ou Tab, ou clique fora da célula) — a revisão só "
+            "reflete o que já foi confirmado na grade."
         )
-        st.rerun()
+        # Chave inclui as duas competências, mesmo padrão do checkbox de
+        # confirmação acima — trocar qualquer uma delas descarta a revisão
+        # pendente automaticamente (session_state[chave_nova] não existe).
+        revisao_key = f"admin_revisao_{uid}_{competencia_ref}_{vigente_a_partir}"
+
+        if st.button("Revisar alterações", type="primary", key=f"param_revisar_{uid}", disabled=not pode_salvar):
+            st.session_state[revisao_key] = {
+                "valores_editados": dict(valores_editados),
+                "vigente_a_partir": vigente_a_partir,
+            }
+            st.rerun()
+
+        snapshot = st.session_state.get(revisao_key)
+        if snapshot is not None:
+            with st.container(border=True):
+                st.markdown(
+                    f"**Revisão — será salvo, vigente a partir de "
+                    f"{_fmt_competencia(snapshot['vigente_a_partir'])}:**"
+                )
+                _renderizar_revisao_alteracoes(campos, snapshot["valores_editados"])
+                rc1, rc2 = st.columns(2)
+                with rc1:
+                    if st.button("Descartar revisão", key=f"param_revisao_cancelar_{uid}",
+                                 use_container_width=True):
+                        st.session_state.pop(revisao_key, None)
+                        st.rerun()
+                with rc2:
+                    if st.button("Confirmar e salvar", type="primary",
+                                 key=f"param_revisao_confirmar_{uid}", use_container_width=True):
+                        usuario = st.session_state.get("username") or "administracao"
+                        # Persiste exatamente o conteúdo apresentado na revisão —
+                        # nunca relê os widgets/editores neste passo.
+                        salvar_parametros(
+                            uid, snapshot["vigente_a_partir"], snapshot["valores_editados"],
+                            alterado_por=usuario,
+                        )
+                        load_units(force=True)
+                        st.session_state.pop(revisao_key, None)
+                        st.session_state.admin_msg = (
+                            f"Parâmetros salvos — vigentes a partir de "
+                            f"{_fmt_competencia(snapshot['vigente_a_partir'])}."
+                        )
+                        st.rerun()
 
     st.divider()
     _secao_historico(uid, tipo_calculo)

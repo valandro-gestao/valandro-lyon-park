@@ -22,7 +22,7 @@ from app.engine import calcular, get_unit, get_unit_com_params, get_unidades_ati
 from app.paths import RUNS_DIR
 from app.models import (
     ResultadoUnidade, get_db, init_db, salvar_lancamento, get_saldo_acumulado,
-    salvar_parametros, corrigir_saldo_anual,
+    salvar_parametros, corrigir_saldo_anual, limpar_rascunho_unidade,
 )
 from app.parsers import eventos as eventos_parser
 from app.parsers import faturamento as fat_parser
@@ -1063,7 +1063,7 @@ def _detalhe_simples(uid: str, u: dict, mes_ref: str,
 
         # ── Resultado: memória de cálculo — mesma estrutura já utilizada ─────
         st.markdown('<p class="section-title">Resultado</p>', unsafe_allow_html=True)
-        r = resultados.get(uid) or rm.load_resultado_from_db(mes_ref, uid)
+        r = resultados.get((uid, mes_ref)) or rm.load_resultado_from_db(mes_ref, uid)
         if r is None:
             st.info("Preencha os parâmetros acima e clique em **Calcular**.")
         else:
@@ -1071,7 +1071,7 @@ def _detalhe_simples(uid: str, u: dict, mes_ref: str,
 
     # ── Barra de decisão final ────────────────────────────────────────────────
     st.divider()
-    _barra_decisao_final(mes_ref, uid, r, resultados, unit_run)
+    _barra_decisao_final(mes_ref, uid, u, r, resultados, unit_run, fat, pe_override, custos_extras)
 
     # ── Histórico ──────────────────────────────────────────────────────────────
     st.divider()
@@ -1253,7 +1253,9 @@ def _acao_calcular(mes_ref: str, uid: str, u: dict,
                     status: str):
     """Ação de rotina, posicionada logo após o último parâmetro — reduz a
     distância entre preencher e calcular. Mesma lógica de app.engine.calcular
-    já existente; nenhuma regra de cálculo foi alterada."""
+    já existente; nenhuma regra de cálculo foi alterada. Só popula o cache de
+    sessão (para exibir o resultado e para "Gerar PDF") — a aprovação
+    (`_aprovar_unidade`) nunca lê este cache, sempre recalcula na hora."""
     c1, _ = st.columns([1, 3])
     with c1:
         if st.button("Calcular", key=f"act_calc_{uid}", use_container_width=True,
@@ -1265,30 +1267,87 @@ def _acao_calcular(mes_ref: str, uid: str, u: dict,
                     resultado = calcular(uid, mes_ref, fat,
                                          custos_extras=custos_extras or None,
                                          pe_override=pe_override)
-                    _salvar_resultado_session(uid, fat, resultado)
-                    st.session_state[f"params_usados_{uid}"] = _coletar_params_usados(
-                        uid, u, pe_override, custos_extras)
+                    _salvar_resultado_session(uid, mes_ref, fat, resultado)
                     st.rerun()
                 except Exception as e:
                     st.error(f"Erro: {e}")
 
 
-def _barra_decisao_final(mes_ref: str, uid: str, r, resultados: dict, unit_run: dict):
-    """Gerar PDF / Baixar PDF / Aprovar / Reabrir — mesma lógica de workflow
-    já existente (nenhuma regra de aprovação, reabertura ou geração de PDF foi
-    alterada). Aprovar só recebe peso visual de ação primária quando já existe
-    um resultado calculado (r); Reabrir, por desfazer uma aprovação, recebe
-    tratamento visual distinto de uma ação sem risco como Baixar PDF."""
+class ErroPosAprovacao(Exception):
+    """Levantada por `_aprovar_unidade` quando o lançamento já foi calculado,
+    salvo como aprovado e teve seu rascunho limpo, mas um passo POSTERIOR
+    (geração de PDF, gravação de parâmetros vigentes, ou marcar o workflow
+    como aprovado) falhou. O chamador NUNCA deve interpretar isto como "nada
+    foi salvo" — precisa reportar o erro (nunca mascarar), mas o lançamento
+    e a limpeza do rascunho já aconteceram e não são desfeitos."""
+
+
+def _aprovar_unidade(uid: str, mes_ref: str, u: dict, fat: float,
+                      pe_override: float | None, custos_extras: dict) -> ResultadoUnidade:
+    """Aprovação completa de uma competência — homologação set/2026 (Viva
+    Trindade): antes, "Aprovar" reaproveitava `st.session_state.resultados`
+    (cache da sessão, sem filtro de competência) ou o último `lancamentos`
+    salvo, sem NUNCA recalcular — então, se uma competência ANTERIOR fosse
+    reprocessada depois (mudando sua saída de prejuízo acumulado), a
+    competência seguinte, se reaprovada sem um "Calcular" manual antes,
+    persistia com uma entrada (`get_saldo_entrada`) já desatualizada. Isso
+    quebrou a cadeia de julho→agosto da Viva Trindade em produção.
+
+    Agora "Aprovar" SEMPRE chama `app.engine.calcular` aqui, na hora —
+    nunca lê `resultados`/`rm.load_resultado_from_db` para decidir o que
+    persistir. `get_saldo_entrada` (chamado dentro de `calcular`) portanto
+    sempre reflete o estado mais atual da cadeia no momento exato da
+    aprovação. Nenhuma fórmula financeira foi alterada — só o MOMENTO em
+    que `calcular` é invocado.
+
+    Uma vez que `salvar_lancamento` tenha sucesso, `limpar_rascunho_unidade`
+    roda IMEDIATAMENTE — antes de PDF/parâmetros/status, e independente do
+    sucesso deles. Antes, a limpeza só acontecia no fim de todo o bloco:
+    uma falha na geração do PDF (WeasyPrint é frágil) deixava o lançamento
+    já aprovado no banco, mas o rascunho daquela competência sobrevivia —
+    contaminando uma reabertura futura com dado obsoleto. PDF/parâmetros/
+    status continuam sendo reportados como erro de verdade (via
+    ErroPosAprovacao) — nunca mascarados; só não desfazem o que já foi
+    persistido."""
+    r_atual = calcular(uid, mes_ref, fat, custos_extras=custos_extras or None, pe_override=pe_override)
+    r_atual.status = "aprovado"
+    r_atual.mes_referencia = mes_ref
+    salvar_lancamento(r_atual)
+
+    limpar_rascunho_unidade(uid, mes_ref)
+
+    try:
+        rm.generate_report(mes_ref, uid, r_atual)
+        params = _coletar_params_usados(uid, u, pe_override, custos_extras or {})
+        if params:
+            salvar_parametros(uid, mes_ref, params, alterado_por="aprovacao")
+        rm.mark_approved(mes_ref, uid)
+    except Exception as e:
+        rm.mark_error(mes_ref, uid, str(e))
+        raise ErroPosAprovacao(str(e)) from e
+
+    return r_atual
+
+
+def _barra_decisao_final(mes_ref: str, uid: str, u: dict, r, resultados: dict, unit_run: dict,
+                          fat: float, pe_override: float | None, custos_extras: dict):
+    """Gerar PDF / Baixar PDF / Aprovar / Reabrir. Aprovar só recebe peso
+    visual de ação primária quando já existe um resultado calculado (r);
+    Reabrir, por desfazer uma aprovação, recebe tratamento visual distinto
+    de uma ação sem risco como Baixar PDF. A regra de aprovação em si vive
+    em `_aprovar_unidade` — sempre recalcula na hora, nunca reaproveita
+    cache de sessão ou o último lançamento salvo (ver sua docstring)."""
     status = unit_run["status"]
 
     # Uma única ferramenta de trabalho — não três caixas independentes.
     with st.container(key="vd-decisao-final"):
         ac1, ac2, ac3, ac4 = st.columns(4)
 
-        # Gerar PDF
+        # Gerar PDF — só RENDERIZA o que já existe (cache desta competência
+        # ou o último lançamento salvo); nunca aprova nem recalcula a cadeia.
         with ac1:
             if st.button("Gerar PDF", key=f"act_pdf_{uid}", use_container_width=True):
-                r_atual = resultados.get(uid) or rm.load_resultado_from_db(mes_ref, uid)
+                r_atual = resultados.get((uid, mes_ref)) or rm.load_resultado_from_db(mes_ref, uid)
                 if r_atual is None:
                     st.error("Calcule antes de gerar o PDF.")
                 else:
@@ -1313,40 +1372,26 @@ def _barra_decisao_final(mes_ref: str, uid: str, r, resultados: dict, unit_run: 
                         use_container_width=True,
                     )
 
-        # Aprovar (PDF + salva + parâmetros + aprovação + volta)
+        # Aprovar (recalcula + salva + parâmetros + aprovação + volta)
         with ac3:
             if status in ("pendente", "gerado", "revisado", "reaberto", "erro"):
                 if st.button("Aprovar", key=f"act_apr_{uid}",
                              type="primary" if r is not None else "secondary",
                              use_container_width=True):
-                    r_atual = resultados.get(uid) or rm.load_resultado_from_db(mes_ref, uid)
-                    if r_atual is None:
-                        st.error("Calcule antes de aprovar.")
+                    if fat <= 0:
+                        st.error("Informe o faturamento antes de aprovar.")
                     else:
                         try:
-                            r_atual.status = "aprovado"
-                            r_atual.mes_referencia = mes_ref
-                            salvar_lancamento(r_atual)
-                            rm.generate_report(mes_ref, uid, r_atual)
-                            params = st.session_state.get(f"params_usados_{uid}")
-                            if not params:
-                                from app.models import _extrair_editaveis
-                                u_cfg = get_unit_com_params(uid, mes_ref)
-                                params = {}
-                                _extrair_editaveis(u_cfg, params)
-                            if params:
-                                salvar_parametros(uid, mes_ref, params, alterado_por="aprovacao")
-                            rm.mark_approved(mes_ref, uid)
-                            # A partir daqui, os parâmetros vigentes (aprovados)
-                            # são a fonte de verdade — o rascunho de trabalho
-                            # desta competência não é mais necessário.
-                            from app.models import limpar_rascunho_unidade
-                            limpar_rascunho_unidade(uid, mes_ref)
-                            st.session_state.selected_unit = None
-                            st.rerun()
+                            r_atual = _aprovar_unidade(uid, mes_ref, u, fat, pe_override, custos_extras)
+                        except ErroPosAprovacao as e:
+                            st.error(f"Lançamento aprovado e salvo, mas houve um erro depois: {e}")
                         except Exception as e:
                             rm.mark_error(mes_ref, uid, str(e))
                             st.error(f"Erro na aprovação: {e}")
+                        else:
+                            _salvar_resultado_session(uid, mes_ref, fat, r_atual)
+                            st.session_state.selected_unit = None
+                            st.rerun()
 
         # Reabrir — desfaz uma aprovação: tratamento visual distinto
         with ac4:
@@ -1573,7 +1618,7 @@ def _detalhe_patio(uid: str, u: dict, mes_ref: str,
     _salvar_rascunho("patio", mes_ref, _CHAVES_PATIO)
 
     st.markdown('<p class="section-title">Resultado</p>', unsafe_allow_html=True)
-    r = resultados.get("patio")
+    r = resultados.get(("patio", mes_ref))
     if r is None:
         st.info("Preencha os dados e clique em **Calcular**.")
     elif isinstance(r, ResultadoPatio):
@@ -1627,7 +1672,7 @@ def _patio_deve_limpar_rascunho(status_real: str, status_maiojama: str) -> bool:
 def _executar_calculo_patio(mes_ref: str, fat: float, extras: dict):
     try:
         resultado = calcular("patio", mes_ref, fat, extras_patio=extras)
-        _salvar_resultado_session("patio", fat, resultado)
+        _salvar_resultado_session("patio", mes_ref, fat, resultado)
         st.rerun()
     except Exception as e:
         st.error(f"Erro: {e}")
@@ -1661,7 +1706,7 @@ def _dialog_confirmar_recalculo_patio(mes_ref: str, fat: float, extras: dict,
 
 
 def _barra_acoes_patio(mes_ref: str, resultados: dict, run: dict):
-    r_patio = resultados.get("patio")
+    r_patio = resultados.get(("patio", mes_ref))
     for sub_uid, split_id in [("patio_real", "real"), ("patio_maiojama", "maiojama")]:
         ur = rm.get_unit_run(mes_ref, sub_uid)
         status = ur["status"]
@@ -2072,13 +2117,22 @@ def _download_zip(mes_ref: str, todos_uids: list, run: dict):
 
 # ─── helpers de sessão ────────────────────────────────────────────────────────
 
-def _salvar_resultado_session(uid: str, fat: float, resultado):
+def _salvar_resultado_session(uid: str, mes_ref: str, fat: float, resultado):
+    """Cacheia o último resultado calculado desta unidade NESTA competência.
+
+    Chaveado por `(uid, mes_ref)`, nunca só por `uid` — homologação set/2026
+    (Viva Trindade): antes, calcular julho e depois agosto (mesma unidade,
+    mesma sessão) sobrescrevia a mesma chave, então aprovar um mês podia
+    silenciosamente reaproveitar o resultado calculado para OUTRO mês. Ver
+    `_aprovar_unidade`, que além disso nunca lê deste cache — sempre
+    recalcula na hora de aprovar; este cache serve só para exibir o
+    resultado de "Calcular" e para o botão "Gerar PDF"."""
     if "resultados" not in st.session_state:
         st.session_state.resultados = {}
-    st.session_state.resultados[uid] = resultado
+    st.session_state.resultados[(uid, mes_ref)] = resultado
     if "faturamentos" not in st.session_state:
         st.session_state.faturamentos = {}
-    st.session_state.faturamentos[uid] = fat
+    st.session_state.faturamentos[(uid, mes_ref)] = fat
 
 
 def _coletar_params_usados(uid: str, u_cfg: dict,
