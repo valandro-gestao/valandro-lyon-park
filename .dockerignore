@@ -45,5 +45,9 @@ scripts/
 # Exceção: executor de migrations necessário em produção
 !scripts/migrate.py
 
+# Exceção: diagnóstico read-only de produção (homologação set/2026) — só
+# faz SELECT, roda via Render Shell (ver docstring do próprio arquivo).
+!scripts/diagnostico_producao_set2026.py
+
 # Configuração do Claude Code — específica do ambiente de desenvolvimento
 .claude/
