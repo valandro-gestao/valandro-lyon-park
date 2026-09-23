@@ -126,6 +126,19 @@ _ITEM_SCHEMA_RUBRICA = [
     {"chave": "valor", "label": "Valor", "tipo_dado": "moeda", "obrigatorio": True, "minimo": 0.0},
 ]
 
+# item_schema SEM sub-campo "Valor" — homologação set/2026, Nilo Square
+# (COM_ALIQUOTA_CUMUL_DU): a Administração define só a estrutura da
+# rubrica (id técnico + nome); o valor é exclusivamente mensal, informado
+# no Fechamento (app.ui.fechamento._inputs_rubricas_du), nunca uma
+# vigência. Reaproveita o MESMO editor genérico (_editor_lista_estruturada
+# monta as colunas a partir do item_schema) — sem "valor" aqui, a tabela da
+# Administração simplesmente não tem essa coluna, nenhuma mudança de
+# código no editor.
+_ITEM_SCHEMA_RUBRICA_SOMENTE_NOME = [
+    {"chave": "id", "label": "Identificador", "tipo_dado": "texto", "obrigatorio": False, "gerado_automaticamente": True},
+    {"chave": "nome", "label": "Rubrica", "tipo_dado": "texto", "obrigatorio": True},
+]
+
 
 SCHEMAS_POR_TIPO: dict[str, dict] = {
 
@@ -301,6 +314,103 @@ SCHEMAS_POR_TIPO: dict[str, dict] = {
                 "obrigatorio": False, "default_tecnico": 0.0,
                 "descricao": "Quando informado, é descontado do aluguel já calculado (repasse cheio), gerando um Saldo a Pagar — diferente de Investimentos, que reduz o resultado antes do repasse. Campo reservado — nunca aparece no editor genérico de rubricas.",
                 "editor": "number_moeda", "aceita_vigencia": True,
+            },
+        ],
+        "validacoes": [
+            {
+                "tipo": "algum_de", "campos": ["percentual_aluguel", "faixas_aluguel"],
+                "mensagem": "Informe o percentual de aluguel ou cadastre as faixas de aluguel.",
+            },
+        ],
+    },
+
+    # ─── COM_ALIQUOTA_CUMUL_DU (caso-piloto Nilo Square — homologação
+    # set/2026) ──────────────────────────────────────────────────────────────
+    # Isolado de COM_ALIQUOTA_CUMUL: nenhuma unidade existente (Viva
+    # Trindade, W Tower, EKOS/OKA etc.) usa este tipo. Ver
+    # app.calculators.cumul_du para a fórmula completa. Os quatro campos
+    # "despesas_*" usam _ITEM_SCHEMA_RUBRICA_SOMENTE_NOME (sem "Valor") —
+    # a Administração define só id+nome; o valor é sempre mensal, informado
+    # no Fechamento, nunca uma vigência nova.
+    "COM_ALIQUOTA_CUMUL_DU": {
+        "campos": [
+            {
+                "chave": "aliquota_imposto", "label": "Alíquota de Imposto",
+                "tipo_dado": "percentual", "natureza": "escalar",
+                "obrigatorio": True, "default_tecnico": 0.0,
+                "descricao": "Percentual de imposto descontado do faturamento antes do cálculo do repasse.",
+                "editor": "number_percent", "aceita_vigencia": True,
+            },
+            {
+                "chave": "ponto_equilibrio", "label": "Ponto de Equilíbrio",
+                "tipo_dado": "moeda", "natureza": "escalar",
+                "obrigatorio": True, "default_tecnico": 0.0,
+                "descricao": "Valor mínimo mensal a partir do qual o repasse passa a ser calculado.",
+                "editor": "number_moeda", "aceita_vigencia": True,
+            },
+            {
+                "chave": "numero_vagas", "label": "Número de Vagas",
+                "tipo_dado": "inteiro", "natureza": "escalar",
+                "obrigatorio": True, "default_tecnico": 0,
+                "descricao": "Usado só no cálculo informativo Valor de Direito de Uso por Vaga — não afeta o Repasse.",
+                "editor": "number_inteiro", "aceita_vigencia": True,
+            },
+            {
+                "chave": "percentual_aluguel", "label": "Percentual de Aluguel",
+                "tipo_dado": "percentual", "natureza": "escalar",
+                "obrigatorio": False, "default_tecnico": 0.0,
+                "descricao": "Percentual aplicado sobre o resultado disponível (já líquido de despesas e prejuízo acumulado). Alternativa às Faixas de Aluguel — configure um dos dois.",
+                "editor": "number_percent", "aceita_vigencia": True,
+                "condicao": "Alternativa a faixas_aluguel — pelo menos um dos dois deve estar configurado.",
+            },
+            {
+                "chave": "faixas_aluguel", "label": "Faixas de Aluguel",
+                "tipo_dado": "json", "natureza": "lista_estruturada",
+                "obrigatorio": False, "default_tecnico": None,
+                "descricao": "Percentuais progressivos por faixa de valor do resultado disponível, em vez de um percentual único. Alternativa ao Percentual de Aluguel — configure um dos dois. As faixas devem estar em ordem crescente. A última pode ficar sem limite.",
+                "editor": "tabela_editavel", "aceita_vigencia": True,
+                "minimo_itens": 1,
+                "estrutura_ordenada": {"campo_limite": "ate"},
+                "item_schema": [
+                    {"chave": "ate", "label": "Até (R$) — vazio = sem limite", "tipo_dado": "moeda", "obrigatorio": False},
+                    {"chave": "percentual", "label": "Percentual da Faixa", "tipo_dado": "percentual", "obrigatorio": True, "minimo": 0.0, "maximo": 1.0},
+                ],
+            },
+            {
+                "chave": "despesas_ressarcimento_du", "label": "Despesas de Ressarcimento de Direito de Uso",
+                "tipo_dado": "moeda", "natureza": "mapa_rubricas",
+                "obrigatorio": False, "default_tecnico": None,
+                "descricao": "Rubricas deduzidas da Receita de Ressarcimento de Direito de Uso, antes da Receita Líquida principal. Estrutura (nomes) definida aqui; valor mensal informado no Fechamento — positivo (despesa normal), negativo (estorno/reembolso) ou zero.",
+                "editor": "tabela_editavel", "aceita_vigencia": True,
+                "permite_adicionar": True, "permite_remover": True,
+                "minimo_itens": 0, "item_schema": _ITEM_SCHEMA_RUBRICA_SOMENTE_NOME,
+            },
+            {
+                "chave": "despesas_rateio_du", "label": "Despesas de Rateio de Direito de Uso",
+                "tipo_dado": "moeda", "natureza": "mapa_rubricas",
+                "obrigatorio": False, "default_tecnico": None,
+                "descricao": "Rubricas deduzidas uma única vez do Resultado principal e, ao mesmo tempo, usadas no cálculo informativo Valor de Direito de Uso por Vaga (Total ÷ Número de Vagas). Estrutura definida aqui; valor mensal no Fechamento — positivo, negativo (estorno) ou zero.",
+                "editor": "tabela_editavel", "aceita_vigencia": True,
+                "permite_adicionar": True, "permite_remover": True,
+                "minimo_itens": 0, "item_schema": _ITEM_SCHEMA_RUBRICA_SOMENTE_NOME,
+            },
+            {
+                "chave": "despesas_operacao", "label": "Despesas da Operação",
+                "tipo_dado": "moeda", "natureza": "mapa_rubricas",
+                "obrigatorio": False, "default_tecnico": None,
+                "descricao": "Rubricas deduzidas antes do Resultado. Estrutura definida aqui; valor mensal no Fechamento — positivo (despesa normal), negativo (estorno/reembolso) ou zero.",
+                "editor": "tabela_editavel", "aceita_vigencia": True,
+                "permite_adicionar": True, "permite_remover": True,
+                "minimo_itens": 0, "item_schema": _ITEM_SCHEMA_RUBRICA_SOMENTE_NOME,
+            },
+            {
+                "chave": "despesas_pos_resultado", "label": "Despesas após Resultado",
+                "tipo_dado": "moeda", "natureza": "mapa_rubricas",
+                "obrigatorio": False, "default_tecnico": None,
+                "descricao": "Rubricas deduzidas depois do Resultado (ex.: Investimentos, Fundo de Recomposição, conforme contrato) — antes do prejuízo acumulado e do repasse. Estrutura definida aqui; valor mensal no Fechamento — positivo, negativo (estorno) ou zero.",
+                "editor": "tabela_editavel", "aceita_vigencia": True,
+                "permite_adicionar": True, "permite_remover": True,
+                "minimo_itens": 0, "item_schema": _ITEM_SCHEMA_RUBRICA_SOMENTE_NOME,
             },
         ],
         "validacoes": [

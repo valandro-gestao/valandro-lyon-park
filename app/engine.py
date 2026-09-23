@@ -7,6 +7,7 @@ from app.models import (
 )
 from app.calculators.base import calcular_percentual_simples, calcular_com_aliquota
 from app.calculators.cumulativo import calcular_com_aliquota_cumul
+from app.calculators.cumul_du import calcular_com_aliquota_cumul_du
 from app.calculators.faixas import calcular_com_faixas
 from app.calculators.split import calcular_com_aliquota_split
 from app.calculators.resultado_split import calcular_resultado_split
@@ -210,6 +211,14 @@ def calcular(unidade_id: str, mes: str, faturamento: float,
                                            saldo_override=saldo_override,
                                            custos_extras=custos_extras,
                                            pe_override=pe_override)
+    elif tipo == "COM_ALIQUOTA_CUMUL_DU":
+        # Caso-piloto Nilo Square (homologação set/2026) — calculator
+        # isolado (app.calculators.cumul_du), nenhuma unidade
+        # COM_ALIQUOTA_CUMUL existente passa por aqui.
+        res = calcular_com_aliquota_cumul_du(cfg, mes, faturamento,
+                                              saldo_override=saldo_override,
+                                              custos_extras=custos_extras,
+                                              pe_override=pe_override)
     elif tipo == "COM_FAIXAS":
         res = calcular_com_faixas(cfg, mes, faturamento,
                                    custos_extras=custos_extras,

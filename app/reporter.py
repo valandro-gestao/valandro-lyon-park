@@ -563,6 +563,64 @@ def _prestacao_repasse_duplo(r: ResultadoUnidade, cfg: dict) -> Prestacao:
     return Prestacao(linhas=linhas)
 
 
+def _prestacao_cumul_du(r: ResultadoUnidade, cfg: dict) -> Prestacao:
+    """PDF de COM_ALIQUOTA_CUMUL_DU (caso-piloto Nilo Square — homologação
+    set/2026). Builder dedicado — não estende _prestacao_padrao, que
+    continua servindo COM_ALIQUOTA/PERCENTUAL_SIMPLES/COM_ALIQUOTA_CUMUL
+    sem nenhuma mudança. Usa só o que app.calculators.cumul_du já
+    retornou; nenhuma fórmula recalculada aqui. Ordem: Faturamento →
+    Impostos → Receita Líquida → Direito de Uso (quando houver) →
+    Subtotal de Receita → Despesas Rateio DU/Operação → PE → Resultado →
+    Despesas Pós-Resultado → Prejuízo Acumulado → Repasse."""
+    extras = r.extras or {}
+    linhas = []
+
+    impostos = round(r.faturamento * r.aliquota_imposto, 2) if r.aliquota_imposto else 0.0
+    receita_liquida = round(r.faturamento - impostos, 2)
+    linhas.append(LinhaPrestacao("Faturamento", r.faturamento, "subtotal"))
+    if impostos:
+        linhas.append(LinhaPrestacao(f"(-) Impostos ({r.aliquota_imposto*100:.2f}%)", -impostos, "deducao"))
+    linhas.append(LinhaPrestacao("Receita Líquida", receita_liquida, "subtotal"))
+
+    receita_du = extras.get("receita_ressarcimento_du") or 0.0
+    despesas_du = extras.get("despesas_ressarcimento_du") or []
+    if receita_du or any(i["valor"] for i in despesas_du):
+        linhas.append(LinhaPrestacao("Receita Ressarcimento DU", receita_du, "subtotal"))
+        for item in despesas_du:
+            if item["valor"]:
+                linhas.append(LinhaPrestacao(f"(-) {item['nome']} (Ressarcimento DU)", -item["valor"], "deducao"))
+        linhas.append(LinhaPrestacao("Ressarcimento Líquido DU",
+                                      extras.get("ressarcimento_liquido_du") or 0.0, "subtotal"))
+
+    linhas.append(LinhaPrestacao("Subtotal de Receita", r.subtotal, "subtotal"))
+
+    for item in extras.get("despesas_rateio_du") or []:
+        if item["valor"]:
+            linhas.append(LinhaPrestacao(f"(-) {item['nome']} (Rateio DU)", -item["valor"], "deducao"))
+    for item in extras.get("despesas_operacao") or []:
+        if item["valor"]:
+            linhas.append(LinhaPrestacao(f"(-) {item['nome']}", -item["valor"], "deducao"))
+    if r.ponto_equilibrio:
+        linhas.append(LinhaPrestacao("(-) Ponto de Equilíbrio", -r.ponto_equilibrio, "deducao"))
+
+    linhas.append(LinhaPrestacao("Resultado", r.resultado, "destaque"))
+
+    for item in extras.get("despesas_pos_resultado") or []:
+        if item["valor"]:
+            linhas.append(LinhaPrestacao(f"(-) {item['nome']}", -item["valor"], "deducao"))
+
+    if r.prejuizo_acumulado_entrada or r.prejuizo_acumulado_saida:
+        linhas.append(LinhaPrestacao("(+/-) Prejuízo Acumulado", r.prejuizo_acumulado_saida, "deducao"))
+
+    linhas.append(LinhaPrestacao("Repasse", r.aluguel_calculado, "total"))
+
+    du_por_vaga = extras.get("du_por_vaga")
+    if du_por_vaga is not None:
+        linhas.append(LinhaPrestacao("Valor de Direito de Uso por Vaga (informativo)", du_por_vaga, "info"))
+
+    return Prestacao(linhas=linhas)
+
+
 def _prestacao_manutencao(r: ResultadoUnidade, cfg: dict) -> Prestacao:
     iss_pct = cfg.get("retencao_iss", 0.05)
     extras = r.extras or {}
@@ -639,6 +697,8 @@ def build_report_data(resultado, mes_ref: str,
         prestacao = _prestacao_repasse_duplo(resultado, cfg)
     elif tipo_cal == "PATIO_MANUTENCAO":
         prestacao = _prestacao_manutencao(resultado, cfg)
+    elif tipo_cal == "COM_ALIQUOTA_CUMUL_DU":
+        prestacao = _prestacao_cumul_du(resultado, cfg)
     else:
         prestacao = _prestacao_padrao(resultado, cfg)
 

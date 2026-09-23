@@ -481,6 +481,70 @@ def _valor_ja_lancado(uid: str, mes_ref: str, item_id: str) -> float | None:
     return extras.get(item_id)
 
 
+def _valor_du_ja_lancado(uid: str, mes_ref: str, grupo: str, item_id: str) -> float | None:
+    """Equivalente a `_valor_ja_lancado`, mas para os 4 grupos de rubricas
+    de COM_ALIQUOTA_CUMUL_DU (Nilo Square) — `extras[grupo]` é uma LISTA
+    itemizada ([{"id","nome","valor"}, ...], ver app.calculators.cumul_du),
+    não um dict plano por id como os demais `extras` — precisa navegar a
+    lista procurando o item pelo id estável."""
+    with get_db() as conn:
+        row = conn.execute(
+            "SELECT resultado_json FROM lancamentos WHERE unidade_id=? AND mes_referencia=?",
+            (uid, mes_ref),
+        ).fetchone()
+    if row is None:
+        return None
+    try:
+        extras = json.loads(row["resultado_json"]).get("extras") or {}
+    except (json.JSONDecodeError, TypeError):
+        return None
+    for item in extras.get(grupo) or []:
+        if item.get("id") == item_id:
+            return item.get("valor")
+    return None
+
+
+_LABEL_GRUPO_DU = {
+    "despesas_ressarcimento_du": "Despesas de Ressarcimento de Direito de Uso",
+    "despesas_rateio_du": "Despesas de Rateio de Direito de Uso",
+    "despesas_operacao": "Despesas da Operação",
+    "despesas_pos_resultado": "Despesas após Resultado",
+}
+
+
+def _inputs_rubricas_du(uid: str, mes_ref: str, grupo: str, itens_cfg: list) -> dict:
+    """Renderiza um number_input ASSINADO (aceita positivo, negativo e
+    zero — convenção operacional: despesa normal = positivo, estorno/
+    reembolso = negativo) para cada rubrica de um dos 4 grupos dinâmicos de
+    COM_ALIQUOTA_CUMUL_DU. Estrutura (id/nome) vem da Administração; o
+    valor é sempre mensal, nunca vigência — mesmo princípio de
+    `_RUBRICAS_MENSAIS_NAO_VIGENCIA`, generalizado para um conjunto de ids
+    dinâmico. Devolve {id: valor}, pronto para custos_extras[grupo]."""
+    itens = normalizar_rubricas(itens_cfg)
+    if not itens:
+        return {}
+    st.caption(f"**{_LABEL_GRUPO_DU.get(grupo, grupo)}:**")
+    valores: dict = {}
+    n = min(3, len(itens))
+    cols = st.columns(n)
+    for i, item in enumerate(itens):
+        key = f"du_{grupo}_{uid}_{item.id}"
+        if key in st.session_state:
+            default = st.session_state[key]
+        else:
+            default = _valor_du_ja_lancado(uid, mes_ref, grupo, item.id)
+            if default is None:
+                default = 0.0
+        with cols[i % n]:
+            val = st.number_input(
+                f"{item.nome} (R$)", step=100.0, format="%.2f",
+                value=float(default), key=key,
+                help="Positivo = despesa normal. Negativo = estorno/reembolso.",
+            )
+        valores[item.id] = val
+    return valores
+
+
 # ─── histórico da unidade por lançamentos ────────────────────────────────────
 
 def _get_historico_lancamentos(uid: str) -> list[dict]:
@@ -1241,6 +1305,31 @@ def _inputs_parametros(uid: str, u: dict, mes_ref: str,
                         st.markdown(f'<div class="vd-param-diff">{diff}</div>', unsafe_allow_html=True)
                 custos_extras[item.id] = val
 
+    # Direito de Uso (COM_ALIQUOTA_CUMUL_DU — caso-piloto Nilo Square):
+    # receita mensal + 4 grupos de rubricas assinadas, todos não-vigência
+    # (mesmo princípio de investimentos/outras_despesas, generalizado).
+    # custos_extras aqui é ANINHADO por grupo (não achatado como
+    # custos_mensais/custos_variaveis acima) — evita colisão de id entre
+    # tabelas independentes; só app.calculators.cumul_du interpreta essas
+    # chaves, nenhum outro calculator é afetado.
+    if tc == "COM_ALIQUOTA_CUMUL_DU":
+        st.caption("**Direito de Uso:**")
+        key_du = f"receita_du_{uid}"
+        if key_du in st.session_state:
+            default_du = st.session_state[key_du]
+        else:
+            default_du = _valor_ja_lancado(uid, mes_ref, "receita_ressarcimento_du")
+            if default_du is None:
+                default_du = 0.0
+        receita_du = st.number_input(
+            "Receita de Ressarcimento de Direito de Uso (R$)",
+            step=100.0, format="%.2f", value=float(default_du), key=key_du,
+        )
+        custos_extras["receita_ressarcimento_du"] = receita_du
+        for grupo in ("despesas_ressarcimento_du", "despesas_rateio_du",
+                      "despesas_operacao", "despesas_pos_resultado"):
+            custos_extras[grupo] = _inputs_rubricas_du(uid, mes_ref, grupo, u.get(grupo))
+
     # Rascunho de trabalho: persiste o estado atual de todos os campos acima
     # a cada rerender — ou seja, a cada alteração feita pela operadora.
     _salvar_rascunho(uid, mes_ref, _chaves_estado_unidade(uid, u))
@@ -1852,12 +1941,67 @@ def _linha_taxa_cobranca(extras: dict, faturamento: float) -> tuple[str, str] | 
     return label, _fmt(-taxa_cob_valor)
 
 
+def _dre_rows_cumul_du(r: ResultadoUnidade) -> list[tuple[str, str]]:
+    """Memória de cálculo de COM_ALIQUOTA_CUMUL_DU (caso-piloto Nilo
+    Square) — usa só o que app.calculators.cumul_du já retornou em
+    `r`/`r.extras`, nunca recalcula. Ordem conforme a fórmula aprovada:
+    Faturamento → Impostos → Receita Líquida → (bloco Direito de Uso,
+    quando houver) → Subtotal de Receita → Despesas Rateio DU/Operação →
+    PE → Resultado → Despesas Pós-Resultado → Prejuízo Acumulado →
+    Repasse."""
+    extras = r.extras or {}
+    rows: list[tuple[str, str]] = []
+
+    impostos = round(r.faturamento * r.aliquota_imposto, 2) if r.aliquota_imposto else 0.0
+    receita_liquida = round(r.faturamento - impostos, 2)
+    rows.append(("Faturamento", _fmt(r.faturamento)))
+    if impostos:
+        rows.append((f"(-) Impostos ({r.aliquota_imposto*100:.2f}%)", _fmt(-impostos)))
+    rows.append(("Receita Líquida", _fmt(receita_liquida)))
+
+    receita_du = extras.get("receita_ressarcimento_du") or 0.0
+    despesas_du = extras.get("despesas_ressarcimento_du") or []
+    if receita_du or any(i["valor"] for i in despesas_du):
+        rows.append(("Receita Ressarcimento DU", _fmt(receita_du)))
+        for item in despesas_du:
+            if item["valor"]:
+                rows.append((f"(-) {item['nome']} (Ressarcimento DU)", _fmt(-item["valor"])))
+        rows.append(("Ressarcimento Líquido DU", _fmt(extras.get("ressarcimento_liquido_du") or 0.0)))
+
+    rows.append(("Subtotal de Receita", _fmt(r.subtotal)))
+
+    for item in extras.get("despesas_rateio_du") or []:
+        if item["valor"]:
+            rows.append((f"(-) {item['nome']} (Rateio DU)", _fmt(-item["valor"])))
+    for item in extras.get("despesas_operacao") or []:
+        if item["valor"]:
+            rows.append((f"(-) {item['nome']}", _fmt(-item["valor"])))
+    if r.ponto_equilibrio:
+        rows.append(("(-) Ponto de Equilíbrio", _fmt(-r.ponto_equilibrio)))
+
+    rows.append(("Resultado", _fmt(r.resultado)))
+
+    for item in extras.get("despesas_pos_resultado") or []:
+        if item["valor"]:
+            rows.append((f"(-) {item['nome']}", _fmt(-item["valor"])))
+
+    if r.prejuizo_acumulado_entrada or r.prejuizo_acumulado_saida:
+        rows.append(("(+/-) Prejuízo Acumulado", _fmt(r.prejuizo_acumulado_saida)))
+
+    rows.append(("Repasse / Aluguel", _fmt(r.aluguel_calculado)))
+    return rows
+
+
 def _dre_rows_unit(r: ResultadoUnidade) -> list[tuple[str, str]]:
     """Constrói as linhas (rótulo, valor formatado) da memória de cálculo de
     _mostrar_resultado_unit — extraído para função pura, testável sem
     Streamlit. Usa só o que o calculator já retornou em `r`/`r.extras`;
     nunca recalcula a fórmula financeira."""
     extras = r.extras or {}
+    if "ressarcimento_liquido_du" in extras:
+        # Sinal orientado a dado (só app.calculators.cumul_du popula essa
+        # chave) — nenhum outro tipo_calculo é afetado por este desvio.
+        return _dre_rows_cumul_du(r)
     aluguel_label = "Saldo a Pagar" if extras.get("saldo_a_pagar") is not None else "Repasse / Aluguel"
     aluguel_val = extras.get("saldo_a_pagar", r.aluguel_calculado)
 
@@ -1939,6 +2083,10 @@ def _mostrar_resultado_unit(r: ResultadoUnidade):
         extras_metrics["Prejuízo Acumulado"] = _fmt(r.prejuizo_acumulado_saida)
     if extras.get("saldo_acumulado"):
         extras_metrics["Saldo Acumulado"] = _fmt(extras["saldo_acumulado"])
+    if extras.get("du_por_vaga") is not None:
+        # Informativo — cobrança de mensalistas (COM_ALIQUOTA_CUMUL_DU,
+        # Nilo Square). Fora da cadeia de repasse, nunca some ao Resultado.
+        extras_metrics["Direito de Uso por Vaga"] = _fmt(extras["du_por_vaga"])
 
     if extras_metrics:
         ecols = st.columns(len(extras_metrics))
