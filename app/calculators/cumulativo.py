@@ -99,8 +99,15 @@ def calcular_com_aliquota_cumul(cfg: dict, mes: str, faturamento: float,
     # app.rubricas, aceita dict legado ou lista nova indistintamente.
     custos = dict(custos_com_overrides(cfg.get("custos_mensais"), custos_extras))
     # Custos extras que não são campos fixos (eventos, etc.)
+    # base_calculo_taxa_cobranca: homologação set/2026 (EKOS/OKA) — é só a
+    # BASE usada para calcular taxa_cobranca_valor (acima), nunca uma
+    # despesa em si; sem esta exclusão ela vazava para o mecanismo genérico
+    # de custos e era somada de novo em total_custos, duplicando a dedução
+    # (confirmado com o fechamento real de julho/2026 da EKOS). Mesma
+    # exclusão que app.calculators.faixas já usa.
     _nao_custo = {"fat_carregadores", "investimentos", "fundo_recomposicao",
-                  "outras_despesas", "ponto_equilibrio_override"}
+                  "outras_despesas", "ponto_equilibrio_override",
+                  "base_calculo_taxa_cobranca"}
     _ids_rubricas = ids_normalizados(cfg.get("custos_mensais"))
     for k, v in (custos_extras or {}).items():
         if k not in custos and k not in _ids_rubricas and k not in _nao_custo and v:

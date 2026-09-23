@@ -270,7 +270,7 @@ def _build_bloco_eventos(mes_ref: str, eventos_data: dict) -> BlocoEventos | Non
     if not eventos_data:
         return None
     ev_mes = eventos_parser.get_eventos_competencia(eventos_data, mes_ref)
-    resumo_anual = eventos_parser.get_resumo_anual(eventos_data)
+    resumo_anual = eventos_parser.get_resumo_anual(eventos_data, ate_mes_ref=mes_ref)
     if not ev_mes and not resumo_anual:
         return None
 

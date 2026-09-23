@@ -1059,7 +1059,7 @@ def _detalhe_simples(uid: str, u: dict, mes_ref: str,
 
         # ── Ação imediata: Calcular, logo após o último parâmetro ────────────
         unit_run = rm.get_unit_run(mes_ref, uid)
-        _acao_calcular(mes_ref, uid, u, fat, pe_override, custos_extras, unit_run["status"])
+        _acao_calcular(mes_ref, uid, u, fat, pe_override, custos_extras)
 
         # ── Resultado: memória de cálculo — mesma estrutura já utilizada ─────
         st.markdown('<p class="section-title">Resultado</p>', unsafe_allow_html=True)
@@ -1249,17 +1249,23 @@ def _inputs_parametros(uid: str, u: dict, mes_ref: str,
 
 
 def _acao_calcular(mes_ref: str, uid: str, u: dict,
-                    fat: float, pe_override: float | None, custos_extras: dict,
-                    status: str):
+                    fat: float, pe_override: float | None, custos_extras: dict):
     """Ação de rotina, posicionada logo após o último parâmetro — reduz a
     distância entre preencher e calcular. Mesma lógica de app.engine.calcular
     já existente; nenhuma regra de cálculo foi alterada. Só popula o cache de
     sessão (para exibir o resultado e para "Gerar PDF") — a aprovação
-    (`_aprovar_unidade`) nunca lê este cache, sempre recalcula na hora."""
-    c1, _ = st.columns([1, 3])
+    (`_aprovar_unidade`) nunca lê este cache, sempre recalcula na hora.
+
+    "Calcular" é sempre a ação primária do Fechamento (mesmo depois do
+    primeiro cálculo — o operador volta a clicar nela toda vez que muda um
+    parâmetro), não só quando a competência ainda está pendente/reaberta:
+    antes disso, o botão ficava "secondary" (visualmente apagado) assim que
+    o status avançava, mesmo continuando sendo a ação mais usada da tela.
+    Melhoria genérica de destaque — nenhum comportamento de clique mudou."""
+    c1, _ = st.columns([1, 2])
     with c1:
         if st.button("Calcular", key=f"act_calc_{uid}", use_container_width=True,
-                     type="primary" if status in ("pendente", "reaberto") else "secondary"):
+                     type="primary"):
             if fat <= 0:
                 st.error("Informe o faturamento.")
             else:

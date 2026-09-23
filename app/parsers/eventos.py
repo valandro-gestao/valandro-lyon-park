@@ -144,9 +144,22 @@ def get_total_competencia(parsed: dict, mes_ref: str) -> float:
     return sum(e["valor_total"] for e in get_eventos_competencia(parsed, mes_ref))
 
 
-def get_resumo_anual(parsed: dict) -> list[dict]:
-    """Retorna o resumo mensal apenas de meses com dados."""
-    return parsed.get("resumo", [])
+def get_resumo_anual(parsed: dict, ate_mes_ref: str | None = None) -> list[dict]:
+    """Retorna o resumo mensal apenas de meses com dados.
+
+    `ate_mes_ref`, quando informado, corta o resumo em `mes_ref <=
+    ate_mes_ref` — a planilha operacional pode conter provisões/eventos de
+    meses futuros (ex.: agosto importado já com linhas de setembro), e o
+    relatório de uma competência não deve mostrar meses posteriores a ela
+    (homologação set/2026, FIERGS). Isso NUNCA altera o que foi importado —
+    `parsed`/o JSON em disco continuam com todos os meses; o corte é só
+    nesta leitura, usada pelo relatório de uma competência específica (ver
+    app.reporter._build_bloco_eventos). Sem `ate_mes_ref`, comportamento
+    idêntico ao anterior (nenhum corte)."""
+    resumo = parsed.get("resumo", [])
+    if ate_mes_ref is None:
+        return resumo
+    return [r for r in resumo if r["mes_ref"] <= ate_mes_ref]
 
 
 # ─── persistência ────────────────────────────────────────────────────────────
