@@ -309,8 +309,31 @@ def _prestacao_padrao(r: ResultadoUnidade, cfg: dict) -> Prestacao:
             linhas.append(LinhaPrestacao("Receita Bruta", r.faturamento, "subtotal"))
 
     if "aliquota" in linhas_cfg and aliq:
-        imposto_valor = round(r.faturamento - r.subtotal, 2)
+        # imposto_valor calculado direto (faturamento × alíquota), não mais
+        # por diferença (faturamento - subtotal): desde que Taxa de
+        # Cobrança também passou a ser deduzida no subtotal (v1.3.0,
+        # COM_ALIQUOTA_CUMUL — ver mais abaixo e app.calculators.
+        # cumulativo), a diferença passaria a incluir as duas deduções
+        # juntas. Mesmo cálculo que _prestacao_faixas já usa.
+        imposto_valor = round(r.faturamento * aliq, 2)
         linhas.append(LinhaPrestacao(f"(-) Impostos ({aliq*100:.2f}%)", -imposto_valor, "deducao"))
+
+        # v1.3.0 (EKOS/OKA — Taxa de Cobrança em COM_ALIQUOTA_CUMUL): mesmo
+        # estágio e mesmo texto que COM_FAIXAS já usa em _prestacao_faixas
+        # — depois do imposto, antes da Receita Líquida/Subtotal. Extras só
+        # é populado por quem realmente usa taxa de cobrança hoje
+        # (app.calculators.cumulativo, app.calculators.faixas via
+        # _prestacao_faixas própria) — inerte para COM_ALIQUOTA/
+        # PERCENTUAL_SIMPLES, que também caem neste builder.
+        taxa_cob_pct = extras.get("taxa_cobranca", 0.0)
+        taxa_cob_valor = extras.get("taxa_cobranca_valor", 0.0)
+        if taxa_cob_pct and taxa_cob_valor:
+            base_taxa_cob = extras.get("base_taxa_cobranca", r.faturamento)
+            bc_fmt = f"R$ {base_taxa_cob:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+            linhas.append(LinhaPrestacao(
+                f"(-) Taxa de Cobrança {taxa_cob_pct*100:.1f}% (BC = {bc_fmt})",
+                -taxa_cob_valor, "deducao"))
+
         linhas.append(LinhaPrestacao("Receita Líquida", r.subtotal, "subtotal"))
 
     if "pe" in linhas_cfg and r.ponto_equilibrio:

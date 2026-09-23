@@ -83,7 +83,17 @@ def calcular_com_aliquota_cumul(cfg: dict, mes: str, faturamento: float,
     fat_carregadores = float((custos_extras or {}).get("fat_carregadores", 0.0))
     faturamento_total = faturamento + fat_carregadores
 
-    subtotal = round(faturamento_total * (1 - aliq), 2)
+    # v1.3.0 — Taxa de Cobrança (homologação set/2026, EKOS/OKA): mesma
+    # regra já usada por COM_FAIXAS (app.calculators.faixas) — base
+    # informada em custos_extras, com fallback para a receita bruta
+    # (faturamento_total) quando não informada; dedução no mesmo estágio do
+    # imposto, antes do subtotal. Nenhuma fórmula nova — só estendendo a
+    # regra existente para este tipo_calculo.
+    taxa_cob_pct = cfg.get("taxa_cobranca", 0.0)
+    base_taxa_cob = float((custos_extras or {}).get("base_calculo_taxa_cobranca", faturamento_total))
+    taxa_cob_valor = round(base_taxa_cob * taxa_cob_pct, 2)
+
+    subtotal = round(faturamento_total * (1 - aliq) - taxa_cob_valor, 2)
 
     # Custos mensais fixos (condomínio, IPTU, etc.) — normalizado via
     # app.rubricas, aceita dict legado ou lista nova indistintamente.
@@ -138,6 +148,14 @@ def calcular_com_aliquota_cumul(cfg: dict, mes: str, faturamento: float,
         prejuizo_saida = round(resultado_com_prejuizo, 2)
 
     extras: dict = {}
+    if taxa_cob_pct:
+        # Mesmas chaves já padronizadas por COM_FAIXAS (app.calculators.
+        # faixas) — reaproveitadas por app.reporter._prestacao_padrao e
+        # app.ui.fechamento (memória de cálculo da tela) sem duplicar a
+        # fórmula em nenhum dos dois lugares.
+        extras["taxa_cobranca"] = taxa_cob_pct
+        extras["base_taxa_cobranca"] = base_taxa_cob
+        extras["taxa_cobranca_valor"] = taxa_cob_valor
     if outras_despesas:
         # Só informativo (mostrado no PDF antes de "Resultado", junto do
         # PE/custos — ver app.reporter._prestacao_padrao). O valor já foi

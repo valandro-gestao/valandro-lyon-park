@@ -1492,8 +1492,30 @@ def _secao_historico_unificada(uid: str, unit_run: dict):
                     (l.get("custos") or {}).get(kk)
                 )))
 
+            # Outras Despesas — dedução ANTES do Resultado (mesma posição e
+            # mesma condição de _mostrar_resultado_unit/PDF, via
+            # _valor_outras_despesas). Só aparece se algum lançamento do
+            # período efetivamente usou essa rubrica.
+            tem_outras_despesas = any(
+                _valor_outras_despesas(l.get("extras")) is not None for l in lancamentos
+            )
+            if tem_outras_despesas:
+                linhas.append(("(-) Outras Despesas",
+                                lambda l: _fmt(_valor_outras_despesas(l.get("extras")))))
+
             # Resultado e aluguel
             linhas.append(("Resultado",               lambda l: _v(l, "resultado")))
+
+            # Investimentos — dedução DEPOIS do Resultado, antes do repasse,
+            # só quando não há saldo_a_pagar (regime pós-repasse antigo, já
+            # refletido no próprio Aluguel/Repasse). Mesma condição do PDF,
+            # via _valor_investimentos.
+            tem_investimentos = any(
+                _valor_investimentos(l.get("extras")) is not None for l in lancamentos
+            )
+            if tem_investimentos:
+                linhas.append(("(-) Investimentos",
+                                lambda l: _fmt(_valor_investimentos(l.get("extras")))))
             # PATIO_MANUTENCAO não tem conceito de repasse — aluguel_calculado
             # é só um valor técnico (= resultado) nessa calculadora, nunca um
             # repasse real (ver app.calculators.patio_manutencao e a mesma
@@ -1784,6 +1806,119 @@ def _barra_acoes_patio(mes_ref: str, resultados: dict, run: dict):
 
 # ─── resultado visual ─────────────────────────────────────────────────────────
 
+def _valor_outras_despesas(extras: dict) -> float | None:
+    """Valor (já negativo, pronto para exibição) da dedução de Outras
+    Despesas na memória de cálculo — mesma condição usada no PDF
+    (app.reporter._prestacao_padrao: extras['outras_despesas'] truthy).
+    Usa só o que o calculator já colocou em extras — não recalcula nada.
+    Retorna None quando a rubrica não se aplica (some da linha)."""
+    v = (extras or {}).get("outras_despesas")
+    return -v if v else None
+
+
+def _valor_investimentos(extras: dict) -> float | None:
+    """Valor (já negativo) da dedução de Investimentos na memória de
+    cálculo — só quando NÃO há saldo_a_pagar (regime v1.2.0, pré-repasse,
+    Viva Trindade); quando há saldo_a_pagar (regime antigo, pós-repasse), o
+    líquido já aparece na própria linha de aluguel/repasse, então essa
+    dedução não é repetida aqui. Mesma condição usada no PDF."""
+    extras = extras or {}
+    v = extras.get("investimentos")
+    if v and "saldo_a_pagar" not in extras:
+        return -v
+    return None
+
+
+def _linha_taxa_cobranca(extras: dict, faturamento: float) -> tuple[str, str] | None:
+    """Linha de Taxa de Cobrança da memória de cálculo — mesmo estágio,
+    mesma condição e mesmo texto que app.reporter._prestacao_padrao/
+    _prestacao_faixas já usam no PDF: depois do imposto, antes do Subtotal/
+    Ponto de Equilíbrio. Usa só o que o calculator já retornou em extras
+    (app.calculators.cumulativo/faixas) — nunca recalcula. Retorna None
+    quando a rubrica não se aplica (some da linha)."""
+    extras = extras or {}
+    taxa_cob_pct = extras.get("taxa_cobranca", 0.0)
+    taxa_cob_valor = extras.get("taxa_cobranca_valor", 0.0)
+    if not (taxa_cob_pct and taxa_cob_valor):
+        return None
+    base_taxa_cob = extras.get("base_taxa_cobranca", faturamento)
+    label = f"(-) Taxa de Cobrança {taxa_cob_pct*100:.1f}% (BC = {_fmt(base_taxa_cob)})"
+    return label, _fmt(-taxa_cob_valor)
+
+
+def _dre_rows_unit(r: ResultadoUnidade) -> list[tuple[str, str]]:
+    """Constrói as linhas (rótulo, valor formatado) da memória de cálculo de
+    _mostrar_resultado_unit — extraído para função pura, testável sem
+    Streamlit. Usa só o que o calculator já retornou em `r`/`r.extras`;
+    nunca recalcula a fórmula financeira."""
+    extras = r.extras or {}
+    aluguel_label = "Saldo a Pagar" if extras.get("saldo_a_pagar") is not None else "Repasse / Aluguel"
+    aluguel_val = extras.get("saldo_a_pagar", r.aluguel_calculado)
+
+    receita_selos = extras.get("receita_selos", 0.0)
+    fat_carregadores = extras.get("fat_carregadores", 0.0)
+    rows: list[tuple[str, str]] = []
+    # (-) Impostos / ISS: calculado direto (faturamento × alíquota), não
+    # mais por diferença (faturamento - subtotal) — desde que Taxa de
+    # Cobrança também passou a ser deduzida no subtotal (v1.3.0,
+    # COM_ALIQUOTA_CUMUL/COM_FAIXAS), a diferença passaria a incluir as
+    # duas deduções juntas. Mesmo cálculo que o PDF já usa
+    # (app.reporter._prestacao_padrao/_prestacao_faixas).
+    imposto_valor = round(r.faturamento * r.aliquota_imposto, 2) if r.aliquota_imposto else None
+    linha_taxa_cobranca = _linha_taxa_cobranca(extras, r.faturamento)
+    if receita_selos:
+        # Fiergs: composição explícita — nunca soma silenciosamente.
+        rows.append(("Faturamento", _fmt(r.faturamento - receita_selos)))
+        rows.append(("Receita de Selos", _fmt(receita_selos)))
+        rows.append(("Receita Bruta", _fmt(r.faturamento)))
+        if r.subtotal and r.subtotal != r.faturamento:
+            if imposto_valor:
+                rows.append(("(-) Impostos / ISS", _fmt(-imposto_valor)))
+            if linha_taxa_cobranca:
+                rows.append(linha_taxa_cobranca)
+            rows.append(("Subtotal", _fmt(r.subtotal)))
+    elif fat_carregadores:
+        # In 1183: Total Faturamento = Estacionamento + Carregadores — mesma
+        # composição explícita já usada no PDF (_prestacao_padrao).
+        rows.append(("Faturamento Estacionamento", _fmt(r.faturamento - fat_carregadores)))
+        rows.append(("(+) Faturamento Carregadores", _fmt(fat_carregadores)))
+        rows.append(("Total Faturamento", _fmt(r.faturamento)))
+        if r.subtotal and r.subtotal != r.faturamento:
+            if imposto_valor:
+                rows.append(("(-) Impostos / ISS", _fmt(-imposto_valor)))
+            if linha_taxa_cobranca:
+                rows.append(linha_taxa_cobranca)
+            rows.append(("Subtotal", _fmt(r.subtotal)))
+    elif r.subtotal and r.subtotal != r.faturamento:
+        rows.append(("Receita Bruta", _fmt(r.faturamento)))
+        if imposto_valor:
+            rows.append(("(-) Impostos / ISS", _fmt(-imposto_valor)))
+        if linha_taxa_cobranca:
+            rows.append(linha_taxa_cobranca)
+        rows.append(("Subtotal", _fmt(r.subtotal)))
+    if r.ponto_equilibrio:
+        rows.append(("(-) Ponto de Equilíbrio", _fmt(-r.ponto_equilibrio)))
+    for k, v in (r.custos or {}).items():
+        if v:
+            rows.append((f"(-) {_custo_label(k)}", _fmt(-v)))
+    v_outras_despesas = _valor_outras_despesas(extras)
+    if v_outras_despesas is not None:
+        rows.append(("(-) Outras Despesas", _fmt(v_outras_despesas)))
+    rows.append(("Resultado", _fmt(r.resultado)))
+    v_investimentos = _valor_investimentos(extras)
+    if v_investimentos is not None:
+        rows.append(("(-) Investimentos", _fmt(v_investimentos)))
+    # PATIO_MANUTENCAO não tem conceito de repasse/aluguel — o campo
+    # aluguel_calculado só existe ali como valor técnico (= resultado, ver
+    # app.calculators.patio_manutencao), nunca um repasse real. O indicador
+    # final dessa unidade é "Saldo Acumulado" (extras_metrics, mostrado
+    # separadamente por _mostrar_resultado_unit), não esta linha.
+    if r.unidade_id != "patio_manutencao":
+        rows.append((aluguel_label, _fmt(aluguel_val)))
+
+    return rows
+
+
 def _mostrar_resultado_unit(r: ResultadoUnidade):
     """Memória de cálculo — mesma estrutura e ordem de linhas já utilizadas
     pela Lyon Park. Os cards que repetiam a primeira e a última linha desta
@@ -1791,9 +1926,6 @@ def _mostrar_resultado_unit(r: ResultadoUnidade):
     valores passa a acontecer uma única vez, aqui."""
     import pandas as pd
     extras = r.extras or {}
-
-    aluguel_label = "Saldo a Pagar" if extras.get("saldo_a_pagar") is not None else "Repasse / Aluguel"
-    aluguel_val = extras.get("saldo_a_pagar", r.aluguel_calculado)
 
     # Métricas que não pertencem à memória de cálculo (não fazem parte da DRE)
     extras_metrics = {}
@@ -1807,45 +1939,7 @@ def _mostrar_resultado_unit(r: ResultadoUnidade):
         for col, (lbl, val) in zip(ecols, extras_metrics.items()):
             col.metric(lbl, val)
 
-    # DRE resumida
-    receita_selos = extras.get("receita_selos", 0.0)
-    fat_carregadores = extras.get("fat_carregadores", 0.0)
-    rows = []
-    if receita_selos:
-        # Fiergs: composição explícita — nunca soma silenciosamente.
-        rows.append(("Faturamento", _fmt(r.faturamento - receita_selos)))
-        rows.append(("Receita de Selos", _fmt(receita_selos)))
-        rows.append(("Receita Bruta", _fmt(r.faturamento)))
-        if r.subtotal and r.subtotal != r.faturamento:
-            rows.append(("(-) Impostos / ISS", _fmt(r.faturamento - r.subtotal)))
-            rows.append(("Subtotal", _fmt(r.subtotal)))
-    elif fat_carregadores:
-        # In 1183: Total Faturamento = Estacionamento + Carregadores — mesma
-        # composição explícita já usada no PDF (_prestacao_padrao).
-        rows.append(("Faturamento Estacionamento", _fmt(r.faturamento - fat_carregadores)))
-        rows.append(("(+) Faturamento Carregadores", _fmt(fat_carregadores)))
-        rows.append(("Total Faturamento", _fmt(r.faturamento)))
-        if r.subtotal and r.subtotal != r.faturamento:
-            rows.append(("(-) Impostos / ISS", _fmt(r.faturamento - r.subtotal)))
-            rows.append(("Subtotal", _fmt(r.subtotal)))
-    elif r.subtotal and r.subtotal != r.faturamento:
-        rows.append(("Receita Bruta", _fmt(r.faturamento)))
-        rows.append(("(-) Impostos / ISS", _fmt(r.faturamento - r.subtotal)))
-        rows.append(("Subtotal", _fmt(r.subtotal)))
-    if r.ponto_equilibrio:
-        rows.append(("(-) Ponto de Equilíbrio", _fmt(-r.ponto_equilibrio)))
-    for k, v in (r.custos or {}).items():
-        if v:
-            rows.append((f"(-) {_custo_label(k)}", _fmt(-v)))
-    rows.append(("Resultado", _fmt(r.resultado)))
-    # PATIO_MANUTENCAO não tem conceito de repasse/aluguel — o campo
-    # aluguel_calculado só existe ali como valor técnico (= resultado, ver
-    # app.calculators.patio_manutencao), nunca um repasse real. O indicador
-    # final dessa unidade é "Saldo Acumulado" (extras_metrics, acima), não
-    # esta linha.
-    if r.unidade_id != "patio_manutencao":
-        rows.append((aluguel_label, _fmt(aluguel_val)))
-
+    rows = _dre_rows_unit(r)
     if rows:
         st.dataframe(
             pd.DataFrame(rows, columns=["", "Valor"]),

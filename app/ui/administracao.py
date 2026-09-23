@@ -698,8 +698,14 @@ def _column_config_editor(sub: dict):
             help=_AJUDA_FORMATO_PERCENTUAL, **kwargs
         )
     if tipo_dado == "moeda":
+        # step define a PRECISÃO de edição da célula no st.data_editor (não é
+        # só o incremento das setinhas) — com um step inteiro (100.0, valor
+        # anterior), o editor bloqueia a digitação do próprio separador
+        # decimal, mesmo que a coluna seja float64 (confirmado ao vivo:
+        # homologação set/2026, FIERGS — "Teste despesa A/B" sem casas
+        # decimais digitáveis). 0.01 = a mesma precisão de "R$ %.2f".
         return st.column_config.NumberColumn(
-            sub["label"], format="R$ %.2f", step=100.0, required=obrigatorio, **kwargs
+            sub["label"], format="R$ %.2f", step=0.01, required=obrigatorio, **kwargs
         )
     return st.column_config.TextColumn(sub["label"], required=obrigatorio)
 
@@ -774,7 +780,17 @@ def _linhas_para_dataframe(itens: list, colunas: list, campo_id: str | None):
     df = pd.DataFrame(linhas, columns=colunas_df)
     for sub in colunas:
         if sub.get("tipo_dado") in ("percentual", "moeda"):
-            df[sub["label"]] = pd.to_numeric(df[sub["label"]], errors="coerce")
+            # pd.to_numeric infere int64 sempre que TODOS os valores atuais
+            # são inteiros (inclusive coluna vazia, sem nenhum item ainda) —
+            # ex.: 100 e 200. Com a coluna int64, o st.data_editor aceita
+            # digitar um valor decimal na célula (visualmente), mas TRUNCA
+            # de volta para inteiro ao devolver o DataFrame editado
+            # (confirmado ao vivo: 123.45 digitado -> 123 persistido).
+            # .astype("float64") garante que um valor com centavos digitado
+            # nunca seja truncado, mesmo quando os valores atuais são todos
+            # "redondos" — sem isso, o fix de step (_column_config_editor)
+            # sozinho não basta.
+            df[sub["label"]] = pd.to_numeric(df[sub["label"]], errors="coerce").astype("float64")
     return df
 
 
@@ -854,8 +870,10 @@ def _editor_faixas_com_limite(uid: str, competencia_ref: str, campo: dict, valor
     column_config = {sub["label"]: _column_config_editor(sub) for sub in colunas}
     # Aqui "Até" é sempre exigido: a faixa sem limite é tratada à parte pelo
     # checkbox abaixo, então toda linha desta grade precisa de um limite real.
+    # step=0.01 (não 100.0) pela mesma razão de _column_config_editor: um
+    # step inteiro bloqueia a digitação do separador decimal na célula.
     column_config[sub_limite["label"]] = st.column_config.NumberColumn(
-        sub_limite["label"], format="R$ %.2f", step=100.0, required=True, min_value=0.01,
+        sub_limite["label"], format="R$ %.2f", step=0.01, required=True, min_value=0.01,
     )
 
     st.caption(
@@ -968,6 +986,18 @@ def _aba_parametros(uid: str, u: dict):
                 'Esta unidade pode estar pronta para ativação — veja o botão "Ativar unidade" '
                 "na aba **Dados da Unidade** (a ativação também confere o início estrutural)."
             )
+
+    # Percentual de Aluguel × Faixas de Aluguel são alternativas (COM_ALIQUOTA_CUMUL
+    # — ver calculadora_schema.py) e o calculator sempre prioriza faixas_aluguel
+    # quando ambos estão configurados (app.calculators.cumulativo). Isso nunca
+    # foi validado como erro (algum_de só exige "pelo menos um") e não vamos
+    # bloquear agora — só tornar visível o que já acontece hoje. Nenhum dos
+    # dois parâmetros é alterado ou apagado por este aviso.
+    if resolver_valor(params_atuais, "percentual_aluguel") and resolver_valor(params_atuais, "faixas_aluguel"):
+        st.warning(
+            "Faixas de Aluguel está configurado e tem prioridade. O Percentual de "
+            "Aluguel não será utilizado no cálculo enquanto houver faixas configuradas."
+        )
 
     st.divider()
 

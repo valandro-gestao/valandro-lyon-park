@@ -217,6 +217,27 @@ SCHEMAS_POR_TIPO: dict[str, dict] = {
                 "editor": "number_moeda", "aceita_vigencia": True,
             },
             {
+                # v1.3.0 — homologação set/2026 (EKOS/OKA): mesmos campos já
+                # existentes em COM_FAIXAS (ver linhas 331-345), replicados
+                # aqui sem alterar significado/fórmula — só para que este
+                # tipo também suporte o que o calculator já passou a usar
+                # (ver app.calculators.cumulativo).
+                "chave": "tem_base_taxa_cobranca", "label": "Tem Taxa de Cobrança",
+                "tipo_dado": "booleano", "natureza": "escalar",
+                "obrigatorio": False, "default_tecnico": False,
+                "descricao": "Liga a cobrança de uma taxa sobre uma base de cálculo informada mês a mês.",
+                "editor": "toggle", "aceita_vigencia": True,
+            },
+            {
+                "chave": "taxa_cobranca", "label": "Percentual da Taxa de Cobrança",
+                "tipo_dado": "percentual", "natureza": "escalar",
+                "obrigatorio_se": {"campo": "tem_base_taxa_cobranca", "igual": True},
+                "default_tecnico": 0.0,
+                "descricao": "Percentual aplicado sobre a base de cálculo da taxa de cobrança.",
+                "editor": "number_percent", "aceita_vigencia": True,
+                "condicao": "Só relevante quando \"Tem Taxa de Cobrança\" está ligado.",
+            },
+            {
                 "chave": "percentual_aluguel", "label": "Percentual de Aluguel",
                 "tipo_dado": "percentual", "natureza": "escalar",
                 "obrigatorio": False, "default_tecnico": 0.0,
