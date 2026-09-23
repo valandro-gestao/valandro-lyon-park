@@ -366,10 +366,20 @@ def _prestacao_padrao(r: ResultadoUnidade, cfg: dict) -> Prestacao:
     if "prejuizo" in linhas_cfg and extras.get("investimentos") and "saldo_a_pagar" not in extras:
         linhas.append(LinhaPrestacao("(-) Investimentos", -extras["investimentos"], "deducao"))
 
-    if "prejuizo" in linhas_cfg:
-        # Sempre mostra quando configurado — mesmo que zero. Mostra a SAÍDA
-        # (saldo já considerando o resultado deste mês, já líquido de
-        # investimentos quando aplicável), não a entrada — ver
+    # v1.3.0 (EKOS/OKA — homologação set/2026): orientado ao DADO do próprio
+    # ResultadoUnidade, não mais a "prejuizo" estar em relatorio.linhas.
+    # COM_ALIQUOTA_CUMUL é o único tipo que passa por este builder e de fato
+    # preenche prejuizo_acumulado_entrada/saida (COM_ALIQUOTA/
+    # PERCENTUAL_SIMPLES nunca tocam esses campos — ficam 0.0/0.0, a linha
+    # continua oculta para eles). Causa raiz: EKOS/OKA nunca tiveram
+    # "prejuizo" no relatorio.linhas herdado (config anterior à correção
+    # deste tipo_calculo) — o PDF pulava de Resultado direto para Repasse
+    # mesmo com o acumulado sendo usado corretamente no cálculo do repasse.
+    # As 6 unidades que já têm "prejuizo" configurado (Viva Trindade, W
+    # Tower etc.) não mudam: a condição por dado já era verdadeira nelas.
+    if r.prejuizo_acumulado_entrada or r.prejuizo_acumulado_saida:
+        # Mostra a SAÍDA (saldo já considerando o resultado deste mês, já
+        # líquido de investimentos quando aplicável), não a entrada — ver
         # app.models.get_saldo_entrada: a entrada é só o ponto de partida
         # do mês, a saída é o saldo real após o mês, que é o que a tela de
         # cálculo já exibe corretamente (ver _mostrar_resultado_unit).

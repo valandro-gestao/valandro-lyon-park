@@ -480,8 +480,13 @@ print()
 print("--- 2g: PDF — ordem correta (Resultado -> Investimentos -> Prejuízo -> Repasse) ---")
 cfg_pdf_viva = {"relatorio": {"linhas": ["resultado", "prejuizo", "aluguel"]}}
 r_pdf_viva = ResultadoUnidade(
+    # prejuizo_acumulado_entrada/saida não-zero: desde a rodada 8 (EKOS/OKA)
+    # a linha "Prejuízo Acumulado" no PDF é orientada ao DADO, não mais a
+    # "prejuizo" estar em relatorio.linhas — um cenário 0.0/0.0 não mostra
+    # mais a linha (ver testes_homologacao_set2026_v8.py), então este teste
+    # de ORDEM precisa de um valor real para continuar exercitando a linha.
     unidade_id="viva_trindade", mes_referencia="2026-08", faturamento=10000.0,
-    resultado=10000.0, prejuizo_acumulado_entrada=0.0, prejuizo_acumulado_saida=0.0,
+    resultado=10000.0, prejuizo_acumulado_entrada=-500.0, prejuizo_acumulado_saida=-500.0,
     aluguel_calculado=6800.0, extras={"investimentos": 2000.0},
 )
 prestacao_viva = _prestacao_padrao(r_pdf_viva, cfg_pdf_viva)
@@ -497,8 +502,10 @@ checar("2g. PDF NÃO mostra mais 'Saldo a Pagar' para Viva Trindade", "Saldo a P
 print("--- 2g.1: PDF — ordem completa com Outras Despesas + Investimentos juntos ---")
 cfg_pdf_viva_completo = {"relatorio": {"linhas": ["resultado", "prejuizo", "aluguel"]}}
 r_pdf_viva_completo = ResultadoUnidade(
+    # Idem acima: valor não-zero para continuar exercitando a linha depois
+    # da rodada 8 (condição orientada a dado, não mais a relatorio.linhas).
     unidade_id="viva_trindade", mes_referencia="2026-08", faturamento=10000.0,
-    resultado=9500.0, prejuizo_acumulado_entrada=0.0, prejuizo_acumulado_saida=0.0,
+    resultado=9500.0, prejuizo_acumulado_entrada=-300.0, prejuizo_acumulado_saida=-300.0,
     aluguel_calculado=7225.0, extras={"outras_despesas": 500.0, "investimentos": 1000.0},
 )
 prestacao_completa = _prestacao_padrao(r_pdf_viva_completo, cfg_pdf_viva_completo)
