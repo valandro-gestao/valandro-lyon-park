@@ -18,6 +18,7 @@ TIPO_CALCULO_LABELS: dict[str, str] = {
     "PERCENTUAL_SIMPLES":         "Percentual Simples",
     "COM_ALIQUOTA":               "Percentual com Imposto",
     "COM_ALIQUOTA_CUMUL":         "Percentual com Imposto e Saldo Acumulado",
+    "COM_ALIQUOTA_CUMUL_DU":      "Percentual com Imposto, Saldo Acumulado e Direito de Uso",
     "COM_FAIXAS":                 "Faixas Progressivas",
     "COM_ALIQUOTA_SPLIT":         "Percentual com Rateio entre Contratantes",
     "RESULTADO_SPLIT":            "Divisão de Resultado (Operador/Contratante)",
@@ -42,6 +43,11 @@ TIPO_CALCULO_DESCRICOES: dict[str, str] = {
         "Funciona como o modelo com imposto, mas compensa meses de "
         "prejuízo com os resultados dos meses seguintes antes de calcular "
         "o repasse."
+    ),
+    "COM_ALIQUOTA_CUMUL_DU": (
+        "Aplica imposto sobre o faturamento, incorpora o resultado líquido "
+        "de Direito de Uso e considera o saldo acumulado antes do cálculo "
+        "do repasse."
     ),
     "COM_FAIXAS": (
         "Aplica percentuais diferentes por faixa de valor do resultado — "
@@ -86,6 +92,7 @@ TIPOS_CALCULO_PARA_CADASTRO: list[str] = [
     "PERCENTUAL_SIMPLES",
     "COM_ALIQUOTA",
     "COM_ALIQUOTA_CUMUL",
+    "COM_ALIQUOTA_CUMUL_DU",
     "COM_FAIXAS",
     "COM_ALIQUOTA_SPLIT",
     "RESULTADO_SPLIT",

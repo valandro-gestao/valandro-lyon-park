@@ -295,6 +295,53 @@ checar("calcular_com_aliquota_cumul não ganhou nenhum campo novo de Direito de 
        "ressarcimento_liquido_du" not in r_ekos.extras and "ressarcimento_liquido_du" not in r_viva.extras)
 
 
+# ═══════════════════════════════════════════════════════════════════════
+# 7. COM_ALIQUOTA_CUMUL_DU aparece na tela "Nova Unidade" com nome amigável;
+#    tipo_relatorio continua só "padrao"/"com_eventos" (nenhuma dimensão nova)
+# ═══════════════════════════════════════════════════════════════════════
+print("=" * 70)
+print("7. Nova Unidade — modelo aparece com label amigável; sem novo tipo_relatorio")
+print("=" * 70)
+from app.calculadora_labels import (
+    TIPO_CALCULO_LABELS, TIPO_CALCULO_DESCRICOES, TIPOS_CALCULO_PARA_CADASTRO,
+    TIPOS_RELATORIO_PARA_CADASTRO,
+)
+
+checar("COM_ALIQUOTA_CUMUL_DU tem label amigável cadastrado",
+       TIPO_CALCULO_LABELS.get("COM_ALIQUOTA_CUMUL_DU") ==
+       "Percentual com Imposto, Saldo Acumulado e Direito de Uso")
+checar("COM_ALIQUOTA_CUMUL_DU tem descrição cadastrada", bool(TIPO_CALCULO_DESCRICOES.get("COM_ALIQUOTA_CUMUL_DU")))
+checar("COM_ALIQUOTA_CUMUL_DU está entre os tipos oferecidos no cadastro de unidade nova",
+       "COM_ALIQUOTA_CUMUL_DU" in TIPOS_CALCULO_PARA_CADASTRO)
+checar("Nenhum tipo_relatorio novo foi criado (continua só padrao/com_eventos)",
+       TIPOS_RELATORIO_PARA_CADASTRO == ["padrao", "com_eventos"])
+
+_APP_PROBE_NOVA = os.path.join(_REPO_ROOT, "tests", "_probe_nova_unidade_v9.py")
+with open(_APP_PROBE_NOVA, "w") as f:
+    f.write(f'''
+import os
+os.environ["DATA_DIR"] = {_SCRATCH!r}
+import sys
+sys.path.insert(0, {_REPO_ROOT!r})
+import streamlit as st
+st.session_state.admin_view = "nova"
+from app.ui.administracao import tela_administracao_unidades
+tela_administracao_unidades()
+''')
+try:
+    at_nova = AppTest.from_file(_APP_PROBE_NOVA, default_timeout=60)
+    at_nova.run()
+    checar("Tela 'Nova Unidade' renderiza sem exceção", len(at_nova.exception) == 0)
+    sb_modelo = next(sb for sb in at_nova.selectbox if sb.label == "Modelo de cálculo")
+    checar("'Percentual com Imposto, Saldo Acumulado e Direito de Uso' aparece nas opções de Modelo de cálculo",
+           "Percentual com Imposto, Saldo Acumulado e Direito de Uso" in sb_modelo.options)
+    sb_relatorio = next(sb for sb in at_nova.selectbox if sb.label == "Tipo de relatório")
+    checar("Tipo de relatório continua só com Padrão/Com Eventos (sem dimensão nova)",
+           set(sb_relatorio.options) == {"Padrão", "Com Eventos"})
+finally:
+    os.remove(_APP_PROBE_NOVA)
+
+
 print("=" * 70)
 if _falhas:
     print(f"FALHAS: {len(_falhas)}")
