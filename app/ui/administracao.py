@@ -1004,6 +1004,20 @@ def _aba_parametros(uid: str, u: dict):
     st.markdown("**Parâmetros do modelo**")
     valores_editados = {}
     compostos_invalidos = False
+    # Snapshot CORRENTE: params_atuais (persistido) sobreposto pelo que já
+    # foi digitado nesta mesma renderização, campo a campo, à medida que o
+    # loop avança. Homologação set/2026 (Nilo Square) — a validação cruzada
+    # "algum_de" (percentual_aluguel/faixas_aluguel) lia só params_atuais
+    # (o banco, ANTES desta edição): digitar percentual_aluguel=70% pela
+    # primeira vez e deixar faixas_aluguel vazia disparava "Informe o
+    # percentual ou cadastre as faixas" mesmo com o percentual já digitado,
+    # porque esse valor só existia em valores_editados, nunca em
+    # params_atuais, no momento em que faixas_aluguel era validada. Como
+    # percentual_aluguel vem antes de faixas_aluguel no schema (COM_
+    # ALIQUOTA_CUMUL e COM_ALIQUOTA_CUMUL_DU), passar este snapshot
+    # corrente — não params_atuais cru — resolve genericamente, sem tocar
+    # schema nem regra de negócio.
+    params_correntes = dict(params_atuais)
     for campo in campos:
         chave = campo["chave"]
         natureza = campo.get("natureza", "escalar")
@@ -1017,15 +1031,16 @@ def _aba_parametros(uid: str, u: dict):
                 st.caption(campo["descricao"])
             if natureza == "mapa_rubricas":
                 itens_editados, valido = _editor_mapa_rubricas(
-                    uid, competencia_ref, campo, valor_atual, params_atuais, tipo_calculo,
+                    uid, competencia_ref, campo, valor_atual, params_correntes, tipo_calculo,
                 )
                 from app.rubricas import normalizar_rubricas, para_persistencia
                 valor_comparacao = para_persistencia(normalizar_rubricas(valor_atual))
             else:
                 itens_editados, valido = _editor_lista_estruturada(
-                    uid, competencia_ref, campo, valor_atual, params_atuais, tipo_calculo,
+                    uid, competencia_ref, campo, valor_atual, params_correntes, tipo_calculo,
                 )
                 valor_comparacao = valor_atual or []
+            params_correntes[chave] = itens_editados
             if not valido:
                 compostos_invalidos = True
             elif itens_editados != valor_comparacao:
@@ -1075,6 +1090,7 @@ def _aba_parametros(uid: str, u: dict):
             # de que dependia de outro toggle (homologação set/2026, EKOS).
             st.caption(f"ℹ️ {campo['condicao']}")
         valores_editados[chave] = novo_valor
+        params_correntes[chave] = novo_valor
 
     st.divider()
 

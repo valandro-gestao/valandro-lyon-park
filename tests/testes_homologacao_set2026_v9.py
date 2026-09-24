@@ -98,13 +98,26 @@ delta_du_vaga_real = round(r_outro.extras["du_por_vaga"] - r_golden.extras["du_p
 checar("du_por_vaga varia na mesma proporção do total de Rateio DU (mesma fonte, só dividida pelas vagas)",
        abs(delta_du_vaga_real - delta_du_vaga_esperado) < 0.01)
 
+# Nota (rodada 10): a Prestação de Contas da Nilo passou a ser em blocos —
+# _prestacao_cumul_du (Bloco 1/Resumo) mostra só o total de Ressarcimento
+# Líquido DU; o detalhamento (rubricas + Valor de Direito de Uso por Vaga)
+# passou para os blocos de app.reporter._blocos_cumul_du (Blocos 2/3) — ver
+# tests/testes_homologacao_set2026_v10.py para a cobertura completa dessa
+# estrutura. Aqui só confirma que o golden desta rodada continua valendo
+# nos dois lugares.
+from app.reporter import _blocos_cumul_du
+
 prest_golden = _prestacao_cumul_du(r_golden, CFG_NILO)
 labels_golden = [l.descricao for l in prest_golden.linhas]
-checar("PDF mostra 'Ressarcimento Líquido DU'", "Ressarcimento Líquido DU" in labels_golden)
-checar("PDF mostra 'Valor de Direito de Uso por Vaga (informativo)'",
-       any("Direito de Uso por Vaga" in l for l in labels_golden))
-du_vaga_pdf = next(l.valor for l in prest_golden.linhas if "Direito de Uso por Vaga" in l.descricao)
-checar("PDF: Direito de Uso por Vaga = 209.44", du_vaga_pdf == 209.44)
+checar("Bloco 1 (Resumo) mostra o total de Ressarcimento Líquido DU",
+       any("Ressarcimento Líquido DU" in l for l in labels_golden))
+checar("Bloco 1 (Resumo) NÃO detalha Valor de Direito de Uso por Vaga (rodada 10 — foi para o Bloco 3)",
+       not any("por Vaga" in l for l in labels_golden))
+
+blocos_golden = _blocos_cumul_du(r_golden)
+bloco_rateio = next(b for b in blocos_golden if b.titulo == "Rateio de Direito de Uso")
+du_vaga_bloco3 = next(l.valor for l in bloco_rateio.linhas if "por Vaga" in l.descricao)
+checar("Bloco 3 (Rateio DU) mostra Valor de Direito de Uso por Vaga = 209.44", du_vaga_bloco3 == 209.44)
 
 rows_golden = dict(_dre_rows_unit(r_golden))
 checar("Memória da tela mostra 'Ressarcimento Líquido DU' = R$ 126.948,03",
@@ -215,10 +228,11 @@ qtd_vigencias_antes = len(rows_antes)
 checar("Estrutura de julho continua vigente em agosto (sem nova vigência criada pelo cálculo)",
        "despesas_ressarcimento_du" in rows_antes)
 
-prest_e2e = _prestacao_cumul_du(r_e2e, cfg_e2e)
-checar("PDF ponta a ponta mostra a rubrica 'Proprietários' com o valor mensal informado",
-       any(l.descricao == "(-) Proprietários (Ressarcimento DU)" and l.valor == -20000.0
-           for l in prest_e2e.linhas))
+blocos_e2e = _blocos_cumul_du(r_e2e)
+bloco_ressarc_e2e = next(b for b in blocos_e2e if b.titulo == "Ressarcimento de Direito de Uso")
+checar("PDF ponta a ponta (Bloco 2) mostra a rubrica 'Proprietários' com o valor mensal informado",
+       any(l.descricao == "(-) Proprietários" and l.valor == -20000.0
+           for l in bloco_ressarc_e2e.linhas))
 
 
 # ═══════════════════════════════════════════════════════════════════════

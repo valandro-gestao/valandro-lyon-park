@@ -504,6 +504,36 @@ def _valor_du_ja_lancado(uid: str, mes_ref: str, grupo: str, item_id: str) -> fl
     return None
 
 
+def _valor_du_sugerido(uid: str, mes_ref: str, grupo: str, item_id: str) -> float | None:
+    """Sugestão de default para uma rubrica de Direito de Uso quando a
+    competência atual ainda não tem NENHUM valor próprio (sem edição em
+    andamento, sem rascunho, sem lançamento) — busca o lançamento anterior
+    MAIS RECENTE que exista (`mes_referencia < mes_ref`, cadeia real, não
+    "mês civil - 1" — mesmo princípio de app.models.get_saldo_entrada) e
+    procura o item pelo id estável. É só um PONTO DE PARTIDA editável: o
+    valor final que for calculado/salvo desta competência nunca sobrescreve
+    o lançamento anterior (grava só em resultado_json desta competência —
+    ver _inputs_rubricas_du) e uma rubrica nova (sem correspondente no
+    lançamento anterior) simplesmente não encontra nada aqui, caindo no
+    fallback final de 0.0 em _inputs_rubricas_du."""
+    with get_db() as conn:
+        row = conn.execute(
+            "SELECT resultado_json FROM lancamentos WHERE unidade_id=? AND mes_referencia<? "
+            "ORDER BY mes_referencia DESC LIMIT 1",
+            (uid, mes_ref),
+        ).fetchone()
+    if row is None:
+        return None
+    try:
+        extras = json.loads(row["resultado_json"]).get("extras") or {}
+    except (json.JSONDecodeError, TypeError):
+        return None
+    for item in extras.get(grupo) or []:
+        if item.get("id") == item_id:
+            return item.get("valor")
+    return None
+
+
 _LABEL_GRUPO_DU = {
     "despesas_ressarcimento_du": "Despesas de Ressarcimento de Direito de Uso",
     "despesas_rateio_du": "Despesas de Rateio de Direito de Uso",
@@ -519,7 +549,18 @@ def _inputs_rubricas_du(uid: str, mes_ref: str, grupo: str, itens_cfg: list) -> 
     COM_ALIQUOTA_CUMUL_DU. Estrutura (id/nome) vem da Administração; o
     valor é sempre mensal, nunca vigência — mesmo princípio de
     `_RUBRICAS_MENSAIS_NAO_VIGENCIA`, generalizado para um conjunto de ids
-    dinâmico. Devolve {id: valor}, pronto para custos_extras[grupo]."""
+    dinâmico. Devolve {id: valor}, pronto para custos_extras[grupo].
+
+    Ordem de resolução do default (homologação set/2026, Nilo Square):
+      1. edição em andamento nesta sessão / rascunho da própria competência
+         (`st.session_state[key]` — já populado por `_restaurar_rascunho`
+         a partir de `carregar_rascunho_unidade`, desde que a chave esteja
+         em `_chaves_estado_unidade`);
+      2. lançamento já calculado/aprovado DESTA competência
+         (`_valor_du_ja_lancado` — nunca sobrescrito por sugestão);
+      3. lançamento anterior mais recente, só como SUGESTÃO editável
+         (`_valor_du_sugerido`);
+      4. zero (rubrica nova, sem histórico)."""
     itens = normalizar_rubricas(itens_cfg)
     if not itens:
         return {}
@@ -533,6 +574,8 @@ def _inputs_rubricas_du(uid: str, mes_ref: str, grupo: str, itens_cfg: list) -> 
             default = st.session_state[key]
         else:
             default = _valor_du_ja_lancado(uid, mes_ref, grupo, item.id)
+            if default is None:
+                default = _valor_du_sugerido(uid, mes_ref, grupo, item.id)
             if default is None:
                 default = 0.0
         with cols[i % n]:
@@ -655,6 +698,16 @@ def _chaves_estado_unidade(uid: str, u: dict) -> list[str]:
         chaves.append(f"custo_{uid}_{item.id}")
     for item in normalizar_rubricas(u.get("custos_variaveis")):
         chaves.append(f"cv_{uid}_{item.id}")
+    if tc == "COM_ALIQUOTA_CUMUL_DU":
+        # Homologação set/2026 (Nilo Square) — sem isso, o rascunho dos 4
+        # grupos de rubricas e da receita de Direito de Uso não sobrevive a
+        # um refresh de página (_salvar_rascunho/_restaurar_rascunho só
+        # tocam as chaves listadas aqui).
+        chaves.append(f"receita_du_{uid}")
+        for grupo in ("despesas_ressarcimento_du", "despesas_rateio_du",
+                      "despesas_operacao", "despesas_pos_resultado"):
+            for item in normalizar_rubricas(u.get(grupo)):
+                chaves.append(f"du_{grupo}_{uid}_{item.id}")
     return chaves
 
 

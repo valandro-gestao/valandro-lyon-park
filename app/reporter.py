@@ -565,13 +565,16 @@ def _prestacao_repasse_duplo(r: ResultadoUnidade, cfg: dict) -> Prestacao:
 
 def _prestacao_cumul_du(r: ResultadoUnidade, cfg: dict) -> Prestacao:
     """PDF de COM_ALIQUOTA_CUMUL_DU (caso-piloto Nilo Square — homologação
-    set/2026). Builder dedicado — não estende _prestacao_padrao, que
-    continua servindo COM_ALIQUOTA/PERCENTUAL_SIMPLES/COM_ALIQUOTA_CUMUL
-    sem nenhuma mudança. Usa só o que app.calculators.cumul_du já
-    retornou; nenhuma fórmula recalculada aqui. Ordem: Faturamento →
-    Impostos → Receita Líquida → Direito de Uso (quando houver) →
-    Subtotal de Receita → Despesas Rateio DU/Operação → PE → Resultado →
-    Despesas Pós-Resultado → Prejuízo Acumulado → Repasse."""
+    set/2026) — Bloco 1 / Resumo Geral, EXECUTIVO: só totais, nenhuma
+    rubrica individual (o detalhamento fica nos blocos de
+    `_blocos_cumul_du`, ver `ReportData.blocos_receitas`). Builder
+    dedicado — não estende _prestacao_padrao, que continua servindo
+    COM_ALIQUOTA/PERCENTUAL_SIMPLES/COM_ALIQUOTA_CUMUL sem nenhuma
+    mudança. Usa só o que app.calculators.cumul_du já retornou; nenhuma
+    fórmula recalculada aqui. Ordem: Faturamento → Impostos → Receita
+    Líquida → Ressarcimento Líquido DU → Subtotal de Receita → Total
+    Despesas Rateio DU/Operação → PE → Resultado → Total Despesas
+    Pós-Resultado → Prejuízo Acumulado → Repasse."""
     extras = r.extras or {}
     linhas = []
 
@@ -585,40 +588,103 @@ def _prestacao_cumul_du(r: ResultadoUnidade, cfg: dict) -> Prestacao:
     receita_du = extras.get("receita_ressarcimento_du") or 0.0
     despesas_du = extras.get("despesas_ressarcimento_du") or []
     if receita_du or any(i["valor"] for i in despesas_du):
-        linhas.append(LinhaPrestacao("Receita Ressarcimento DU", receita_du, "subtotal"))
-        for item in despesas_du:
-            if item["valor"]:
-                linhas.append(LinhaPrestacao(f"(-) {item['nome']} (Ressarcimento DU)", -item["valor"], "deducao"))
-        linhas.append(LinhaPrestacao("Ressarcimento Líquido DU",
-                                      extras.get("ressarcimento_liquido_du") or 0.0, "subtotal"))
+        linhas.append(LinhaPrestacao("(+) Ressarcimento Líquido DU",
+                                      extras.get("ressarcimento_liquido_du") or 0.0, "normal"))
 
     linhas.append(LinhaPrestacao("Subtotal de Receita", r.subtotal, "subtotal"))
 
-    for item in extras.get("despesas_rateio_du") or []:
-        if item["valor"]:
-            linhas.append(LinhaPrestacao(f"(-) {item['nome']} (Rateio DU)", -item["valor"], "deducao"))
-    for item in extras.get("despesas_operacao") or []:
-        if item["valor"]:
-            linhas.append(LinhaPrestacao(f"(-) {item['nome']}", -item["valor"], "deducao"))
+    total_rateio_du = extras.get("total_despesas_rateio_du") or 0.0
+    if total_rateio_du:
+        linhas.append(LinhaPrestacao("(-) Total Despesas Rateio DU", -total_rateio_du, "deducao"))
+    total_operacao = extras.get("total_despesas_operacao") or 0.0
+    if total_operacao:
+        linhas.append(LinhaPrestacao("(-) Total Despesas da Operação", -total_operacao, "deducao"))
     if r.ponto_equilibrio:
         linhas.append(LinhaPrestacao("(-) Ponto de Equilíbrio", -r.ponto_equilibrio, "deducao"))
 
     linhas.append(LinhaPrestacao("Resultado", r.resultado, "destaque"))
 
-    for item in extras.get("despesas_pos_resultado") or []:
-        if item["valor"]:
-            linhas.append(LinhaPrestacao(f"(-) {item['nome']}", -item["valor"], "deducao"))
+    total_pos_resultado = extras.get("total_despesas_pos_resultado") or 0.0
+    if total_pos_resultado:
+        linhas.append(LinhaPrestacao("(-) Total Despesas após Resultado", -total_pos_resultado, "deducao"))
 
     if r.prejuizo_acumulado_entrada or r.prejuizo_acumulado_saida:
         linhas.append(LinhaPrestacao("(+/-) Prejuízo Acumulado", r.prejuizo_acumulado_saida, "deducao"))
 
     linhas.append(LinhaPrestacao("Repasse", r.aluguel_calculado, "total"))
 
-    du_por_vaga = extras.get("du_por_vaga")
-    if du_por_vaga is not None:
-        linhas.append(LinhaPrestacao("Valor de Direito de Uso por Vaga (informativo)", du_por_vaga, "info"))
-
     return Prestacao(linhas=linhas)
+
+
+def _blocos_cumul_du(r: ResultadoUnidade) -> list[BlocoReceita]:
+    """Blocos 2-5 da Prestação de Contas de COM_ALIQUOTA_CUMUL_DU — as
+    memórias que explicam os totais do Bloco 1 (Resumo Geral,
+    `_prestacao_cumul_du`). Usa só `r.extras` (já calculado por
+    app.calculators.cumul_du); nenhum valor recalculado aqui. Mesma
+    infraestrutura que app.reporter._build_patio já usa para os blocos de
+    Outros Serviços/Carregadores (`ReportData.blocos_receitas` — nenhum
+    template novo, nenhum tipo_relatorio novo)."""
+    extras = r.extras or {}
+    blocos: list[BlocoReceita] = []
+
+    # Bloco 2 — Ressarcimento de Direito de Uso. Receita aparece
+    # explicitamente, como pedido — não é só a dedução das rubricas.
+    receita_du = extras.get("receita_ressarcimento_du") or 0.0
+    despesas_du = extras.get("despesas_ressarcimento_du") or []
+    if receita_du or any(i["valor"] for i in despesas_du):
+        linhas_du = [LinhaPrestacao("Receita Ressarcimento DU", receita_du, "subtotal")]
+        for item in despesas_du:
+            if item["valor"]:
+                linhas_du.append(LinhaPrestacao(f"(-) {item['nome']}", -item["valor"], "deducao"))
+        linhas_du.append(LinhaPrestacao("Ressarcimento Líquido DU",
+                                         extras.get("ressarcimento_liquido_du") or 0.0, "total"))
+        blocos.append(BlocoReceita(titulo="Ressarcimento de Direito de Uso", linhas=linhas_du))
+
+    # Bloco 3 — Rateio de Direito de Uso (mesmo total que deduz uma única
+    # vez o Bloco 1 e alimenta o Valor por Vaga — nenhuma dupla dedução,
+    # ver app.calculators.cumul_du).
+    despesas_rateio = extras.get("despesas_rateio_du") or []
+    if any(i["valor"] for i in despesas_rateio):
+        linhas_rateio = [
+            LinhaPrestacao(item["nome"], item["valor"], "normal")
+            for item in despesas_rateio if item["valor"]
+        ]
+        linhas_rateio.append(LinhaPrestacao("Total Despesas Rateio DU",
+                                             extras.get("total_despesas_rateio_du") or 0.0, "total"))
+        numero_vagas = extras.get("numero_vagas")
+        if numero_vagas:
+            linhas_rateio.append(LinhaPrestacao("Número de Vagas", numero_vagas, "normal"))
+        du_por_vaga = extras.get("du_por_vaga")
+        if du_por_vaga is not None:
+            linhas_rateio.append(LinhaPrestacao("Valor de Direito de Uso por Vaga", du_por_vaga, "destaque"))
+        blocos.append(BlocoReceita(titulo="Rateio de Direito de Uso", linhas=linhas_rateio))
+
+    # Bloco 4 — Despesas da Operação.
+    despesas_operacao = extras.get("despesas_operacao") or []
+    if any(i["valor"] for i in despesas_operacao):
+        linhas_operacao = [
+            LinhaPrestacao(item["nome"], item["valor"], "normal")
+            for item in despesas_operacao if item["valor"]
+        ]
+        linhas_operacao.append(LinhaPrestacao("Total Despesas da Operação",
+                                               extras.get("total_despesas_operacao") or 0.0, "total"))
+        blocos.append(BlocoReceita(titulo="Despesas da Operação", linhas=linhas_operacao))
+
+    # Bloco 5 (excepcional) — Despesas após Resultado: só existe quando a
+    # unidade tem rubricas configuradas neste grupo (ex.: Investimentos,
+    # Fundo de Recomposição, conforme contrato) — nunca misturado com
+    # Despesas da Operação, que é uma etapa diferente da fórmula.
+    despesas_pos = extras.get("despesas_pos_resultado") or []
+    if any(i["valor"] for i in despesas_pos):
+        linhas_pos = [
+            LinhaPrestacao(item["nome"], item["valor"], "normal")
+            for item in despesas_pos if item["valor"]
+        ]
+        linhas_pos.append(LinhaPrestacao("Total Despesas após Resultado",
+                                          extras.get("total_despesas_pos_resultado") or 0.0, "total"))
+        blocos.append(BlocoReceita(titulo="Despesas após Resultado", linhas=linhas_pos))
+
+    return blocos
 
 
 def _prestacao_manutencao(r: ResultadoUnidade, cfg: dict) -> Prestacao:
@@ -713,6 +779,15 @@ def build_report_data(resultado, mes_ref: str,
             ev_data = eventos_parser.load(mes_ref)
         bloco_eventos = _build_bloco_eventos(mes_ref, ev_data)
 
+    # Blocos de Direito de Uso (Ressarcimento/Rateio/Operação/Pós-Resultado)
+    # — homologação set/2026, Nilo Square. Mesma infraestrutura já usada
+    # pelo Pátio (blocos_receitas); condicionado por tipo_calculo, não por
+    # tipo_relatorio — nenhum template novo. Inerte para qualquer outra
+    # unidade (lista vazia, template já trata isso).
+    blocos_receitas: list[BlocoReceita] = []
+    if tipo_cal == "COM_ALIQUOTA_CUMUL_DU":
+        blocos_receitas = _blocos_cumul_du(resultado)
+
     return ReportData(
         unidade=unidade,
         cards=cards,
@@ -720,6 +795,7 @@ def build_report_data(resultado, mes_ref: str,
         prestacao=prestacao,
         historico=historico,
         bloco_eventos=bloco_eventos,
+        blocos_receitas=blocos_receitas,
         comparativo_meses_disponiveis=n_meses,
     )
 
