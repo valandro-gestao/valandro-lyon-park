@@ -504,18 +504,12 @@ def _valor_du_ja_lancado(uid: str, mes_ref: str, grupo: str, item_id: str) -> fl
     return None
 
 
-def _valor_du_sugerido(uid: str, mes_ref: str, grupo: str, item_id: str) -> float | None:
-    """Sugestão de default para uma rubrica de Direito de Uso quando a
-    competência atual ainda não tem NENHUM valor próprio (sem edição em
-    andamento, sem rascunho, sem lançamento) — busca o lançamento anterior
-    MAIS RECENTE que exista (`mes_referencia < mes_ref`, cadeia real, não
-    "mês civil - 1" — mesmo princípio de app.models.get_saldo_entrada) e
-    procura o item pelo id estável. É só um PONTO DE PARTIDA editável: o
-    valor final que for calculado/salvo desta competência nunca sobrescreve
-    o lançamento anterior (grava só em resultado_json desta competência —
-    ver _inputs_rubricas_du) e uma rubrica nova (sem correspondente no
-    lançamento anterior) simplesmente não encontra nada aqui, caindo no
-    fallback final de 0.0 em _inputs_rubricas_du."""
+def _extras_lancamento_anterior(uid: str, mes_ref: str) -> dict | None:
+    """`extras` do lançamento anterior MAIS RECENTE que exista
+    (`mes_referencia < mes_ref`, cadeia real, não "mês civil - 1" — mesmo
+    princípio de app.models.get_saldo_entrada) — base compartilhada de toda
+    sugestão de valor mensal de Direito de Uso (escalar ou rubrica). None
+    quando não existe nenhum lançamento anterior."""
     with get_db() as conn:
         row = conn.execute(
             "SELECT resultado_json FROM lancamentos WHERE unidade_id=? AND mes_referencia<? "
@@ -525,13 +519,36 @@ def _valor_du_sugerido(uid: str, mes_ref: str, grupo: str, item_id: str) -> floa
     if row is None:
         return None
     try:
-        extras = json.loads(row["resultado_json"]).get("extras") or {}
+        return json.loads(row["resultado_json"]).get("extras") or {}
     except (json.JSONDecodeError, TypeError):
+        return None
+
+
+def _valor_du_sugerido(uid: str, mes_ref: str, grupo: str, item_id: str) -> float | None:
+    """Sugestão de default para uma rubrica de Direito de Uso quando a
+    competência atual ainda não tem NENHUM valor próprio (sem edição em
+    andamento, sem rascunho, sem lançamento) — procura o item pelo id
+    estável no lançamento anterior mais recente. É só um PONTO DE PARTIDA
+    editável: o valor final que for calculado/salvo desta competência nunca
+    sobrescreve o lançamento anterior (grava só em resultado_json desta
+    competência — ver _inputs_rubricas_du) e uma rubrica nova (sem
+    correspondente no lançamento anterior) simplesmente não encontra nada
+    aqui, caindo no fallback final de 0.0."""
+    extras = _extras_lancamento_anterior(uid, mes_ref)
+    if extras is None:
         return None
     for item in extras.get(grupo) or []:
         if item.get("id") == item_id:
             return item.get("valor")
     return None
+
+
+def _valor_escalar_du_sugerido(uid: str, mes_ref: str, chave: str) -> float | None:
+    """Igual a `_valor_du_sugerido`, mas para um campo ESCALAR direto em
+    `extras` (ex.: receita_ressarcimento_du) — não uma lista itemizada de
+    rubricas."""
+    extras = _extras_lancamento_anterior(uid, mes_ref)
+    return extras.get(chave) if extras is not None else None
 
 
 _LABEL_GRUPO_DU = {
@@ -542,20 +559,49 @@ _LABEL_GRUPO_DU = {
 }
 
 
+def _marcar_du_editado(key: str):
+    """Callback `on_change` de um widget mensal de Direito de Uso — só
+    dispara quando o OPERADOR de fato altera o valor (Streamlit nunca
+    chama on_change só por renderizar um default) — nunca por abrir a
+    competência e ver o default (lançamento anterior sugerido, ou zero).
+    Homologação set/2026 (Nilo Square, rodada de correção): antes disso,
+    `_salvar_rascunho` persistia o valor mostrado incondicionalmente a
+    cada render — inclusive um default nunca editado — e esse rascunho
+    "fantasma" passava a ter prioridade sobre a sugestão para sempre,
+    mesmo depois de a competência anterior ser aprovada com valores reais.
+    Esta flag é o que `_salvar_rascunho` consulta para decidir o que
+    persistir — ver ali."""
+    st.session_state[f"{key}__editado"] = True
+
+
+def _input_du_mensal(label: str, key: str, default: float, help_txt: str | None = None) -> float:
+    """number_input ASSINADO (aceita positivo, negativo e zero — convenção
+    operacional: despesa normal = positivo, estorno/reembolso = negativo)
+    para um valor mensal de Direito de Uso, com marcação explícita de
+    edição via on_change (ver _marcar_du_editado) — usado tanto pela
+    receita de Ressarcimento DU (escalar) quanto por cada rubrica dos 4
+    grupos dinâmicos (_inputs_rubricas_du)."""
+    return st.number_input(
+        label, step=100.0, format="%.2f", value=float(default), key=key,
+        on_change=_marcar_du_editado, args=(key,), help=help_txt,
+    )
+
+
 def _inputs_rubricas_du(uid: str, mes_ref: str, grupo: str, itens_cfg: list) -> dict:
-    """Renderiza um number_input ASSINADO (aceita positivo, negativo e
-    zero — convenção operacional: despesa normal = positivo, estorno/
-    reembolso = negativo) para cada rubrica de um dos 4 grupos dinâmicos de
-    COM_ALIQUOTA_CUMUL_DU. Estrutura (id/nome) vem da Administração; o
-    valor é sempre mensal, nunca vigência — mesmo princípio de
-    `_RUBRICAS_MENSAIS_NAO_VIGENCIA`, generalizado para um conjunto de ids
-    dinâmico. Devolve {id: valor}, pronto para custos_extras[grupo].
+    """Renderiza um input mensal (ver `_input_du_mensal`) para cada rubrica
+    de um dos 4 grupos dinâmicos de COM_ALIQUOTA_CUMUL_DU. Estrutura (id/
+    nome) vem da Administração; o valor é sempre mensal, nunca vigência —
+    mesmo princípio de `_RUBRICAS_MENSAIS_NAO_VIGENCIA`, generalizado para
+    um conjunto de ids dinâmico. Devolve {id: valor}, pronto para
+    custos_extras[grupo].
 
     Ordem de resolução do default (homologação set/2026, Nilo Square):
       1. edição em andamento nesta sessão / rascunho da própria competência
-         (`st.session_state[key]` — já populado por `_restaurar_rascunho`
-         a partir de `carregar_rascunho_unidade`, desde que a chave esteja
-         em `_chaves_estado_unidade`);
+         QUE REPRESENTE EDIÇÃO EFETIVA (`st.session_state[key]` — só
+         populado por `_restaurar_rascunho` quando o rascunho persistido
+         realmente veio de uma edição do operador — ver `_salvar_rascunho`
+         e `_marcar_du_editado`; abrir a competência sem editar nada nunca
+         chega a marcar nem persistir isso);
       2. lançamento já calculado/aprovado DESTA competência
          (`_valor_du_ja_lancado` — nunca sobrescrito por sugestão);
       3. lançamento anterior mais recente, só como SUGESTÃO editável
@@ -579,10 +625,9 @@ def _inputs_rubricas_du(uid: str, mes_ref: str, grupo: str, itens_cfg: list) -> 
             if default is None:
                 default = 0.0
         with cols[i % n]:
-            val = st.number_input(
-                f"{item.nome} (R$)", step=100.0, format="%.2f",
-                value=float(default), key=key,
-                help="Positivo = despesa normal. Negativo = estorno/reembolso.",
+            val = _input_du_mensal(
+                f"{item.nome} (R$)", key, default,
+                help_txt="Positivo = despesa normal. Negativo = estorno/reembolso.",
             )
         valores[item.id] = val
     return valores
@@ -702,12 +747,20 @@ def _chaves_estado_unidade(uid: str, u: dict) -> list[str]:
         # Homologação set/2026 (Nilo Square) — sem isso, o rascunho dos 4
         # grupos de rubricas e da receita de Direito de Uso não sobrevive a
         # um refresh de página (_salvar_rascunho/_restaurar_rascunho só
-        # tocam as chaves listadas aqui).
+        # tocam as chaves listadas aqui). Cada chave "__editado" é a
+        # companheira que marca se aquele valor foi genuinamente digitado
+        # pelo operador (ver _marcar_du_editado/_salvar_rascunho) — precisa
+        # estar aqui para ser popada/restaurada JUNTO do valor sempre que a
+        # competência muda, senão a marca de uma competência "vazaria" para
+        # a outra (as chaves de valor não são específicas por mes_ref).
         chaves.append(f"receita_du_{uid}")
+        chaves.append(f"receita_du_{uid}__editado")
         for grupo in ("despesas_ressarcimento_du", "despesas_rateio_du",
                       "despesas_operacao", "despesas_pos_resultado"):
             for item in normalizar_rubricas(u.get(grupo)):
-                chaves.append(f"du_{grupo}_{uid}_{item.id}")
+                key = f"du_{grupo}_{uid}_{item.id}"
+                chaves.append(key)
+                chaves.append(f"{key}__editado")
     return chaves
 
 
@@ -732,11 +785,37 @@ def _restaurar_rascunho(uid: str, mes_ref: str, chaves: list[str]):
     st.session_state[marker] = mes_ref
 
 
+def _e_chave_valor_du(chave: str) -> bool:
+    """True para uma chave de valor mensal de Direito de Uso (não a sua
+    companheira "__editado") — ver _marcar_du_editado/_input_du_mensal."""
+    return (chave.startswith("du_") or chave.startswith("receita_du_")) and not chave.endswith("__editado")
+
+
 def _salvar_rascunho(uid: str, mes_ref: str, chaves: list[str]):
     """Persiste o valor atual de cada chave — chamado ao final de toda
-    renderização dos parâmetros, ou seja, a cada alteração de campo."""
+    renderização dos parâmetros, ou seja, a cada alteração de campo.
+
+    Correção na origem (homologação set/2026, Nilo Square): uma chave de
+    valor mensal de Direito de Uso só é persistida quando a sua
+    companheira "__editado" está marcada (ver _marcar_du_editado) — ou
+    seja, quando o operador de fato digitou algo nesta sessão, nunca só
+    porque a competência foi aberta e o widget mostrou um default (valor
+    já lançado, sugestão da competência anterior, ou zero). Sem isso, abrir
+    uma competência sem editar nada já persistia esse default como se
+    fosse a escolha do operador — e esse rascunho "fantasma" passava a ter
+    prioridade sobre a sugestão da competência anterior para sempre,
+    mesmo depois de a competência anterior ser aprovada com valores reais.
+    Todos os demais campos (faturamento, custos_mensais/variaveis etc.)
+    continuam sendo persistidos incondicionalmente, como sempre — o
+    comportamento deles não muda."""
     from app.models import salvar_rascunho_unidade
-    estado = {k: st.session_state[k] for k in chaves if k in st.session_state}
+    estado = {}
+    for k in chaves:
+        if k not in st.session_state:
+            continue
+        if _e_chave_valor_du(k) and not st.session_state.get(f"{k}__editado"):
+            continue
+        estado[k] = st.session_state[k]
     if estado:
         salvar_rascunho_unidade(uid, mes_ref, estado)
 
@@ -1373,10 +1452,14 @@ def _inputs_parametros(uid: str, u: dict, mes_ref: str,
         else:
             default_du = _valor_ja_lancado(uid, mes_ref, "receita_ressarcimento_du")
             if default_du is None:
+                # Sugestão da competência anterior mais recente — faltava
+                # aqui (só existia para as 4 rubricas dinâmicas); é o mesmo
+                # campo citado no relato real da Nilo Square.
+                default_du = _valor_escalar_du_sugerido(uid, mes_ref, "receita_ressarcimento_du")
+            if default_du is None:
                 default_du = 0.0
-        receita_du = st.number_input(
-            "Receita de Ressarcimento de Direito de Uso (R$)",
-            step=100.0, format="%.2f", value=float(default_du), key=key_du,
+        receita_du = _input_du_mensal(
+            "Receita de Ressarcimento de Direito de Uso (R$)", key_du, default_du,
         )
         custos_extras["receita_ressarcimento_du"] = receita_du
         for grupo in ("despesas_ressarcimento_du", "despesas_rateio_du",

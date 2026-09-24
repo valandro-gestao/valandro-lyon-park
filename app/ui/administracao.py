@@ -190,13 +190,15 @@ def _tela_lista_unidades():
 
     filtro_status = {"Todas": None, "Ativas": "ativa", "Inativas": "inativa"}[filtro]
 
-    hoje_aaaa_mm = date.today().strftime("%Y-%m")
     linhas = []
     for u in listar_unidades_admin():
         operacional = status_operacional(u)
         if filtro_status and operacional != filtro_status:
             continue
-        config = status_configuracao(u, hoje_aaaa_mm)
+        # max(competência atual, início) — nunca avalia uma unidade nova
+        # como "incompleta" num mês anterior ao início dela (rodada de
+        # correção Nilo Square).
+        config = status_configuracao(u, _competencia_avaliacao_padrao(u))
         linhas.append((u, operacional, config))
 
     if not linhas:
@@ -446,19 +448,26 @@ def _secao_status_ativacao(uid: str, u: dict):
     operacional = status_operacional(u)
     st.markdown(_status_chip(operacional), unsafe_allow_html=True)
 
-    hoje_aaaa_mm = date.today().strftime("%Y-%m")
-    competencia = st.session_state.get(f"param_ref_valor_{uid}", hoje_aaaa_mm)
-    erros_config = validar_configuracao_unidade(uid, competencia)
-    config = status_configuracao(u, competencia)
+    competencia = st.session_state.get(f"param_ref_valor_{uid}", _competencia_avaliacao_padrao(u))
+    inicio_mes = (u.get("inicio") or "")[:7]
 
-    if config == "completa":
-        st.success(f"✓ Configuração completa em {_fmt_competencia(competencia)}")
-    elif config == "incompleta":
-        st.warning(f"⚠ Configuração incompleta em {_fmt_competencia(competencia)}")
-        for e in erros_config:
-            st.markdown(f"- {e}")
+    if inicio_mes and competencia < inicio_mes:
+        # A unidade sequer existia operacionalmente nesta competência —
+        # não faz sentido listar Alíquota/PE/etc. como pendências dela.
+        # Rodada de correção Nilo Square (início 01/10/2026 avaliado antes
+        # em 09/2026, mês anterior ao início).
+        st.info(f"Unidade ainda não estava em operação nesta competência. Início: {_fmt_competencia(inicio_mes)}.")
     else:
-        st.caption(f"Configuração não avaliada para este modelo de cálculo em {_fmt_competencia(competencia)}.")
+        erros_config = validar_configuracao_unidade(uid, competencia)
+        config = status_configuracao(u, competencia)
+        if config == "completa":
+            st.success(f"✓ Configuração completa em {_fmt_competencia(competencia)}")
+        elif config == "incompleta":
+            st.warning(f"⚠ Configuração incompleta em {_fmt_competencia(competencia)}")
+            for e in erros_config:
+                st.markdown(f"- {e}")
+        else:
+            st.caption(f"Configuração não avaliada para este modelo de cálculo em {_fmt_competencia(competencia)}.")
 
     st.caption(
         f"Configuração avaliada em: {_fmt_competencia(competencia)} — a mesma \"Competência de "
@@ -534,6 +543,21 @@ def _fmt_competencia(aaaa_mm: str) -> str:
         return f"{mes}/{ano}"
     except Exception:
         return aaaa_mm or "—"
+
+
+def _competencia_avaliacao_padrao(u: dict) -> str:
+    """Competência padrão para avaliar "configuração completa/incompleta"
+    de uma unidade — `max(competência atual, início da operação)`.
+    Homologação set/2026 (Nilo Square): antes desta correção, o padrão era
+    sempre "hoje", então uma unidade nova cujo início ainda está no futuro
+    era avaliada (e mostrada como "incompleta") num mês em que ela sequer
+    existia operacionalmente. `pode_ativar_unidade` (app.models) já tinha
+    essa proteção para a ATIVAÇÃO — esta função estende o mesmo princípio
+    para a AVALIAÇÃO/exibição (chip da lista e aba Parâmetros), sem alterar
+    `pode_ativar_unidade` em si."""
+    hoje_aaaa_mm = date.today().strftime("%Y-%m")
+    inicio_mes = (u.get("inicio") or "")[:7]
+    return max(hoje_aaaa_mm, inicio_mes) if inicio_mes else hoje_aaaa_mm
 
 
 def _pct_armazenado_para_ui(valor) -> float:
@@ -956,13 +980,11 @@ def _aba_parametros(uid: str, u: dict):
         )
         return
 
-    hoje_aaaa_mm = date.today().strftime("%Y-%m")
-
     st.markdown("**Competência de referência**")
     st.caption("Define qual configuração vigente é exibida e validada abaixo.")
     competencia_ref = _competencia_picker(
         "Mês", f"param_ref_{uid}",
-        st.session_state.get(f"param_ref_valor_{uid}", hoje_aaaa_mm),
+        st.session_state.get(f"param_ref_valor_{uid}", _competencia_avaliacao_padrao(u)),
     )
     st.session_state[f"param_ref_valor_{uid}"] = competencia_ref
 
@@ -974,18 +996,26 @@ def _aba_parametros(uid: str, u: dict):
     seed_parametros_from_yaml(uid, load_units().get(uid, {}))
     params_atuais = get_parametros_vigentes(uid, competencia_ref)
 
-    erros = validar_configuracao_unidade(uid, competencia_ref)
-    if erros:
-        st.error(f"⚠ Configuração incompleta em {_fmt_competencia(competencia_ref)}")
-        for e in erros:
-            st.markdown(f"- {e}")
+    inicio_mes = (u.get("inicio") or "")[:7]
+    if inicio_mes and competencia_ref < inicio_mes:
+        # Seletor não é bloqueado (o operador pode navegar livremente para
+        # conferir/editar um mês anterior se quiser) — só a lista de
+        # pendências não faz sentido para um mês em que a unidade sequer
+        # existia. Rodada de correção Nilo Square.
+        st.info(f"Unidade ainda não estava em operação nesta competência. Início: {_fmt_competencia(inicio_mes)}.")
     else:
-        st.success(f"✓ Configuração completa em {_fmt_competencia(competencia_ref)}")
-        if not u["ativo"]:
-            st.caption(
-                'Esta unidade pode estar pronta para ativação — veja o botão "Ativar unidade" '
-                "na aba **Dados da Unidade** (a ativação também confere o início estrutural)."
-            )
+        erros = validar_configuracao_unidade(uid, competencia_ref)
+        if erros:
+            st.error(f"⚠ Configuração incompleta em {_fmt_competencia(competencia_ref)}")
+            for e in erros:
+                st.markdown(f"- {e}")
+        else:
+            st.success(f"✓ Configuração completa em {_fmt_competencia(competencia_ref)}")
+            if not u["ativo"]:
+                st.caption(
+                    'Esta unidade pode estar pronta para ativação — veja o botão "Ativar unidade" '
+                    "na aba **Dados da Unidade** (a ativação também confere o início estrutural)."
+                )
 
     # Percentual de Aluguel × Faixas de Aluguel são alternativas (COM_ALIQUOTA_CUMUL
     # — ver calculadora_schema.py) e o calculator sempre prioriza faixas_aluguel
