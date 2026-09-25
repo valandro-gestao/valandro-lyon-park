@@ -45,10 +45,11 @@ def load_units(force: bool = False) -> dict:
     """Fonte de verdade: tabela `unidades` no banco (migration 0007).
 
     Cada unidade é montada a partir da linha do banco (identidade:
-    nome, contratante, ativo, inicio, tipo_calculo, tipo_relatorio) com o
-    bloco YAML correspondente (se existir) por baixo, fornecendo só os
-    campos aninhados ainda não migrados para tabela própria — nunca o
-    contrário: um valor estrutural do banco sempre prevalece sobre o YAML.
+    nome, contratante, ativo, inicio, tipo_calculo, tipo_relatorio,
+    aucon_codigo_filial) com o bloco YAML correspondente (se existir) por
+    baixo, fornecendo só os campos aninhados ainda não migrados para
+    tabela própria — nunca o contrário: um valor estrutural do banco
+    sempre prevalece sobre o YAML.
     """
     global _units_cache
     if _units_cache is None or force:
@@ -69,6 +70,7 @@ def load_units(force: bool = False) -> dict:
                 "inicio": row["inicio"],
                 "tipo_calculo": row["tipo_calculo"],
                 "tipo_relatorio": row["tipo_relatorio"],
+                "aucon_codigo_filial": row["aucon_codigo_filial"],
             })
             unidades[uid] = bloco
         _units_cache = unidades

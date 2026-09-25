@@ -168,15 +168,16 @@ def init_db():
             -- bootstrap como um passo auditável do histórico de deploy —
             -- reaproveita esta função, não duplica a lógica.
             CREATE TABLE IF NOT EXISTS unidades (
-                id             TEXT PRIMARY KEY,
-                nome           TEXT NOT NULL,
-                contratante    TEXT NOT NULL,
-                ativo          INTEGER NOT NULL DEFAULT 1,
-                inicio         TEXT NOT NULL,
-                tipo_calculo   TEXT NOT NULL,
-                tipo_relatorio TEXT NOT NULL DEFAULT 'padrao',
-                criado_em      TEXT DEFAULT (datetime('now')),
-                atualizado_em  TEXT DEFAULT (datetime('now'))
+                id                   TEXT PRIMARY KEY,
+                nome                 TEXT NOT NULL,
+                contratante          TEXT NOT NULL,
+                ativo                INTEGER NOT NULL DEFAULT 1,
+                inicio               TEXT NOT NULL,
+                tipo_calculo         TEXT NOT NULL,
+                tipo_relatorio       TEXT NOT NULL DEFAULT 'padrao',
+                aucon_codigo_filial  INTEGER,
+                criado_em            TEXT DEFAULT (datetime('now')),
+                atualizado_em        TEXT DEFAULT (datetime('now'))
             );
         """)
         # Migration: adiciona colunas em DBs criados antes desta versão
@@ -185,6 +186,15 @@ def init_db():
                 conn.execute(f"ALTER TABLE parametros_vigentes ADD COLUMN {col}")
             except sqlite3.OperationalError:
                 pass  # coluna já existe
+        # Integração Aucon/eCloud (v1.3.0): identifica qual unidade Lyon
+        # corresponde a qual filial na Aucon. NULL = unidade não integrada
+        # (fluxo de faturamento manual/planilha, intocado). Ver
+        # migrations/0016_add_aucon_codigo_filial.py para o registro
+        # auditável do mesmo passo em bases já existentes.
+        try:
+            conn.execute("ALTER TABLE unidades ADD COLUMN aucon_codigo_filial INTEGER")
+        except sqlite3.OperationalError:
+            pass  # coluna já existe
 
         bootstrap_unidades_se_vazia(conn)
 
@@ -927,6 +937,22 @@ def atualizar_unidade(unidade_id: str, *, nome: str = None, contratante: str = N
         conn.execute(
             f"UPDATE unidades SET {', '.join(sets)} WHERE id=?",
             (*valores, unidade_id),
+        )
+
+
+def definir_aucon_codigo_filial(unidade_id: str, valor: int | None) -> None:
+    """Define (ou limpa, com `valor=None`) o código de filial Aucon/eCloud
+    vinculado a esta unidade. Deliberadamente SEPARADA de atualizar_unidade:
+    lá, `None` num parâmetro significa "não mexer nesta coluna" — aqui
+    precisamos do oposto, `None` significa "desvincular esta unidade da
+    Aucon" (uma escrita real, não um "pular"). Compartilhar a mesma função
+    exigiria um sentinela extra só para este campo; um setter dedicado,
+    que sempre escreve, evita essa ambiguidade sem alterar o contrato já
+    em uso pelos demais chamadores de atualizar_unidade."""
+    with get_db() as conn:
+        conn.execute(
+            "UPDATE unidades SET aucon_codigo_filial=?, atualizado_em=datetime('now') WHERE id=?",
+            (valor, unidade_id),
         )
 
 

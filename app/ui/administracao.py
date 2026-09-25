@@ -66,7 +66,7 @@ from app.models import (
     status_operacional, status_configuracao, pode_ativar_unidade,
     unidades_exemplo_por_tipo, get_parametros_vigentes, salvar_parametros,
     get_historico_parametros, validar_configuracao_unidade,
-    seed_parametros_from_yaml,
+    seed_parametros_from_yaml, definir_aucon_codigo_filial,
 )
 from app.engine import load_units
 
@@ -404,6 +404,16 @@ def _aba_dados_unidade(uid: str, u: dict):
     )
     tipo_relatorio = relatorio_opcoes[relatorio_labels.index(relatorio_sel)]
 
+    st.markdown("**Integração Aucon/eCloud**")
+    aucon_atual = u.get("aucon_codigo_filial")
+    aucon_str = st.text_input(
+        "Código de filial na Aucon (opcional)",
+        value=str(aucon_atual) if aucon_atual else "",
+        key=f"admin_edit_aucon_{uid}",
+        help="Deixe em branco se esta unidade não usa integração Aucon/eCloud. "
+             "Preenchido, habilita a busca automática de faturamento no Fechamento.",
+    )
+
     st.divider()
     if st.button("Salvar alterações", type="primary", key=f"admin_edit_salvar_{uid}"):
         erros = []
@@ -411,6 +421,13 @@ def _aba_dados_unidade(uid: str, u: dict):
             erros.append("Informe o nome da unidade.")
         if not contratante.strip():
             erros.append("Informe o contratante.")
+        aucon_valor: int | None = None
+        aucon_str_limpo = aucon_str.strip()
+        if aucon_str_limpo:
+            try:
+                aucon_valor = int(aucon_str_limpo)
+            except ValueError:
+                erros.append("Código de filial na Aucon deve ser um número inteiro.")
         if erros:
             for e in erros:
                 st.error(e)
@@ -424,6 +441,10 @@ def _aba_dados_unidade(uid: str, u: dict):
             inicio=inicio.isoformat(), tipo_calculo=tipo_calculo,
             tipo_relatorio=tipo_relatorio,
         )
+        # Setter dedicado (não atualizar_unidade): aqui None significa
+        # "desvincular da Aucon", uma escrita real — diferente do
+        # contrato de atualizar_unidade, onde None significa "não mexer".
+        definir_aucon_codigo_filial(uid, aucon_valor)
         load_units(force=True)
         st.session_state.admin_msg = "Alterações salvas."
         st.rerun()

@@ -29,6 +29,7 @@ from app.parsers import faturamento as fat_parser
 from app.reporter import build_report_data
 from app.renderer import render_html
 from app.rubricas import normalizar_rubricas, rotulo_exibicao as _custo_label
+from app.integrations import aucon_client
 
 # ─── CSS global ──────────────────────────────────────────────────────────────
 # Tokens alinhados ao padrão aprovado no Login (docs/03_DESIGN_LANGUAGE.md).
@@ -770,10 +771,39 @@ def _restaurar_rascunho(uid: str, mes_ref: str, chaves: list[str]):
     sessão. Se não houver rascunho (ex.: acabou de ser limpo por uma
     aprovação), as chaves são removidas para que os widgets voltem a usar o
     valor vigente (YAML + DB de parâmetros) como padrão — que é exatamente o
-    valor usado na aprovação, no caso de reabertura."""
+    valor usado na aprovação, no caso de reabertura.
+
+    Bug real de homologação (Dom Pedro, set/2026): o marcador `_draft_ctx_{uid}`
+    por si só não é garantia suficiente de que session_state ainda reflete o
+    rascunho. O Streamlit remove (garbage-collect) a entrada de session_state
+    de um widget assim que ele deixa de ser instanciado num render — e isso
+    acontece exatamente ao navegar para a lista geral ("← Voltar à lista") e
+    voltar para a mesma unidade, tudo na MESMA sessão: o marcador sobrevive
+    (não é chave de widget), mas `fat_{uid}` (e as demais chaves de widget)
+    somem de session_state enquanto a tela da lista está no ar. Ao reabrir a
+    unidade, o marcador ainda "bate" com mes_ref, então esta função retornava
+    cedo demais — sem recarregar nada — e `_inputs_parametros` caía no
+    fallback secundário (`faturamentos[uid]`/`fat_importado`/0.0), que nunca
+    reflete uma edição manual feita depois da última importação (planilha OU
+    Aucon). Resultado: uma edição manual deliberada "sumia" ao sair e voltar
+    à unidade, embora estivesse corretamente persistida no rascunho o tempo
+    todo — o cálculo já feito com o valor manual continuava certo, só o
+    campo voltava a mostrar um valor antigo.
+
+    Correção: o marcador só é confiável quando as chaves de widget
+    "obrigatórias" (todas as de `chaves`, exceto as companheiras "__editado"
+    de Direito de Uso, que legitimamente podem nunca ter sido setadas) ainda
+    estão presentes em session_state. Se qualquer uma sumiu — sinal de que a
+    tela foi desmontada e remontada, mesmo dentro da mesma sessão —, o
+    rascunho é recarregado do banco como se fosse uma sessão nova. Enquanto
+    o operador permanece na mesma tela (nenhuma navegação para fora), todas
+    essas chaves continuam presentes a cada rerender, então o comportamento
+    de não sobrescrever uma edição em andamento continua idêntico a antes."""
     from app.models import carregar_rascunho_unidade
     marker = f"_draft_ctx_{uid}"
-    if st.session_state.get(marker) == mes_ref:
+    chaves_obrigatorias = [k for k in chaves if not k.endswith("__editado")]
+    if (st.session_state.get(marker) == mes_ref
+            and all(k in st.session_state for k in chaves_obrigatorias)):
         return
     for k in chaves:
         st.session_state.pop(k, None)
@@ -807,8 +837,22 @@ def _salvar_rascunho(uid: str, mes_ref: str, chaves: list[str]):
     mesmo depois de a competência anterior ser aprovada com valores reais.
     Todos os demais campos (faturamento, custos_mensais/variaveis etc.)
     continuam sendo persistidos incondicionalmente, como sempre — o
-    comportamento deles não muda."""
-    from app.models import salvar_rascunho_unidade
+    comportamento deles não muda.
+
+    Integração Aucon/eCloud (v1.3.0): `estado` aqui é construído do zero,
+    só com as chaves de WIDGET (`chaves`) presentes em session_state —
+    exatamente como antes, nenhum comportamento existente muda. Mas o
+    blob de rascunho pode conter uma chave reservada extra, "_aucon_meta"
+    (nunca um widget, nunca em session_state — ver
+    _persistir_valor_aucon_no_rascunho), gravada por uma importação Aucon
+    feita a partir da tela geral, ANTES de o operador abrir esta tela de
+    detalhe. Sem preservá-la aqui, o próximo render desta unidade (que
+    sempre termina chamando esta função) apagaria essa metadata
+    silenciosamente, mesmo sem o operador ter tocado no faturamento —
+    exatamente a classe de bug de escrita-parcial-cega que este projeto já
+    corrigiu antes. Só esta chave é preservada; nenhuma chave de widget
+    stale (de uma configuração antiga da unidade) volta a ressuscitar."""
+    from app.models import carregar_rascunho_unidade, salvar_rascunho_unidade
     estado = {}
     for k in chaves:
         if k not in st.session_state:
@@ -817,7 +861,238 @@ def _salvar_rascunho(uid: str, mes_ref: str, chaves: list[str]):
             continue
         estado[k] = st.session_state[k]
     if estado:
+        draft_atual = carregar_rascunho_unidade(uid, mes_ref)
+        if draft_atual and "_aucon_meta" in draft_atual:
+            estado["_aucon_meta"] = draft_atual["_aucon_meta"]
         salvar_rascunho_unidade(uid, mes_ref, estado)
+
+
+# ─── integração Aucon/eCloud (v1.3.0) ────────────────────────────────────────
+# Único ponto que aplica a regra de faturamento validada em homologação real
+# de agosto/2026 (seis endpoints, mês completo, exclusão de
+# MeioPagamento="CANCELADO") e decide se um valor pode ser aplicado sem
+# risco de sobrescrever silenciosamente uma edição manual feita depois da
+# última importação. `_importar_faturamento_aucon` é usada tanto pelo lote
+# ("Buscar faturamentos no Aucon", tela geral) quanto pela atualização
+# individual (dentro da unidade) — nunca duas implementações da mesma regra.
+
+def _ler_meta_aucon(uid: str, mes_ref: str) -> dict | None:
+    """Metadata da última importação Aucon para esta unidade/competência,
+    lida do próprio rascunho (chave reservada "_aucon_meta") — None se
+    nunca foi importado nesta competência, ou se o rascunho já foi limpo
+    por uma aprovação (ver _aprovar_unidade: a metadata é transportada
+    para resultado.extras["origem_faturamento"] ANTES da limpeza, então
+    nada se perde — só deixa de valer para detectar um NOVO conflito
+    contra um rascunho que não existe mais)."""
+    from app.models import carregar_rascunho_unidade
+    draft = carregar_rascunho_unidade(uid, mes_ref)
+    return (draft or {}).get("_aucon_meta")
+
+
+def _persistir_valor_aucon_no_rascunho(uid: str, mes_ref: str, novo_valor: float, meta: dict):
+    """Read-modify-write no blob de rascunho: só toca as chaves `fat_{uid}`
+    e `_aucon_meta`, preservando integralmente todos os demais campos já
+    salvos (custos, faixas, Direito de Uso etc.) — rascunhos_unidade é um
+    blob de SUBSTITUIÇÃO TOTAL (salvar_rascunho_unidade), então nunca se
+    pode escrever um dict parcial construído só a partir do que está em
+    session_state neste contexto: a tela geral do fechamento, de onde o
+    lote roda, não tem os demais campos desta unidade carregados na
+    sessão — um _salvar_rascunho "normal" apagaria tudo que não estivesse
+    em session_state neste instante.
+
+    Atomicidade fat_{uid}/_aucon_meta (homologação real, set/2026): as duas
+    chaves são setadas no MESMO dict antes da ÚNICA chamada a
+    salvar_rascunho_unidade (um único UPSERT em rascunhos_unidade) — não
+    existe, nem pode existir por construção, um estado persistido em que
+    `_aucon_meta.valor_importado` mude sem `fat_{uid}` mudar junto (ou
+    vice-versa). O caso real observado em homologação (metadata apontando
+    9.666,18 com o campo ainda em 0,00) não veio de uma escrita parcial
+    aqui — veio de uma versão anterior desta função que, DEPOIS deste
+    ponto, tentava escrever em st.session_state[f"fat_{uid}"] diretamente
+    e lançava StreamlitAPIException (widget já instanciado no mesmo
+    rerun): o par fat_{uid}/_aucon_meta já tinha sido persistido
+    corretamente no banco, mas o crash impedia o rerun que sincronizaria o
+    widget ao valor novo — divergência entre o rascunho (correto) e o
+    widget ao vivo (desatualizado), não entre fat_{uid} e _aucon_meta
+    dentro do próprio rascunho. Ver _importar_faturamento_aucon: hoje não
+    há mais escrita direta na chave do widget nesse ponto do fluxo."""
+    from app.models import carregar_rascunho_unidade, salvar_rascunho_unidade
+    draft = carregar_rascunho_unidade(uid, mes_ref) or {}
+    draft[f"fat_{uid}"] = novo_valor
+    draft["_aucon_meta"] = meta
+    salvar_rascunho_unidade(uid, mes_ref, draft)
+
+
+def _obter_fat_atual_para_conflito(uid: str, mes_ref: str) -> float | None:
+    """Melhor valor conhecido de `Faturamento (R$)` para detectar edição
+    manual posterior a uma importação Aucon. A tela de detalhe pode não
+    ter sido aberta nesta sessão (ex.: lote rodado direto da tela geral),
+    então session_state pode não ter a chave — cai para o rascunho
+    persistido, e só então para None (sem valor conhecido, sem conflito
+    possível: não há o que proteger)."""
+    chave = f"fat_{uid}"
+    if chave in st.session_state:
+        return float(st.session_state[chave])
+    from app.models import carregar_rascunho_unidade
+    draft = carregar_rascunho_unidade(uid, mes_ref)
+    if draft and chave in draft:
+        return float(draft[chave])
+    return None
+
+
+def _importar_faturamento_aucon(uid: str, mes_ref: str, u: dict,
+                                 forcar: bool = False) -> tuple[str, dict]:
+    """Serviço único de importação — usado pelo lote e pela atualização
+    individual. Retorna (status, detalhe):
+
+      "ok"       — aplicado; detalhe tem valor/bruto/cancelados.
+      "conflito" — o faturamento atual difere do último valor importado
+                   E do novo valor retornado pela Aucon (ou seja, foi
+                   editado manualmente depois da última importação); nada
+                   foi sobrescrito. detalhe tem valor_atual/valor_novo/
+                   valor_importado_anterior. `forcar=True` ignora esta
+                   proteção — usado só depois de confirmação explícita do
+                   operador na tela.
+      "erro"     — falha técnica (autenticação, endpoint incompleto,
+                   unidade sem código configurado). detalhe tem
+                   "mensagem". O faturamento existente nunca é tocado.
+
+    AuconAuthError nunca é convertida em "erro" aqui — se propaga para
+    quem chama, porque é uma falha de precondição do LOTE inteiro (ver
+    _buscar_faturamentos_aucon_lote), não desta unidade isolada.
+
+    IMPORTANTE (bug real de homologação, set/2026): esta função NUNCA
+    escreve diretamente em `st.session_state[f"fat_{uid}"]` — só persiste
+    no rascunho (banco). O widget `fat_{uid}` (`st.number_input` em
+    _inputs_parametros) pode já ter sido instanciado NESTE MESMO rerun
+    quando o botão individual "Atualizar faturamento" é clicado (o botão
+    fica logo abaixo do campo, na mesma renderização) — Streamlit proíbe
+    (StreamlitAPIException) atribuir a `session_state` de um widget depois
+    de ele já existir no run corrente. Em vez disso, invalida o marcador
+    de rascunho (`_draft_ctx_{uid}`, usado por _restaurar_rascunho) —
+    escrita sempre segura, nunca é chave de widget — para que, no PRÓXIMO
+    rerun (disparado por quem chama via st.rerun()), _restaurar_rascunho
+    recarregue o valor fresco do banco ANTES de qualquer widget ser
+    criado, que é exatamente onde essa restauração já acontece hoje. Isso
+    vale tanto para o botão individual (unidade já aberta, widget já
+    instanciado neste run) quanto para o lote (roda na tela geral, sem
+    nenhum widget de unidade instanciado — mas se o operador já tinha
+    aberto essa unidade antes na mesma sessão, o marcador antigo
+    também precisa cair, senão a reabertura mostraria o valor antigo)."""
+    codigo_filial = u.get("aucon_codigo_filial")
+    if not codigo_filial:
+        return "erro", {"mensagem": "Unidade sem código de filial Aucon configurado."}
+
+    try:
+        resultado = aucon_client.buscar_faturamento_aucon(codigo_filial, mes_ref)
+    except aucon_client.AuconAuthError:
+        raise
+    except Exception as e:
+        return "erro", {"mensagem": str(e)}
+
+    meta_anterior = _ler_meta_aucon(uid, mes_ref)
+    valor_atual = _obter_fat_atual_para_conflito(uid, mes_ref)
+
+    if (not forcar and meta_anterior and valor_atual is not None
+            and abs(valor_atual - float(meta_anterior["valor_importado"])) > 0.005
+            and abs(valor_atual - resultado.valor) > 0.005):
+        return "conflito", {
+            "valor_atual": valor_atual,
+            "valor_novo": resultado.valor,
+            "valor_importado_anterior": meta_anterior["valor_importado"],
+        }
+
+    meta = {
+        "valor_importado": resultado.valor,
+        "importado_em": resultado.importado_em,
+        "codigo_filial_usado": resultado.codigo_filial,
+        "bruto": resultado.bruto,
+        "cancelados": resultado.cancelados,
+    }
+    _persistir_valor_aucon_no_rascunho(uid, mes_ref, resultado.valor, meta)
+    st.session_state.setdefault("faturamentos", {})[uid] = resultado.valor
+    # Nunca escrever em st.session_state[f"fat_{uid}"] aqui — ver docstring.
+    # Invalida o marcador para que _restaurar_rascunho recarregue do banco
+    # (chaves de widget incluídas) no início do PRÓXIMO rerun.
+    st.session_state.pop(f"_draft_ctx_{uid}", None)
+
+    return "ok", {"valor": resultado.valor, "bruto": resultado.bruto, "cancelados": resultado.cancelados}
+
+
+def _buscar_faturamentos_aucon_lote(mes_ref: str, unidades: list[dict]):
+    """Ação em lote da tela geral — "Buscar faturamentos no Aucon". Só
+    afeta unidades com `aucon_codigo_filial` configurado; as demais
+    (fluxo manual/planilha) permanecem totalmente intocadas. Falha de
+    autenticação aborta o lote inteiro (precondição); falha por unidade
+    (endpoint incompleto, timeout) não impede o processamento das
+    demais — mesmo padrão de try/except por item já usado em
+    _gerar_pendentes."""
+    from datetime import datetime
+
+    alvo = [u for u in unidades if u.get("aucon_codigo_filial")]
+    if not alvo:
+        st.info("Nenhuma unidade com integração Aucon configurada.")
+        return
+
+    ok, conflitos, erros = [], [], []
+    bar = st.progress(0, text="Buscando faturamentos na Aucon…")
+    for i, u in enumerate(alvo):
+        uid = u["id"]
+        bar.progress((i + 1) / len(alvo), text=f"Consultando: {_display_name(uid)}")
+        try:
+            status, detalhe = _importar_faturamento_aucon(uid, mes_ref, u)
+        except aucon_client.AuconAuthError as e:
+            bar.empty()
+            st.session_state["aucon_ultimo_lote"] = {
+                "quando": datetime.now().strftime("%d/%m %H:%M"),
+                "ok": ok, "conflitos": conflitos, "erros": erros,
+                "erro_geral": f"Falha de autenticação na Aucon — nenhuma unidade foi atualizada a partir daqui. {e}",
+            }
+            return
+        if status == "ok":
+            ok.append({"uid": uid, "nome": _display_name(uid), **detalhe})
+        elif status == "conflito":
+            conflitos.append({"uid": uid, "nome": _display_name(uid), **detalhe})
+        else:
+            erros.append({"uid": uid, "nome": _display_name(uid), **detalhe})
+    bar.empty()
+
+    st.session_state["aucon_ultimo_lote"] = {
+        "quando": datetime.now().strftime("%d/%m %H:%M"),
+        "ok": ok,
+        "conflitos": conflitos,
+        "erros": erros,
+        "erro_geral": None,
+    }
+
+
+def _banner_aucon_lote():
+    """Feedback discreto pós-lote — nunca uma tabela permanente na tela
+    principal. Detalhes (unidade, erro, valor anterior/retornado) só
+    aparecem dentro do expander, sob demanda. Lido de session_state (não
+    de uma chamada inline de st.success/st.error) para sobreviver ao
+    st.rerun() que o botão de lote dispara logo em seguida."""
+    resumo = st.session_state.get("aucon_ultimo_lote")
+    if not resumo:
+        return
+    if resumo.get("erro_geral"):
+        st.error(resumo["erro_geral"])
+    n_ok = len(resumo["ok"])
+    n_problema = len(resumo["conflitos"]) + len(resumo["erros"])
+    if n_ok:
+        st.success(f"✓ Faturamentos atualizados: {n_ok} unidade(s) · {resumo['quando']}")
+    if n_problema:
+        st.warning(f"⚠ {n_problema} unidade(s) precisam de atenção")
+        with st.expander("Ver detalhes"):
+            for c in resumo["conflitos"]:
+                st.markdown(
+                    f"**{c['nome']}** — editado manualmente após a última importação: "
+                    f"atual R$ {c['valor_atual']:,.2f} · Aucon retornou R$ {c['valor_novo']:,.2f} "
+                    f"(importação anterior: R$ {c['valor_importado_anterior']:,.2f}). "
+                    "Use \"Atualizar faturamento\" dentro da unidade para revisar."
+                )
+            for e in resumo["erros"]:
+                st.markdown(f"**{e['nome']}** — {e['mensagem']}")
 
 
 def _params_anteriores(uid: str, mes_ref: str) -> dict:
@@ -907,8 +1182,13 @@ def _tela_lista(mes_ref: str):
     for u in unidades:
         todos_uids.extend(_report_uids_of(u["id"]))
 
+    tem_unidade_aucon = any(u.get("aucon_codigo_filial") for u in unidades)
+
     with col_acoes:
-        act1, act2, act3 = st.columns(3)
+        if tem_unidade_aucon:
+            act1, act2, act3, act4 = st.columns(4)
+        else:
+            act1, act2, act3 = st.columns(3)
         with act1:
             if st.button("Gerar pendentes", type="primary", use_container_width=True):
                 _gerar_pendentes(mes_ref, todos_uids)
@@ -918,6 +1198,13 @@ def _tela_lista(mes_ref: str):
                 _dialog_confirmar_aprovar_todos(mes_ref, todos_uids)
         with act3:
             _download_zip(mes_ref, todos_uids, run)
+        if tem_unidade_aucon:
+            with act4:
+                if st.button("Buscar faturamentos no Aucon", use_container_width=True):
+                    _buscar_faturamentos_aucon_lote(mes_ref, unidades)
+                    st.rerun()
+
+    _banner_aucon_lote()
 
     st.divider()
 
@@ -1296,6 +1583,61 @@ def _inputs_parametros(uid: str, u: dict, mes_ref: str,
             min_value=0.0, step=100.0, format="%.2f",
             value=float(fat_val), key=f"fat_{uid}",
         )
+
+    # Atualização individual via Aucon — discreta, só aparece quando a
+    # unidade tem código de filial configurado (unidades sem integração
+    # ficam totalmente fora deste bloco). Mesma regra/serviço do lote da
+    # tela geral (_importar_faturamento_aucon) — nunca duas implementações.
+    if u.get("aucon_codigo_filial"):
+        meta_aucon = _ler_meta_aucon(uid, mes_ref)
+        cap_col, btn_col = st.columns([3, 1])
+        with cap_col:
+            if meta_aucon:
+                st.caption(f"Atualizado via Aucon em {_ts(meta_aucon['importado_em'])}")
+            else:
+                st.caption("Ainda não importado via Aucon.")
+        with btn_col:
+            if st.button("Atualizar faturamento", key=f"aucon_refresh_{uid}",
+                         use_container_width=True):
+                try:
+                    status, detalhe = _importar_faturamento_aucon(uid, mes_ref, u)
+                except aucon_client.AuconAuthError as e:
+                    status, detalhe = "erro", {"mensagem": f"Falha de autenticação na Aucon: {e}"}
+                if status == "conflito":
+                    st.session_state[f"_aucon_conflito_{uid}"] = detalhe
+                else:
+                    st.session_state[f"_aucon_conflito_{uid}"] = None
+                    if status == "erro":
+                        st.session_state[f"_aucon_erro_{uid}"] = detalhe["mensagem"]
+                    else:
+                        st.session_state[f"_aucon_erro_{uid}"] = None
+                st.rerun()
+
+        erro_aucon = st.session_state.get(f"_aucon_erro_{uid}")
+        if erro_aucon:
+            st.error(f"Falha ao atualizar via Aucon: {erro_aucon}")
+
+        conflito = st.session_state.get(f"_aucon_conflito_{uid}")
+        if conflito:
+            st.warning(
+                f"O faturamento foi editado manualmente depois da última importação "
+                f"(atual R$ {conflito['valor_atual']:,.2f}). A Aucon agora retorna "
+                f"R$ {conflito['valor_novo']:,.2f} (importação anterior: "
+                f"R$ {conflito['valor_importado_anterior']:,.2f}). Sobrescrever?"
+            )
+            cc1, cc2 = st.columns(2)
+            with cc1:
+                if st.button("Manter valor atual", key=f"aucon_manter_{uid}",
+                             use_container_width=True):
+                    st.session_state[f"_aucon_conflito_{uid}"] = None
+                    st.rerun()
+            with cc2:
+                if st.button("Sobrescrever com valor Aucon", key=f"aucon_forcar_{uid}",
+                             type="primary", use_container_width=True):
+                    _importar_faturamento_aucon(uid, mes_ref, u, forcar=True)
+                    st.session_state[f"_aucon_conflito_{uid}"] = None
+                    st.rerun()
+
     if tem_fat_car:
         with f2:
             fat_car = st.number_input(
@@ -1539,8 +1881,37 @@ def _aprovar_unidade(uid: str, mes_ref: str, u: dict, fat: float,
     contaminando uma reabertura futura com dado obsoleto. PDF/parâmetros/
     status continuam sendo reportados como erro de verdade (via
     ErroPosAprovacao) — nunca mascarados; só não desfazem o que já foi
-    persistido."""
+    persistido.
+
+    Integração Aucon/eCloud (v1.3.0): se houve uma importação Aucon nesta
+    competência E o faturamento aprovado agora é, ao centavo, o mesmo
+    valor que ela retornou, a metadata (`_ler_meta_aucon`, ainda no
+    rascunho neste ponto — antes de `limpar_rascunho_unidade` abaixo) é
+    transportada para `resultado.extras["origem_faturamento"]`, que
+    sobrevive à aprovação dentro de `lancamentos.resultado_json` (mesmo
+    mecanismo já usado por taxa_cobranca/prejuízo acumulado — nenhuma
+    tabela ou coluna nova). Se o operador alterou o faturamento
+    manualmente depois da importação, o valor aprovado diverge do último
+    valor importado e esta marca NUNCA é escrita — não registrar uma
+    origem Aucon falsa para um número que, de fato, foi editado à mão."""
     r_atual = calcular(uid, mes_ref, fat, custos_extras=custos_extras or None, pe_override=pe_override)
+
+    meta_aucon = _ler_meta_aucon(uid, mes_ref)
+    if meta_aucon and abs(fat - float(meta_aucon["valor_importado"])) < 0.005:
+        # Alguns calculators (ex. PERCENTUAL_SIMPLES/COM_ALIQUOTA em
+        # app.calculators.base) devolvem extras=None quando não há nada a
+        # reportar — nunca assumir que já é um dict.
+        if r_atual.extras is None:
+            r_atual.extras = {}
+        r_atual.extras["origem_faturamento"] = {
+            "fonte": "aucon",
+            "codigo_filial": meta_aucon["codigo_filial_usado"],
+            "valor_importado": meta_aucon["valor_importado"],
+            "importado_em": meta_aucon["importado_em"],
+            "bruto": meta_aucon["bruto"],
+            "cancelados": meta_aucon["cancelados"],
+        }
+
     r_atual.status = "aprovado"
     r_atual.mes_referencia = mes_ref
     salvar_lancamento(r_atual)
