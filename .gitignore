@@ -26,6 +26,9 @@ __pycache__/
 .env
 *.env
 
+# Credenciais do teste manual da API Aucon/eCloud (script isolado, não usado pela app)
+.env.aucon
+
 # Arquivos de sistema macOS
 .DS_Store
 .AppleDouble
