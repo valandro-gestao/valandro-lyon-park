@@ -572,9 +572,17 @@ def _prestacao_cumul_du(r: ResultadoUnidade, cfg: dict) -> Prestacao:
     COM_ALIQUOTA/PERCENTUAL_SIMPLES/COM_ALIQUOTA_CUMUL sem nenhuma
     mudança. Usa só o que app.calculators.cumul_du já retornou; nenhuma
     fórmula recalculada aqui. Ordem: Faturamento → Impostos → Receita
-    Líquida → Ressarcimento Líquido DU → Subtotal de Receita → Total
+    Líquida → Recebimento Líquido DU → Subtotal de Receita → Total
     Despesas Rateio DU/Operação → PE → Resultado → Total Despesas
-    Pós-Resultado → Prejuízo Acumulado → Repasse."""
+    Pós-Resultado → Prejuízo Acumulado → faixas de repasse (quando
+    configuradas, mesmo padrão visual do FIERGS — ver _prestacao_faixas)
+    → Repasse.
+
+    Refinamento pós-homologação Aucon: "Receita de Ressarcimento de
+    Direito de Uso" foi renomeada visualmente para "Recebimento de
+    Direitos de Uso" (só os textos exibidos — as chaves internas em
+    `extras`, ex. `receita_ressarcimento_du`/`ressarcimento_liquido_du`,
+    permanecem intactas, são dados já persistidos)."""
     extras = r.extras or {}
     linhas = []
 
@@ -588,17 +596,17 @@ def _prestacao_cumul_du(r: ResultadoUnidade, cfg: dict) -> Prestacao:
     receita_du = extras.get("receita_ressarcimento_du") or 0.0
     despesas_du = extras.get("despesas_ressarcimento_du") or []
     if receita_du or any(i["valor"] for i in despesas_du):
-        linhas.append(LinhaPrestacao("(+) Ressarcimento Líquido DU",
-                                      extras.get("ressarcimento_liquido_du") or 0.0, "normal"))
+        linhas.append(LinhaPrestacao("(+) Recebimento Líquido DU",
+                                      extras.get("ressarcimento_liquido_du") or 0.0, "normal", ref="A"))
 
     linhas.append(LinhaPrestacao("Subtotal de Receita", r.subtotal, "subtotal"))
 
     total_rateio_du = extras.get("total_despesas_rateio_du") or 0.0
     if total_rateio_du:
-        linhas.append(LinhaPrestacao("(-) Total Despesas Rateio DU", -total_rateio_du, "deducao"))
+        linhas.append(LinhaPrestacao("(-) Total Despesas Rateio DU", -total_rateio_du, "deducao", ref="B"))
     total_operacao = extras.get("total_despesas_operacao") or 0.0
     if total_operacao:
-        linhas.append(LinhaPrestacao("(-) Total Despesas da Operação", -total_operacao, "deducao"))
+        linhas.append(LinhaPrestacao("(-) Total Despesas da Operação", -total_operacao, "deducao", ref="C"))
     if r.ponto_equilibrio:
         linhas.append(LinhaPrestacao("(-) Ponto de Equilíbrio", -r.ponto_equilibrio, "deducao"))
 
@@ -610,6 +618,27 @@ def _prestacao_cumul_du(r: ResultadoUnidade, cfg: dict) -> Prestacao:
 
     if r.prejuizo_acumulado_entrada or r.prejuizo_acumulado_saida:
         linhas.append(LinhaPrestacao("(+/-) Prejuízo Acumulado", r.prejuizo_acumulado_saida, "deducao"))
+
+    # Faixas de repasse — mesmo padrão visual já homologado do FIERGS
+    # (Resultado → faixas → Total), ver _prestacao_faixas acima. Só
+    # aparece quando a unidade usa faixas_aluguel (prioridade sobre
+    # percentual_aluguel — ver app.calculators.cumul_du); nada é
+    # recalculado aqui, só lido de extras["faixas_detalhe"] (mesma
+    # estrutura {"percentual","base","aluguel"} que faixas.py já produz,
+    # via app.calculators.cumulativo._aplicar_faixas_detalhado).
+    faixas_cfg = cfg.get("faixas_aluguel") or []
+    faixas_det = extras.get("faixas_detalhe") or []
+    for i, f in enumerate(faixas_cfg):
+        det = faixas_det[i] if i < len(faixas_det) else {}
+        pct = f["percentual"]
+        ate = f.get("ate")
+        if ate:
+            label = f"Repasse {int(pct*100)}% (até R$ {ate:,.0f})"
+        else:
+            label = f"Repasse {int(pct*100)}% (excedente)"
+        val = det.get("aluguel", 0.0)
+        if val:
+            linhas.append(LinhaPrestacao(label, val, "normal"))
 
     linhas.append(LinhaPrestacao("Repasse", r.aluguel_calculado, "total"))
 
@@ -627,18 +656,21 @@ def _blocos_cumul_du(r: ResultadoUnidade) -> list[BlocoReceita]:
     extras = r.extras or {}
     blocos: list[BlocoReceita] = []
 
-    # Bloco 2 — Ressarcimento de Direito de Uso. Receita aparece
+    # Bloco 2 — Recebimento de Direitos de Uso. Receita aparece
     # explicitamente, como pedido — não é só a dedução das rubricas.
+    # Título/rótulos renomeados na rodada de refinamento pós-Aucon (só
+    # texto exibido — chaves em extras continuam receita_ressarcimento_du/
+    # ressarcimento_liquido_du, dados já persistidos, intocados).
     receita_du = extras.get("receita_ressarcimento_du") or 0.0
     despesas_du = extras.get("despesas_ressarcimento_du") or []
     if receita_du or any(i["valor"] for i in despesas_du):
-        linhas_du = [LinhaPrestacao("Receita Ressarcimento DU", receita_du, "subtotal")]
+        linhas_du = [LinhaPrestacao("Recebimento Bruto DU", receita_du, "subtotal")]
         for item in despesas_du:
             if item["valor"]:
                 linhas_du.append(LinhaPrestacao(f"(-) {item['nome']}", -item["valor"], "deducao"))
-        linhas_du.append(LinhaPrestacao("Ressarcimento Líquido DU",
-                                         extras.get("ressarcimento_liquido_du") or 0.0, "total"))
-        blocos.append(BlocoReceita(titulo="Ressarcimento de Direito de Uso", linhas=linhas_du))
+        linhas_du.append(LinhaPrestacao("Recebimento Líquido DU",
+                                         extras.get("ressarcimento_liquido_du") or 0.0, "total", ref="A"))
+        blocos.append(BlocoReceita(titulo="Recebimento de Direitos de Uso", linhas=linhas_du))
 
     # Bloco 3 — Rateio de Direito de Uso (mesmo total que deduz uma única
     # vez o Bloco 1 e alimenta o Valor por Vaga — nenhuma dupla dedução,
@@ -650,7 +682,7 @@ def _blocos_cumul_du(r: ResultadoUnidade) -> list[BlocoReceita]:
             for item in despesas_rateio if item["valor"]
         ]
         linhas_rateio.append(LinhaPrestacao("Total Despesas Rateio DU",
-                                             extras.get("total_despesas_rateio_du") or 0.0, "total"))
+                                             extras.get("total_despesas_rateio_du") or 0.0, "total", ref="B"))
         numero_vagas = extras.get("numero_vagas")
         if numero_vagas:
             linhas_rateio.append(LinhaPrestacao("Número de Vagas", numero_vagas, "normal"))
@@ -667,7 +699,7 @@ def _blocos_cumul_du(r: ResultadoUnidade) -> list[BlocoReceita]:
             for item in despesas_operacao if item["valor"]
         ]
         linhas_operacao.append(LinhaPrestacao("Total Despesas da Operação",
-                                               extras.get("total_despesas_operacao") or 0.0, "total"))
+                                               extras.get("total_despesas_operacao") or 0.0, "total", ref="C"))
         blocos.append(BlocoReceita(titulo="Despesas da Operação", linhas=linhas_operacao))
 
     # Bloco 5 (excepcional) — Despesas após Resultado: só existe quando a
@@ -797,6 +829,44 @@ def build_report_data(resultado, mes_ref: str,
         bloco_eventos=bloco_eventos,
         blocos_receitas=blocos_receitas,
         comparativo_meses_disponiveis=n_meses,
+    )
+
+
+def build_report_data_du(resultado: ResultadoUnidade, mes_ref: str) -> ReportData:
+    """PDF auxiliar 'Direito de Uso' (refinamento pós-homologação Aucon,
+    COM_ALIQUOTA_CUMUL_DU — Nilo Square e qualquer futura unidade nesse
+    modelo). Reaproveita o MESMO template (templates/relatorio.html) e a
+    MESMA função _blocos_cumul_du já usada pelo relatório principal —
+    nenhum valor recalculado aqui, só uma seleção do que já existe:
+    cabeçalho normal (unidade/competência/emissão) + só o bloco 'Rateio de
+    Direito de Uso', sem cards, sem comparativo, sem histórico, sem a
+    prestação de contas principal (cards=None / prestacao vazia — ver as
+    guardas {% if cards %} / {% if prestacao.linhas %} no template, que
+    tornam essas seções inertes quando não preenchidas, sem afetar nenhum
+    outro relatório já existente, que sempre preenche os dois)."""
+    hoje = date.today().strftime("%d/%m/%Y")
+    cfg = get_unit(resultado.unidade_id)
+
+    unidade = UnidadeInfo(
+        nome=cfg["nome"],
+        contratante=cfg["contratante"],
+        competencia=mes_ref,
+        competencia_label=_label_mes(mes_ref),
+        data_emissao=hoje,
+        tipo_relatorio=cfg.get("tipo_relatorio", "padrao"),
+    )
+
+    bloco_rateio = [b for b in _blocos_cumul_du(resultado) if b.titulo == "Rateio de Direito de Uso"]
+
+    return ReportData(
+        unidade=unidade,
+        cards=None,
+        comparativo_12m=[],
+        prestacao=Prestacao(linhas=[]),
+        historico=Historico(colunas=[], linhas=[]),
+        bloco_eventos=None,
+        blocos_receitas=bloco_rateio,
+        comparativo_meses_disponiveis=0,
     )
 
 

@@ -10,7 +10,7 @@ Fluxo operacional (página única, sem abas):
 """
 from __future__ import annotations
 
-import base64, io, json, os, tempfile, zipfile
+import base64, io, json, os, tempfile, unicodedata, zipfile
 from pathlib import Path
 
 import streamlit as st
@@ -552,8 +552,13 @@ def _valor_escalar_du_sugerido(uid: str, mes_ref: str, chave: str) -> float | No
     return extras.get(chave) if extras is not None else None
 
 
+# Rótulos exibidos — renomeados na rodada de refinamento pós-Aucon para
+# coerência com "Recebimento de Direitos de Uso" (a receita correspondente,
+# ver _input_du_mensal abaixo). A CHAVE do dict ("despesas_ressarcimento_du")
+# permanece intacta — é usada como chave de extras/schema, dado já
+# persistido; só o texto visível muda.
 _LABEL_GRUPO_DU = {
-    "despesas_ressarcimento_du": "Despesas de Ressarcimento de Direito de Uso",
+    "despesas_ressarcimento_du": "Despesas do Recebimento de Direitos de Uso",
     "despesas_rateio_du": "Despesas de Rateio de Direito de Uso",
     "despesas_operacao": "Despesas da Operação",
     "despesas_pos_resultado": "Despesas após Resultado",
@@ -1166,12 +1171,14 @@ def _tela_lista(mes_ref: str):
 
     unidades = get_unidades_ativas(mes_ref)
     run = rm.load_run(mes_ref)
+    # fat_parser.load continua sendo consultado — a integração Aucon é o
+    # fluxo operacional de faturamento (v1.3.0), mas uma planilha já
+    # importada anteriormente (suporte legado, nunca apagado) continua
+    # alimentando uid_map normalmente para alertas/defaults de unidades
+    # sem Aucon. Só a UI de UPLOAD (o card "Planilha de Faturamentos") foi
+    # retirada da tela geral — refinamento pós-homologação Aucon.
     fat_data = fat_parser.load(mes_ref)
     uid_map = fat_data.get("uid_map", {}) if fat_data else {}
-
-    # ── Planilhas ─────────────────────────────────────────────────────────────
-    with st.expander("Planilhas da competência", expanded=not fat_data):
-        _secao_uploads(mes_ref, unidades, fat_data)
 
     # ── Resumo operacional + próxima ação, lado a lado (menos rolagem) ───────
     col_resumo, col_acoes = st.columns([1, 1])
@@ -1200,7 +1207,7 @@ def _tela_lista(mes_ref: str):
             _download_zip(mes_ref, todos_uids, run)
         if tem_unidade_aucon:
             with act4:
-                if st.button("Buscar faturamentos no Aucon", use_container_width=True):
+                if st.button("Buscar no Aucon", use_container_width=True):
                     _buscar_faturamentos_aucon_lote(mes_ref, unidades)
                     st.rerun()
 
@@ -1213,11 +1220,15 @@ def _tela_lista(mes_ref: str):
 
 
 def _resumo_operacional(unidades: list, run: dict):
-    """Leitura rápida do estado da competência — linha única, com cor e rótulo
-    ao lado do número (nunca isolado em card ou badge — seção 6 do Design
-    Language). Hierarquia: Pendentes / Em andamento / Aprovadas / Total;
-    Reabertos e Erros separados, numa segunda linha menor.
-    """
+    """Leitura rápida do estado da competência. Pendentes/Em andamento/
+    Aprovadas são clicáveis (refinamento pós-homologação Aucon) — clicar
+    seleciona e abre o grupo correspondente na lista agrupada abaixo
+    (`_lista_unidades_agrupada`, via st.session_state["_resumo_foco"]).
+    Total permanece só informativo, nunca clicável, por pedido explícito.
+    Reabertos e Erros continuam numa segunda linha menor, não clicáveis —
+    primeira versão deliberadamente simples (sem scroll automático); se a
+    homologação mostrar que ainda falta "levar o olho até lá" sem rolar a
+    página, adicionamos isso depois."""
     contagem = {"pendente": 0, "gerado": 0, "revisado": 0, "aprovado": 0, "reaberto": 0, "erro": 0}
     total = 0
     for u in unidades:
@@ -1226,6 +1237,27 @@ def _resumo_operacional(unidades: list, run: dict):
             s = run.get(r_uid, {}).get("status", "pendente")
             contagem[s] = contagem.get(s, 0) + 1
     andamento = contagem["gerado"] + contagem["revisado"]
+    foco_atual = st.session_state.get("_resumo_foco")
+
+    c1, c2, c3, c4 = st.columns(4)
+    for col, chave, valor, rotulo in (
+        (c1, "pendente", contagem["pendente"], "pendentes"),
+        (c2, "andamento", andamento, "em andamento"),
+        (c3, "aprovado", contagem["aprovado"], "aprovadas"),
+    ):
+        with col:
+            rotulo_botao = f"{valor} {rotulo}"
+            if st.button(rotulo_botao, key=f"resumo_foco_btn_{chave}",
+                         use_container_width=True,
+                         type="primary" if foco_atual == chave else "secondary"):
+                st.session_state["_resumo_foco"] = chave
+                st.rerun()
+    with c4:
+        st.markdown(
+            f'<div class="vd-summary-item vd-summary-tot">'
+            f'<strong>{total}</strong><span class="vd-lbl">total</span></div>',
+            unsafe_allow_html=True,
+        )
 
     def _item(cls: str, valor: int, rotulo: str, zero_ok: bool = False) -> str:
         zero_cls = " vd-zero" if (zero_ok and valor == 0) else ""
@@ -1234,23 +1266,22 @@ def _resumo_operacional(unidades: list, run: dict):
             f'<strong>{valor}</strong><span class="vd-lbl">{rotulo}</span></span>'
         )
 
-    linha1 = (
-        _item("vd-summary-pend", contagem["pendente"], "pendentes")
-        + '<span class="vd-sep">·</span>'
-        + _item("vd-summary-and", andamento, "em andamento")
-        + '<span class="vd-sep">·</span>'
-        + _item("vd-summary-apr", contagem["aprovado"], "aprovadas")
-        + '<span class="vd-sep">·</span>'
-        + _item("vd-summary-tot", total, "total")
-    )
     linha2 = (
         _item("vd-summary-reab", contagem["reaberto"], "reabertas", zero_ok=True)
         + '<span class="vd-sep">·</span>'
         + _item("vd-summary-erro", contagem["erro"], "erros", zero_ok=True)
     )
-
-    st.markdown(f'<div class="vd-summary">{linha1}</div>', unsafe_allow_html=True)
     st.markdown(f'<div class="vd-summary vd-summary-secondary">{linha2}</div>', unsafe_allow_html=True)
+
+
+def _chave_ordenacao_nome(nome: str) -> str:
+    """Chave de ordenação alfabética amigável para nomes de unidade em
+    português: ignora maiúsculas/minúsculas e acentuação, para que 'Á'/'A',
+    'É'/'E' etc. ordenem juntos como o esperado (não pela posição do
+    caractere acentuado na tabela Unicode)."""
+    sem_acento = unicodedata.normalize("NFD", nome)
+    sem_acento = "".join(c for c in sem_acento if unicodedata.category(c) != "Mn")
+    return sem_acento.casefold()
 
 
 def _alertas_unidade(mes_ref: str, u: dict, uid_map: dict) -> list[str]:
@@ -1282,22 +1313,40 @@ def _lista_unidades_agrupada(mes_ref: str, unidades: list, uid_map: dict, run: d
         else:
             grupos["pendente"].append(item)
 
-    # Unidades com alerta sobem para o topo do próprio grupo.
+    # Ordem alfabética pelo nome exibido, amigável para português
+    # (case-insensitive, ignora acento) — ponto único, aplicado igualmente
+    # aos três grupos, antes de qualquer outro critério de ordenação.
+    # Nunca muda quais unidades entram em cada grupo, só a ordem dentro
+    # de cada um.
+    for k in grupos:
+        grupos[k].sort(key=lambda item: _chave_ordenacao_nome(item[0]["nome"]))
+
+    # Unidades com alerta sobem para o topo do próprio grupo — sort() é
+    # estável, então a ordem alfabética acima é preservada dentro de cada
+    # sub-grupo (com alerta / sem alerta).
     for k in ("pendente", "andamento"):
         grupos[k].sort(key=lambda item: 0 if item[2] else 1)
 
-    def _render_grupo(items, titulo, expandido, key_suffix, is_aprovado=False):
+    # Foco vindo de _resumo_operacional (clique em Pendentes/Em andamento/
+    # Aprovadas): quando setado, só o grupo clicado abre expandido — os
+    # outros dois fecham, mesmo que fossem o default. Sem foco (nunca
+    # clicado nesta sessão), comportamento idêntico a antes (Pendentes
+    # aberto, os demais fechados).
+    foco = st.session_state.get("_resumo_foco")
+
+    def _render_grupo(items, titulo, expandido_default, key_suffix, chave_grupo, is_aprovado=False):
         if not items:
             return
+        expandido = (chave_grupo == foco) if foco else expandido_default
         with st.expander(f"{titulo} ({len(items)})", expanded=expandido):
             with st.container(key=f"vd-unit-list-{key_suffix}"):
                 _cabecalho_lista(is_aprovado)
                 for u, status, alertas in items:
                     _linha_unidade(mes_ref, u, status, uid_map, run, alertas)
 
-    _render_grupo(grupos["pendente"], "Pendentes", True, "pend")
-    _render_grupo(grupos["andamento"], "Em andamento", False, "and")
-    _render_grupo(grupos["aprovado"], "Aprovadas", False, "apr", is_aprovado=True)
+    _render_grupo(grupos["pendente"], "Pendentes", True, "pend", "pendente")
+    _render_grupo(grupos["andamento"], "Em andamento", False, "and", "andamento")
+    _render_grupo(grupos["aprovado"], "Aprovadas", False, "apr", "aprovado", is_aprovado=True)
 
 
 def _cabecalho_lista(tem_pdf: bool = False):
@@ -1516,6 +1565,13 @@ def _detalhe_simples(uid: str, u: dict, mes_ref: str,
         di_cols = st.columns(len(evidencias))
         for col, (lbl, val) in zip(di_cols, evidencias):
             col.metric(lbl, val)
+
+        # Planilha de Eventos — só para unidades com tipo_relatorio ==
+        # 'com_eventos' (FIERGS, ILP). Movida para dentro do fechamento da
+        # própria unidade (refinamento pós-homologação Aucon) — antes
+        # vivia agrupada na tela geral.
+        if u.get("tipo_relatorio") == "com_eventos":
+            _secao_eventos_unidade(mes_ref, u)
 
         # Correção IPCA (MW Tristeza em janeiro)
         if u.get("prejuizo_correcao_anual") and int(mes_ref.split("-")[1]) == 1:
@@ -1801,7 +1857,7 @@ def _inputs_parametros(uid: str, u: dict, mes_ref: str,
             if default_du is None:
                 default_du = 0.0
         receita_du = _input_du_mensal(
-            "Receita de Ressarcimento de Direito de Uso (R$)", key_du, default_du,
+            "Recebimento de Direitos de Uso (R$)", key_du, default_du,
         )
         custos_extras["receita_ressarcimento_du"] = receita_du
         for grupo in ("despesas_ressarcimento_du", "despesas_rateio_du",
@@ -2005,6 +2061,38 @@ def _barra_decisao_final(mes_ref: str, uid: str, u: dict, r, resultados: dict, u
                             st.rerun()
                         except Exception as e:
                             st.error(str(e))
+
+    # PDF auxiliar de Direito de Uso — refinamento pós-homologação Aucon.
+    # Ação discreta, separada da barra principal (não é um artefato formal
+    # de fechamento, não entra no workflow gerado/revisado/aprovado — só
+    # gera e serve bytes na hora, via render_html/export_pdf diretamente,
+    # sem tocar run_manager/status.json). Condicionado por tipo_calculo,
+    # não por id de unidade — vale para Nilo Square e qualquer futura
+    # unidade nesse modelo.
+    if u.get("tipo_calculo") == "COM_ALIQUOTA_CUMUL_DU":
+        r_du = resultados.get((uid, mes_ref)) or rm.load_resultado_from_db(mes_ref, uid)
+        if r_du is not None:
+            from app.reporter import build_report_data_du
+            from app.renderer import render_html, export_pdf
+            dcol, _ = st.columns([1, 3])
+            with dcol:
+                if st.button("PDF Direito de Uso", key=f"act_pdf_du_{uid}", use_container_width=True):
+                    report_du = build_report_data_du(r_du, mes_ref)
+                    html_du = render_html(report_du)
+                    nome_du = f"{mes_ref}_{uid}_direito_de_uso.pdf"
+                    caminho_du = export_pdf(html_du, nome_du)
+                    with open(caminho_du, "rb") as f:
+                        st.session_state[f"_pdf_du_bytes_{uid}"] = f.read()
+                    st.session_state[f"_pdf_du_nome_{uid}"] = nome_du
+                if st.session_state.get(f"_pdf_du_bytes_{uid}"):
+                    st.download_button(
+                        "Baixar PDF Direito de Uso",
+                        data=st.session_state[f"_pdf_du_bytes_{uid}"],
+                        file_name=st.session_state[f"_pdf_du_nome_{uid}"],
+                        mime="application/pdf",
+                        key=f"act_dl_du_{uid}",
+                        use_container_width=True,
+                    )
 
 
 # ─── histórico da unidade ─────────────────────────────────────────────────────
@@ -2469,11 +2557,11 @@ def _dre_rows_cumul_du(r: ResultadoUnidade) -> list[tuple[str, str]]:
     receita_du = extras.get("receita_ressarcimento_du") or 0.0
     despesas_du = extras.get("despesas_ressarcimento_du") or []
     if receita_du or any(i["valor"] for i in despesas_du):
-        rows.append(("Receita Ressarcimento DU", _fmt(receita_du)))
+        rows.append(("Recebimento Bruto DU", _fmt(receita_du)))
         for item in despesas_du:
             if item["valor"]:
-                rows.append((f"(-) {item['nome']} (Ressarcimento DU)", _fmt(-item["valor"])))
-        rows.append(("Ressarcimento Líquido DU", _fmt(extras.get("ressarcimento_liquido_du") or 0.0)))
+                rows.append((f"(-) {item['nome']} (Recebimento DU)", _fmt(-item["valor"])))
+        rows.append(("Recebimento Líquido DU", _fmt(extras.get("ressarcimento_liquido_du") or 0.0)))
 
     rows.append(("Subtotal de Receita", _fmt(r.subtotal)))
 
@@ -2669,72 +2757,32 @@ def _mostrar_resultado_patio(r: ResultadoPatio):
 
 # ─── uploads ─────────────────────────────────────────────────────────────────
 
-def _secao_uploads(mes_ref: str, unidades: list, fat_data: dict | None):
-    st.markdown("**Planilha de Faturamentos**")
-    if fat_data:
-        n = len(fat_data.get("uid_map", {}))
-        total = sum(fat_data["uid_map"].values())
-        sheet = fat_data.get("sheet")
-        nao_map = fat_data.get("nao_mapeados") or []
-        sem_fat = fat_data.get("sem_fat") or []
-
-        c1, c2 = st.columns([5, 1])
-        with c1:
-            linha = f"{n} unidades importadas · Total {_fmt(total)}"
-            if sheet:
-                linha += f' · aba "{sheet}"'
-            st.markdown(f'<div class="vd-upload-ok">{linha}</div>', unsafe_allow_html=True)
-
-            # Avisos permanecem visíveis enquanto houver pendência de importação —
-            # não dependem do instante exato do upload.
-            avisos = []
-            if sem_fat:
-                nomes = [_display_name(u) for u in sem_fat]
-                if len(nomes) > 6:
-                    avisos.append(f"{len(nomes)} unidades sem faturamento nesta planilha")
-                else:
-                    avisos.append("Sem faturamento na planilha: " + ", ".join(nomes))
-            if nao_map:
-                avisos.append(
-                    "Sem correspondência no sistema: " + ", ".join(a["nome"] for a in nao_map)
-                )
-            if avisos:
-                linhas_aviso = "".join(f'<div class="vd-upload-warn">{a}</div>' for a in avisos)
-                st.markdown(f'<div class="vd-upload-warn-group">{linhas_aviso}</div>', unsafe_allow_html=True)
-        with c2:
-            if st.button("Substituir", key="btn_sub_fat", use_container_width=True):
-                _limpar_fat_import(mes_ref)
+def _secao_eventos_unidade(mes_ref: str, u: dict):
+    """Upload/substituição da planilha de Eventos — só para unidades com
+    tipo_relatorio == 'com_eventos' (hoje: FIERGS, ILP). Refinamento
+    pós-homologação Aucon: movido de dentro da tela geral (antes,
+    _secao_uploads, chamado de _tela_lista para todas as unidades de uma
+    vez) para dentro do fechamento da própria unidade — mesmo
+    comportamento de persistência/substituição/cálculo de sempre
+    (_processar_upload_ev/_limpar_ev_uid, intocados), só muda onde o
+    widget aparece."""
+    uid = u["id"]
+    ev = eventos_parser.load_uid(mes_ref, uid)
+    with st.expander("Planilha de Eventos", expanded=not ev):
+        if ev:
+            total_ev = eventos_parser.get_total_competencia(ev, mes_ref)
+            ev_mes = eventos_parser.get_eventos_competencia(ev, mes_ref)
+            st.markdown(
+                f'<div class="vd-upload-ok">{len(ev_mes)} eventos · {_fmt(total_ev)}</div>',
+                unsafe_allow_html=True,
+            )
+            if st.button("Substituir", key=f"btn_sub_ev_{uid}"):
+                _limpar_ev_uid(mes_ref, uid)
                 st.rerun()
-    else:
-        arq = st.file_uploader("Selecione (.xlsx)", type=["xlsx"], key="fat_upload_f")
-        if arq:
-            _processar_upload_fat(mes_ref, arq, unidades)
-
-    uids_eventos = [u for u in unidades if u.get("tipo_relatorio") == "com_eventos"]
-    if not uids_eventos:
-        return
-
-    st.markdown("**Planilhas de Eventos**")
-    cols = st.columns(len(uids_eventos))
-    for col, u in zip(cols, uids_eventos):
-        uid = u["id"]
-        ev = eventos_parser.load_uid(mes_ref, uid)
-        with col:
-            st.caption(f"**{u['nome']}**")
-            if ev:
-                total_ev = eventos_parser.get_total_competencia(ev, mes_ref)
-                ev_mes = eventos_parser.get_eventos_competencia(ev, mes_ref)
-                st.markdown(
-                    f'<div class="vd-upload-ok">{len(ev_mes)} eventos · {_fmt(total_ev)}</div>',
-                    unsafe_allow_html=True,
-                )
-                if st.button("Substituir", key=f"btn_sub_ev_{uid}"):
-                    _limpar_ev_uid(mes_ref, uid)
-                    st.rerun()
-            else:
-                arq_ev = st.file_uploader("Selecione (.xlsx)", type=["xlsx"], key=f"ev_upload_{uid}")
-                if arq_ev:
-                    _processar_upload_ev(mes_ref, uid, arq_ev)
+        else:
+            arq_ev = st.file_uploader("Selecione (.xlsx)", type=["xlsx"], key=f"ev_upload_{uid}")
+            if arq_ev:
+                _processar_upload_ev(mes_ref, uid, arq_ev)
 
 
 def _processar_upload_fat(mes_ref: str, arq, unidades: list):

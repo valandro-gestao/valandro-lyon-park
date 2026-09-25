@@ -377,10 +377,10 @@ SCHEMAS_POR_TIPO: dict[str, dict] = {
                 ],
             },
             {
-                "chave": "despesas_ressarcimento_du", "label": "Despesas de Ressarcimento de Direito de Uso",
+                "chave": "despesas_ressarcimento_du", "label": "Despesas do Recebimento de Direitos de Uso",
                 "tipo_dado": "moeda", "natureza": "mapa_rubricas",
                 "obrigatorio": False, "default_tecnico": None,
-                "descricao": "Rubricas deduzidas da Receita de Ressarcimento de Direito de Uso, antes da Receita Líquida principal. Estrutura (nomes) definida aqui; valor mensal informado no Fechamento — positivo (despesa normal), negativo (estorno/reembolso) ou zero.",
+                "descricao": "Rubricas deduzidas do Recebimento de Direitos de Uso, antes da Receita Líquida principal. Estrutura (nomes) definida aqui; valor mensal informado no Fechamento — positivo (despesa normal), negativo (estorno/reembolso) ou zero.",
                 "editor": "tabela_editavel", "aceita_vigencia": True,
                 "permite_adicionar": True, "permite_remover": True,
                 "minimo_itens": 0, "item_schema": _ITEM_SCHEMA_RUBRICA_SOMENTE_NOME,

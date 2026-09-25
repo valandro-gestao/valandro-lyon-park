@@ -73,7 +73,8 @@ ce_golden = {
 r_golden = calcular_com_aliquota_cumul_du(
     CFG_NILO, "2026-07", faturamento=300000.0, saldo_override=0.0, custos_extras=ce_golden,
 )
-checar("Ressarcimento Líquido DU = R$ 126.948,03 (golden legado)",
+checar("Recebimento Líquido DU (chave interna ressarcimento_liquido_du, intocada) "
+       "= R$ 126.948,03 (golden legado)",
        r_golden.extras["ressarcimento_liquido_du"] == 126948.03)
 checar("Total Despesas Rateio DU = R$ 236.457,21 (golden legado)",
        r_golden.extras["total_despesas_rateio_du"] == 236457.21)
@@ -109,8 +110,9 @@ from app.reporter import _blocos_cumul_du
 
 prest_golden = _prestacao_cumul_du(r_golden, CFG_NILO)
 labels_golden = [l.descricao for l in prest_golden.linhas]
-checar("Bloco 1 (Resumo) mostra o total de Ressarcimento Líquido DU",
-       any("Ressarcimento Líquido DU" in l for l in labels_golden))
+checar("Bloco 1 (Resumo) mostra o total de Recebimento Líquido DU (rótulo "
+       "renomeado na rodada de refinamento pós-Aucon)",
+       any("Recebimento Líquido DU" in l for l in labels_golden))
 checar("Bloco 1 (Resumo) NÃO detalha Valor de Direito de Uso por Vaga (rodada 10 — foi para o Bloco 3)",
        not any("por Vaga" in l for l in labels_golden))
 
@@ -120,8 +122,9 @@ du_vaga_bloco3 = next(l.valor for l in bloco_rateio.linhas if "por Vaga" in l.de
 checar("Bloco 3 (Rateio DU) mostra Valor de Direito de Uso por Vaga = 209.44", du_vaga_bloco3 == 209.44)
 
 rows_golden = dict(_dre_rows_unit(r_golden))
-checar("Memória da tela mostra 'Ressarcimento Líquido DU' = R$ 126.948,03",
-       rows_golden.get("Ressarcimento Líquido DU") == "R$ 126.948,03")
+checar("Memória da tela mostra 'Recebimento Líquido DU' = R$ 126.948,03 (rótulo "
+       "renomeado na rodada de refinamento pós-Aucon)",
+       rows_golden.get("Recebimento Líquido DU") == "R$ 126.948,03")
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -229,7 +232,7 @@ checar("Estrutura de julho continua vigente em agosto (sem nova vigência criada
        "despesas_ressarcimento_du" in rows_antes)
 
 blocos_e2e = _blocos_cumul_du(r_e2e)
-bloco_ressarc_e2e = next(b for b in blocos_e2e if b.titulo == "Ressarcimento de Direito de Uso")
+bloco_ressarc_e2e = next(b for b in blocos_e2e if b.titulo == "Recebimento de Direitos de Uso")
 checar("PDF ponta a ponta (Bloco 2) mostra a rubrica 'Proprietários' com o valor mensal informado",
        any(l.descricao == "(-) Proprietários" and l.valor == -20000.0
            for l in bloco_ressarc_e2e.linhas))

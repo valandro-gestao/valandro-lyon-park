@@ -25,7 +25,11 @@
 <!-- ╚══════════════════════════════╝ -->
 {# Cards mostram apenas os valores principais da competência — sem
    comparativo com outro mês (decisão de layout aprovada pelo proprietário
-   da Lyon). O comparativo continua disponível na seção de Histórico. #}
+   da Lyon). O comparativo continua disponível na seção de Histórico.
+   Guarda {% if cards %}: PDFs auxiliares (ex. Direito de Uso, Nilo Square)
+   passam cards=None deliberadamente — nenhum outro relatório muda, todos
+   já preenchem `cards`. #}
+{% if cards %}
 <div class="cards">
 
   <div class="card">
@@ -44,17 +48,22 @@
   </div>
 
 </div>
+{% endif %}
 
 <!-- ╔══════════════════════════════╗ -->
 <!-- ║  3. PRESTAÇÃO DE CONTAS      ║ -->
 <!-- ╚══════════════════════════════╝ -->
+{# Guarda {% if prestacao.linhas %}: mesma lógica do bloco de cards acima —
+   um PDF auxiliar passa prestacao=Prestacao(linhas=[]) para nunca mostrar
+   a prestação de contas principal. #}
+{% if prestacao.linhas %}
 <div class="section no-break">
   <div class="section-title">Prestação de Contas — {{ unidade.competencia_label }}</div>
   <table class="dre">
     <tbody>
       {% for linha in prestacao.linhas %}
       <tr class="tipo-{{ linha.tipo }}">
-        <td class="dre-label">{{ linha.descricao }}</td>
+        <td class="dre-label">{{ linha.descricao }}{% if linha.ref %} <span class="vd-ref">[{{ linha.ref }}]</span>{% endif %}</td>
         <td class="dre-value">
           {% if linha.valor is none %}
             {# linha de alíquota ou info — sem valor monetário #}
@@ -71,6 +80,7 @@
     </tbody>
   </table>
 </div>
+{% endif %}
 
 <!-- ╔══════════════════════════════╗ -->
 <!-- ║  4. COMPARATIVO 12 MESES     ║ -->
@@ -162,7 +172,7 @@
       <tbody>
         {% for linha in bloco.linhas %}
         <tr class="tipo-{{ linha.tipo }}">
-          <td class="dre-label">{{ linha.descricao }}</td>
+          <td class="dre-label">{{ linha.descricao }}{% if linha.ref %} <span class="vd-ref">[{{ linha.ref }}]</span>{% endif %}</td>
           <td class="dre-value">
             {% if linha.valor is none %}
               {# linha de alíquota — sem valor monetário #}

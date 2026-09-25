@@ -213,7 +213,7 @@ salvar_parametros(UID3, "2026-10", {
 at_out3 = _abrir_fechamento(UID3, "2026-10")
 next(n for n in at_out3.number_input if "Faturamento" in n.label).set_value(50000.0)
 at_out3.run()
-next(n for n in at_out3.number_input if "Ressarcimento de Direito de Uso" in n.label).set_value(40994.0)
+next(n for n in at_out3.number_input if "Recebimento de Direitos de Uso" in n.label).set_value(40994.0)
 at_out3.run()
 next(b for b in at_out3.button if b.label == "Calcular").click()
 at_out3.run()
@@ -221,8 +221,9 @@ next(b for b in at_out3.button if b.label == "Aprovar").click()
 at_out3.run()
 
 at_nov3 = _abrir_fechamento(UID3, "2026-11")
-checar("3a. Novembro sugere Receita Ressarcimento DU = 40.994,00 de outubro",
-       _valor(at_nov3, "Ressarcimento de Direito de Uso") == 40994.0)
+checar("3a. Novembro sugere Recebimento de Direitos de Uso = 40.994,00 de outubro "
+       "(rótulo renomeado na rodada de refinamento pós-Aucon)",
+       _valor(at_nov3, "Recebimento de Direitos de Uso") == 40994.0)
 
 draft_nov3_antes = carregar_rascunho_unidade(UID3, "2026-11")  # nenhuma edição ainda nesta chamada
 # (checagem já coberta pelo padrão 1b/4 — aqui só a sugestão em si)
@@ -378,7 +379,8 @@ r_golden = calcular_com_aliquota_cumul_du(
         "despesas_rateio_du": {"agua": 100000.0, "energia": 136457.21},
     },
 )
-checar("8d. Regressão: golden da Nilo (Ressarcimento Líquido DU) continua 126.948,03",
+checar("8d. Regressão: golden da Nilo (Recebimento Líquido DU, chave interna "
+       "ressarcimento_liquido_du intocada) continua 126.948,03",
        r_golden.extras["ressarcimento_liquido_du"] == 126948.03)
 checar("8e. Regressão: golden da Nilo (DU por vaga) continua 209,44",
        r_golden.extras["du_por_vaga"] == 209.44)

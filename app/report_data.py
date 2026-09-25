@@ -42,6 +42,10 @@ class LinhaPrestacao:
     descricao: str
     valor: float | None     # None → linha sem valor monetário (ex: tipo "aliquota")
     tipo: str = "normal"    # normal | deducao | subtotal | destaque | total | aliquota | info
+    # Referência visual opcional ("A"/"B"/"C"...) ligando esta linha-resumo
+    # ao seu total detalhado em outro bloco (ex.: Nilo Square). None para
+    # toda linha de toda outra unidade/calculadora — inerte por padrão.
+    ref: str | None = None
 
 
 @dataclass

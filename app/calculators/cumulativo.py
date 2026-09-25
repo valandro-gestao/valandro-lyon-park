@@ -220,3 +220,45 @@ def _aplicar_faixas(base: float, faixas: list) -> float:
             aluguel += parcela * pct
             saldo -= parcela
     return round(aluguel, 2)
+
+
+def _detalhar_faixas(base: float, faixas: list, total_aluguel: float) -> list[dict]:
+    """Decomposição por faixa (percentual/base/aluguel), só para exibição
+    no relatório (ex. COM_ALIQUOTA_CUMUL_DU/Nilo Square) — mesma estrutura
+    {"percentual","base","aluguel"} que app.calculators.faixas já produz
+    em extras["faixas_detalhe"]. NÃO recalcula o repasse: `total_aluguel`
+    já vem pronto de _aplicar_faixas (intocada, continua sendo a única
+    fonte do valor real usado no cálculo) — esta função só reparte esse
+    total já correto entre as faixas, para nunca haver o menor risco de o
+    detalhamento produzir um repasse diferente do já homologado.
+
+    A última faixa com base > 0 absorve o resíduo de arredondamento
+    (`total_aluguel - soma das faixas anteriores já arredondadas`) — por
+    construção, a soma das faixas do detalhe bate exatamente com
+    `total_aluguel`, mesmo que o arredondamento por faixa isoladamente
+    divirja em centavos do total."""
+    saldo = base
+    entradas = []
+    for faixa in faixas:
+        pct = faixa["percentual"]
+        if saldo <= 0:
+            entradas.append({"percentual": pct, "base": 0.0, "aluguel_bruto": 0.0})
+            continue
+        limite = faixa.get("ate")
+        parcela = saldo if limite is None else min(saldo, limite)
+        entradas.append({"percentual": pct, "base": parcela, "aluguel_bruto": parcela * pct})
+        saldo -= parcela
+
+    indices_com_base = [i for i, e in enumerate(entradas) if e["base"] > 0]
+    idx_ultimo = indices_com_base[-1] if indices_com_base else None
+
+    faixas_detalhe = []
+    acumulado = 0.0
+    for i, e in enumerate(entradas):
+        if i == idx_ultimo:
+            valor = round(total_aluguel - acumulado, 2)
+        else:
+            valor = round(e["aluguel_bruto"], 2)
+        acumulado += valor
+        faixas_detalhe.append({"percentual": e["percentual"], "base": e["base"], "aluguel": valor})
+    return faixas_detalhe

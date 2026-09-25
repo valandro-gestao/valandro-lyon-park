@@ -229,6 +229,14 @@ body {
   width: 72%;
 }
 
+/* Referência visual [A]/[B]/[C] ligando uma linha-resumo ao seu total
+   detalhado em outro bloco — discreta, nunca parece código contábil. */
+.vd-ref {
+  color: var(--color-muted);
+  font-size: 7.5pt;
+  font-weight: 600;
+}
+
 .dre .dre-value {
   text-align: right;
   font-weight: 500;

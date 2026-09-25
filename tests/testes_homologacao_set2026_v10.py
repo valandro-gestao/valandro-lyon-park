@@ -261,15 +261,16 @@ checar("Bloco 1: Repasse = R$ 157.667,20 (golden)",
 checar("Com despesas_pos_resultado vazio: exatamente 3 blocos (sem o 5º)",
        len(rd_golden.blocos_receitas) == 3)
 titulos = [b.titulo for b in rd_golden.blocos_receitas]
-checar("Blocos gerados: Ressarcimento DU, Rateio DU, Despesas da Operação",
-       titulos == ["Ressarcimento de Direito de Uso", "Rateio de Direito de Uso", "Despesas da Operação"])
+checar("Blocos gerados: Recebimento DU, Rateio DU, Despesas da Operação (rótulos "
+       "renomeados na rodada de refinamento pós-Aucon)",
+       titulos == ["Recebimento de Direitos de Uso", "Rateio de Direito de Uso", "Despesas da Operação"])
 
 bloco2 = rd_golden.blocos_receitas[0]
 labels_b2 = [l.descricao for l in bloco2.linhas]
-checar("Bloco 2: 'Receita Ressarcimento DU' aparece explicitamente",
-       any(l.descricao == "Receita Ressarcimento DU" and l.valor == 234896.54 for l in bloco2.linhas))
-checar("Bloco 2: Ressarcimento Líquido DU = R$ 126.948,03 (golden)",
-       next(l.valor for l in bloco2.linhas if l.descricao == "Ressarcimento Líquido DU") == 126948.03)
+checar("Bloco 2: 'Recebimento Bruto DU' aparece explicitamente",
+       any(l.descricao == "Recebimento Bruto DU" and l.valor == 234896.54 for l in bloco2.linhas))
+checar("Bloco 2: Recebimento Líquido DU = R$ 126.948,03 (golden)",
+       next(l.valor for l in bloco2.linhas if l.descricao == "Recebimento Líquido DU") == 126948.03)
 checar("Bloco 2: rubricas 'Proprietários'/'Provisionamento IPTU' aparecem só aqui",
        {"(-) Proprietários", "(-) Provisionamento IPTU"} <= set(labels_b2))
 

@@ -64,7 +64,7 @@ def calcular_com_aliquota_cumul_du(cfg: dict, mes: str, faturamento: float,
                                     custos_extras: dict = None,
                                     pe_override: float = None,
                                     **kwargs) -> ResultadoUnidade:
-    from app.calculators.cumulativo import _aplicar_faixas
+    from app.calculators.cumulativo import _aplicar_faixas, _detalhar_faixas
 
     aliq = cfg.get("aliquota_imposto", 0.0)
     pe = pe_override if pe_override is not None else cfg.get("ponto_equilibrio", 0.0)
@@ -100,9 +100,16 @@ def calcular_com_aliquota_cumul_du(cfg: dict, mes: str, faturamento: float,
 
     faixas_aluguel = cfg.get("faixas_aluguel")
     pct = cfg.get("percentual_aluguel", 0.0)
+    faixas_detalhe: list = []
     if resultado_disponivel > 0:
         if faixas_aluguel:
             aluguel = _aplicar_faixas(resultado_disponivel, faixas_aluguel)
+            # Detalhe só para exibição (relatório) — reparte o `aluguel` já
+            # calculado acima entre as faixas; nunca recalcula o repasse em
+            # si (ver docstring de _detalhar_faixas). Refinamento
+            # pós-homologação Aucon: antes não existia nenhum detalhamento
+            # por faixa para COM_ALIQUOTA_CUMUL_DU.
+            faixas_detalhe = _detalhar_faixas(resultado_disponivel, faixas_aluguel, aluguel)
         else:
             aluguel = round(resultado_disponivel * pct, 2)
         prejuizo_saida = 0.0
@@ -126,6 +133,7 @@ def calcular_com_aliquota_cumul_du(cfg: dict, mes: str, faturamento: float,
         "total_despesas_operacao": total_despesas_operacao,
         "despesas_pos_resultado": despesas_pos,
         "total_despesas_pos_resultado": total_despesas_pos,
+        "faixas_detalhe": faixas_detalhe,
     }
 
     return ResultadoUnidade(
