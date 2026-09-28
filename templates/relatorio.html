@@ -165,7 +165,7 @@
 <!-- ╚══════════════════════════════╝ -->
 {% for bloco in blocos_receitas %}
 <div class="section no-break">
-  <div class="section-title">{{ bloco.titulo }}</div>
+  <div class="section-title">{{ bloco.titulo }}{% if bloco.ref %} <span class="vd-ref-bloco">— Referência {{ bloco.ref }}</span>{% endif %}</div>
   <div class="bloco-extra">
     <div class="bloco-extra-titulo">Demonstrativo — {{ unidade.competencia_label }}</div>
     <table class="dre">

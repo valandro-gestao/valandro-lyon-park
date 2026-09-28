@@ -237,6 +237,17 @@ body {
   font-weight: 600;
 }
 
+/* Contraparte de .vd-ref no título de um bloco detalhado (ex. "Recebimento
+   de Direitos de Uso — Referência A") — mesma cor discreta, mas sem
+   uppercase/letter-spacing herdado do .section-title, para não competir
+   visualmente com o título. */
+.vd-ref-bloco {
+  color: var(--color-muted);
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
 .dre .dre-value {
   text-align: right;
   font-weight: 500;

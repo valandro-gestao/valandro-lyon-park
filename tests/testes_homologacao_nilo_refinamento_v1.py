@@ -38,14 +38,18 @@ def checar(nome, condicao):
         _falhas.append(nome)
 
 
+import json
 import streamlit as st
-from app.models import criar_unidade, salvar_parametros
+from app.models import criar_unidade, salvar_parametros, salvar_lancamento, get_db
 from app.engine import load_units, get_unit, get_unit_com_params, calcular
 from app.calculators.cumul_du import calcular_com_aliquota_cumul_du
 from app.calculators.cumulativo import _aplicar_faixas, _detalhar_faixas
 from app.calculators.faixas import calcular_com_faixas
 from app.reporter import (
     _prestacao_cumul_du, _blocos_cumul_du, build_report_data, build_report_data_du,
+)
+from app.report_data import (
+    ReportData, UnidadeInfo, Cards, Prestacao, Historico, BlocoReceita, LinhaPrestacao,
 )
 from app.renderer import render_html
 from app.parsers import eventos as eventos_parser
@@ -204,23 +208,32 @@ prest_refs = _prestacao_cumul_du(r_refs, CFG_REFS)
 blocos_refs = _blocos_cumul_du(r_refs)
 
 linha_resumo_a = next(l for l in prest_refs.linhas if "Recebimento Líquido DU" in l.descricao)
-checar("2e. Linha-resumo do Recebimento Líquido DU tem ref='A'", linha_resumo_a.ref == "A")
+checar("2e. Linha-resumo (branca) do Recebimento Líquido DU tem ref='A'", linha_resumo_a.ref == "A")
 bloco_recebimento = next(b for b in blocos_refs if b.titulo == "Recebimento de Direitos de Uso")
 linha_total_a = next(l for l in bloco_recebimento.linhas if l.descricao == "Recebimento Líquido DU")
-checar("2f. Total detalhado do Bloco 2 (Recebimento Líquido DU) tem o MESMO ref='A' "
-       "da linha-resumo", linha_total_a.ref == "A")
+checar("2f. Total detalhado do Bloco 2 (linha verde) NÃO tem mais ref próprio "
+       "— proposta visual aprovada removeu a referência repetida da linha "
+       "de total, deixando-a limpa", linha_total_a.ref is None)
+checar("2f2. Bloco 2 (título/cabeçalho) tem ref='A' — a contraparte da "
+       "referência da linha-resumo branca foi para o título do bloco "
+       "detalhado, não mais para a linha verde de total",
+       bloco_recebimento.ref == "A")
 
 linha_resumo_b = next(l for l in prest_refs.linhas if "Total Despesas Rateio DU" in l.descricao)
-checar("2g. Linha-resumo de Despesas Rateio DU tem ref='B'", linha_resumo_b.ref == "B")
+checar("2g. Linha-resumo (branca) de Despesas Rateio DU tem ref='B'", linha_resumo_b.ref == "B")
 bloco_rateio_refs = next(b for b in blocos_refs if b.titulo == "Rateio de Direito de Uso")
 linha_total_b = next(l for l in bloco_rateio_refs.linhas if l.descricao == "Total Despesas Rateio DU")
-checar("2h. Total detalhado do Bloco 3 tem o MESMO ref='B'", linha_total_b.ref == "B")
+checar("2h. Total detalhado do Bloco 3 (linha verde) NÃO tem mais ref próprio",
+       linha_total_b.ref is None)
+checar("2h2. Bloco 3 (título/cabeçalho) tem ref='B'", bloco_rateio_refs.ref == "B")
 
 linha_resumo_c = next(l for l in prest_refs.linhas if "Total Despesas da Operação" in l.descricao)
-checar("2i. Linha-resumo de Despesas da Operação tem ref='C'", linha_resumo_c.ref == "C")
+checar("2i. Linha-resumo (branca) de Despesas da Operação tem ref='C'", linha_resumo_c.ref == "C")
 bloco_operacao_refs = next(b for b in blocos_refs if b.titulo == "Despesas da Operação")
 linha_total_c = next(l for l in bloco_operacao_refs.linhas if l.descricao == "Total Despesas da Operação")
-checar("2j. Total detalhado do Bloco 4 tem o MESMO ref='C'", linha_total_c.ref == "C")
+checar("2j. Total detalhado do Bloco 4 (linha verde) NÃO tem mais ref próprio",
+       linha_total_c.ref is None)
+checar("2j2. Bloco 4 (título/cabeçalho) tem ref='C'", bloco_operacao_refs.ref == "C")
 
 checar("2k. Linhas sem ref explícito (ex. 'Faturamento') continuam com ref=None — "
        "campo inerte para o resto do relatório",
@@ -574,6 +587,264 @@ checar("8e. Cada unidade de teste aparece exatamente uma vez na tela "
        "(ordenação não duplicou nem moveu unidade de grupo)",
        all(todos_markdowns_em_ordem.count(f"**{n}**") == 1
            for n in NOMES_PENDENTE + NOMES_ANDAMENTO + NOMES_APROVADO))
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# 9. Bug real de produção (Nilo Square, Out/2026): get_unit() puro não
+#    enxerga faixas_aluguel (só existe em parametros_vigentes, unidade
+#    100% Admin, sem bloco em data/units.yaml) — o reporter usava get_unit
+#    para montar o cfg, então o detalhamento por faixa nunca aparecia no
+#    PDF, mesmo com o Repasse certo (calculado via get_unit_com_params em
+#    app.engine.calcular). Teste passa OBRIGATORIAMENTE pelo caminho
+#    público/real build_report_data — não chama _prestacao_cumul_du
+#    diretamente — porque foi exatamente esse caminho que os testes da
+#    rodada anterior não cobriram e que deixou o bug passar para produção.
+# ═══════════════════════════════════════════════════════════════════════
+print("=" * 70)
+print("9 — build_report_data (caminho real) resolve faixas_aluguel via "
+      "get_unit_com_params — bug de produção do Nilo Square")
+print("=" * 70)
+
+UID_BUILD_FAIXAS = "nilo_refin_v1_build_faixas"
+criar_unidade(UID_BUILD_FAIXAS, "Nilo Build Faixas", "Nilo Square", "2020-01-01",
+              "COM_ALIQUOTA_CUMUL_DU")
+salvar_parametros(UID_BUILD_FAIXAS, "2026-08", {
+    "aliquota_imposto": 0.0, "ponto_equilibrio": 0.0, "numero_vagas": 100,
+    "faixas_aluguel": FAIXAS_TESTE,
+}, alterado_por="teste_nilo_refin_v1")
+load_units(force=True)
+
+# 9a: prova da causa raiz — get_unit() PURO (identidade, sem params) não
+# tem faixas_aluguel para uma unidade só-Admin, ao contrário do FIERGS
+# (cujo YAML já embute "faixas" — ver seção 1l-1n, calculadoras intocadas).
+cfg_get_unit_puro = get_unit(UID_BUILD_FAIXAS)
+checar("9a. get_unit() puro NÃO enxerga faixas_aluguel (causa raiz do bug: "
+       "unidade só-Admin, sem bloco em data/units.yaml)",
+       "faixas_aluguel" not in cfg_get_unit_puro)
+cfg_get_unit_com_params = get_unit_com_params(UID_BUILD_FAIXAS, "2026-08")
+checar("9a2. get_unit_com_params() já enxerga faixas_aluguel (mesma "
+       "função que app.engine.calcular já usava — por isso o Repasse "
+       "sempre saiu certo, só o detalhamento no PDF que faltava)",
+       cfg_get_unit_com_params.get("faixas_aluguel") == FAIXAS_TESTE)
+
+r_build_faixas = calcular(UID_BUILD_FAIXAS, "2026-08", 250000.0)
+report_build_faixas = build_report_data(r_build_faixas, "2026-08")
+labels_build = [l.descricao for l in report_build_faixas.prestacao.linhas]
+checar("9b. build_report_data (caminho público real): linha 'Repasse 50% "
+       "(até R$ 100,000)' aparece na Prestação de Contas",
+       any("Repasse 50%" in l and "100,000" in l for l in labels_build))
+checar("9c. build_report_data: linha 'Repasse 70% (excedente)' aparece",
+       any("Repasse 70%" in l and "excedente" in l for l in labels_build))
+checar("9d. build_report_data: Repasse total (linha final) continua batendo "
+       "com o golden de _aplicar_faixas (R$ 155.000,00) — o detalhamento "
+       "não altera o total, só deixa de estar escondido",
+       report_build_faixas.prestacao.linhas[-1].descricao == "Repasse"
+       and report_build_faixas.prestacao.linhas[-1].valor == 155000.0)
+checar("9e. cards.repasse também bate com o total (155.000,00) — card e "
+       "detalhamento sempre consistentes entre si",
+       report_build_faixas.cards.repasse == 155000.0)
+
+# 9f: build_report_data_du (PDF auxiliar de Direito de Uso) tem a mesma
+# troca get_unit → get_unit_com_params — mesmo bug, mesma correção,
+# caminho de código separado.
+report_du_build_faixas = build_report_data_du(r_build_faixas, "2026-08")
+checar("9f. build_report_data_du: unidade só-Admin resolve corretamente "
+       "nome/contratante via get_unit_com_params (não quebrou)",
+       report_du_build_faixas.unidade.nome == "Nilo Build Faixas")
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# 10. Regressão do fix get_unit → get_unit_com_params no reporter para
+#     unidades reais YAML-backed (Dom Pedro/COM_ALIQUOTA_CUMUL, FIERGS/
+#     COM_FAIXAS) via build_report_data — a troca de fonte do cfg não pode
+#     quebrar o caminho mais comum de produção. linhas_cfg
+#     (cfg["relatorio"]["linhas"]) só existe em bloco YAML, nunca em
+#     parametros_vigentes/Admin — maior risco de regressão desta troca.
+# ═══════════════════════════════════════════════════════════════════════
+print("=" * 70)
+print("10 — Regressão real (Dom Pedro/FIERGS): get_unit_com_params no "
+      "reporter não quebra unidades YAML-backed")
+print("=" * 70)
+
+# bootstrap_unidades_se_vazia (disparado por migrations.runner.run_all no
+# topo deste arquivo) semeia TODAS as unidades reais de data/units.yaml na
+# base sandboxada deste teste (DATA_DIR=_SCRATCH) — dom_pedro/fiergs já
+# existem aqui, com seus blocos YAML reais (relatorio.linhas, faixas etc.),
+# sem tocar em data/seed.db.
+load_units(force=True)
+MES10 = "2026-08"
+
+r_dom_pedro = calcular("dom_pedro", MES10, 200000.0)
+report_dom_pedro = build_report_data(r_dom_pedro, MES10)
+labels_dp = [l.descricao for l in report_dom_pedro.prestacao.linhas]
+checar("10a. Dom Pedro (COM_ALIQUOTA_CUMUL, relatorio.linhas do YAML real "
+       "['faturamento','aliquota','subtotal','pe','resultado','prejuizo',"
+       "'aluguel']): PDF continua com 'Receita Bruta' (linhas_cfg "
+       "'faturamento' resolvido igual a antes)", "Receita Bruta" in labels_dp)
+checar("10b. Dom Pedro: 'Receita Líquida' presente (linhas_cfg 'aliquota')",
+       "Receita Líquida" in labels_dp)
+checar("10c. Dom Pedro: '(-) Ponto de Equilíbrio' presente (linhas_cfg "
+       "'pe', unidade tem ponto_equilibrio=10.803,71 no YAML)",
+       any("Ponto de Equilíbrio" in l for l in labels_dp))
+checar("10d. Dom Pedro: 'Resultado' presente (linhas_cfg 'resultado')",
+       "Resultado" in labels_dp)
+checar("10e. Dom Pedro: linha final de repasse presente (fluxo padrão "
+       "completo até o fim, cfg['relatorio']['linhas'] resolvido de "
+       "get_unit_com_params exatamente como get_unit() já resolvia)",
+       report_dom_pedro.prestacao.linhas[-1].descricao in
+       ("Repasse", "Taxa de Administração (Resultado Negativo)", "Saldo a Pagar"))
+checar("10f. Dom Pedro: prestação não ficou vazia por acidente",
+       len(report_dom_pedro.prestacao.linhas) > 0)
+
+r_fiergs = calcular("fiergs", MES10, 150000.0)
+report_fiergs = build_report_data(r_fiergs, MES10)
+labels_fiergs = [l.descricao for l in report_fiergs.prestacao.linhas]
+checar("10g. FIERGS (COM_FAIXAS, 'faixas' do próprio bloco YAML): PDF "
+       "continua com linha de faixa de Aluguel (get_unit_com_params "
+       "resolve o bloco YAML puro tão bem quanto get_unit() já resolvia)",
+       any(l.startswith("Aluguel ") for l in labels_fiergs))
+checar("10h. FIERGS: 'Total Aluguel' (linha final) presente",
+       report_fiergs.prestacao.linhas[-1].descricao == "Total Aluguel")
+checar("10i. FIERGS: prestação não ficou vazia por acidente",
+       len(report_fiergs.prestacao.linhas) > 0)
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# 11. _com_mes_atual: a competência do PDF sempre reflete o resultado em
+#     memória, mesmo quando já existe um lançamento APROVADO persistido
+#     para a MESMA competência — bug real de homologação (Nilo Square,
+#     Out/2026): comparativo mostrava valores antigos (Resultado
+#     125.875,00 / Repasse 108.948,55) enquanto o corpo do PDF já mostrava
+#     o cálculo novo (112.713,64 / 97.103,33). Cenário exato confirmado em
+#     produção (consulta read-only): banco tem Out/26 aprovado com
+#     resultado/repasse antigos; PDF gerado com NOVO ResultadoUnidade para
+#     Out/26 (parâmetro mudou, "Gerar PDF" clicado antes de reaprovar).
+#     `lancamentos` NUNCA é escrito por este caminho — só a composição em
+#     memória do comparativo muda.
+# ═══════════════════════════════════════════════════════════════════════
+print("=" * 70)
+print("11 — _com_mes_atual: competência do PDF sempre reflete o resultado "
+      "em memória, mesmo com lançamento aprovado antigo persistido")
+print("=" * 70)
+
+UID_COMP = "nilo_refin_v1_com_mes_atual"
+criar_unidade(UID_COMP, "Comp Mes Atual Refin V1", "Contratante Teste", "2020-01-01",
+              "PERCENTUAL_SIMPLES")
+salvar_parametros(UID_COMP, "2026-09", {"percentual_aluguel": 0.10, "ponto_equilibrio": 0.0},
+                  alterado_por="teste_nilo_refin_v1")
+load_units(force=True)
+
+# Mês anterior (Set/26) — persistido, aprovado, nunca deve mudar.
+r_set = calcular(UID_COMP, "2026-09", 100000.0)
+r_set.status = "aprovado"
+salvar_lancamento(r_set)
+
+# Out/26 — persistido como aprovado com valores ANTIGOS (simula um
+# fechamento já aprovado antes de um parâmetro mudar).
+r_out_antigo = calcular(UID_COMP, "2026-10", 125875.00)
+r_out_antigo.status = "aprovado"
+salvar_lancamento(r_out_antigo)
+
+with get_db() as _conn:
+    _row_antes = _conn.execute(
+        "SELECT resultado_json, status FROM lancamentos WHERE unidade_id=? AND mes_referencia=?",
+        (UID_COMP, "2026-10"),
+    ).fetchone()
+checar("11a. Pré-condição: Out/26 já está persistido como 'aprovado' antes "
+       "de gerar o novo PDF", _row_antes is not None and _row_antes["status"] == "aprovado")
+
+# PDF gerado com um NOVO ResultadoUnidade para a MESMA competência
+# (Out/26) — "Gerar PDF" nunca chama salvar_lancamento, então o banco
+# continua com o registro antigo enquanto este resultado só existe em
+# memória.
+r_out_novo = calcular(UID_COMP, "2026-10", 90000.0)
+report_comp = build_report_data(r_out_novo, "2026-10")
+
+entradas_out26 = [m for m in report_comp.comparativo_12m if m.competencia == "2026-10"]
+checar("11b. Comparativo contém Out/26 exatamente UMA vez (nunca duplicado "
+       "entre o valor novo em memória e o antigo do banco)",
+       len(entradas_out26) == 1)
+checar("11c. Valores de Out/26 no comparativo são os do NOVO resultado em "
+       "memória (faturamento=90.000,00), não os antigos persistidos "
+       "(125.875,00)", entradas_out26[0].faturamento == r_out_novo.faturamento == 90000.0)
+checar("11d. Valores de Out/26 no comparativo são os do NOVO resultado "
+       "(resultado), não os antigos", entradas_out26[0].resultado == r_out_novo.resultado)
+checar("11e. Repasse de Out/26 no comparativo é o do NOVO resultado "
+       "(aluguel_calculado) — não o antigo, que é um valor diferente",
+       entradas_out26[0].repasse == r_out_novo.aluguel_calculado
+       and r_out_novo.aluguel_calculado != r_out_antigo.aluguel_calculado
+       and entradas_out26[0].repasse != r_out_antigo.aluguel_calculado)
+
+entradas_set26 = [m for m in report_comp.comparativo_12m if m.competencia == "2026-09"]
+checar("11f. Mês anterior (Set/26) continua presente exatamente uma vez "
+       "(a substituição só vale para mes_ref, nunca para outros meses)",
+       len(entradas_set26) == 1)
+checar("11g. Mês anterior (Set/26): valores são os persistidos "
+       "(faturamento=100.000,00), intocados pela substituição de Out/26",
+       entradas_set26[0].faturamento == r_set.faturamento == 100000.0)
+
+# 11h-11i: confirma por leitura direta do banco que `lancamentos` NUNCA foi
+# escrito por build_report_data/_com_mes_atual — Out/26 continua com o
+# registro ANTIGO (aprovado, faturamento/resultado antigos).
+with get_db() as _conn2:
+    _row_depois = _conn2.execute(
+        "SELECT faturamento, resultado_json, status FROM lancamentos WHERE unidade_id=? AND mes_referencia=?",
+        (UID_COMP, "2026-10"),
+    ).fetchone()
+checar("11h. Depois de gerar o PDF: registro de Out/26 em `lancamentos` "
+       "continua com o faturamento ANTIGO (125.875,00) — build_report_data "
+       "nunca grava no banco", _row_depois["faturamento"] == 125875.00)
+_resultado_persistido = json.loads(_row_depois["resultado_json"])
+checar("11i. Registro de Out/26 em `lancamentos` continua com status "
+       "'aprovado' e resultado antigo — nenhuma escrita/sobrescrita "
+       "ocorreu por gerar o PDF", _row_depois["status"] == "aprovado"
+       and _resultado_persistido["resultado"] == r_out_antigo.resultado)
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# 12. Proposta visual A/B/C: BlocoReceita.ref é opcional (default None,
+#     inerte para qualquer bloco que não o defina explicitamente); o
+#     template só imprime "— Referência X" quando bloco.ref existe, nunca
+#     "vaza" para um bloco vizinho sem ref.
+# ═══════════════════════════════════════════════════════════════════════
+print("=" * 70)
+print("12 — BlocoReceita.ref: opcional/default None; template isola cada "
+      "bloco corretamente")
+print("=" * 70)
+
+checar("12a. BlocoReceita.ref tem default None (campo opcional, inerte "
+       "para todo bloco que não o define — nenhum outro bloco/relatório "
+       "muda por causa deste campo novo)",
+       BlocoReceita(titulo="x", linhas=[]).ref is None)
+
+_report_ref_html = ReportData(
+    unidade=UnidadeInfo(nome="Teste Ref", contratante="Teste", competencia="2026-08",
+                         competencia_label="Agosto / 2026", data_emissao="01/08/2026",
+                         tipo_relatorio="padrao"),
+    cards=Cards(faturamento=1000.0, resultado=500.0, repasse=100.0),
+    comparativo_12m=[],
+    prestacao=Prestacao(linhas=[LinhaPrestacao("Faturamento", 1000.0, "subtotal")]),
+    historico=Historico(colunas=[], linhas=[]),
+    blocos_receitas=[
+        BlocoReceita(titulo="Bloco Com Ref", linhas=[LinhaPrestacao("Total", 100.0, "total")], ref="X"),
+        BlocoReceita(titulo="Bloco Sem Ref", linhas=[LinhaPrestacao("Total", 200.0, "total")]),
+    ],
+)
+html_ref = render_html(_report_ref_html)
+checar("12b. Bloco com ref='X': título mostra 'Bloco Com Ref' junto de "
+       "'— Referência X'", "Bloco Com Ref" in html_ref and "— Referência X" in html_ref)
+checar("12c. Bloco sem ref: título 'Bloco Sem Ref' aparece normalmente",
+       "Bloco Sem Ref" in html_ref)
+# Isola só a marcação de título de bloco (vd-ref-bloco), ignorando o
+# comentário de exemplo em templates/report.css (que também contém o
+# texto literal "— Referência A" e ficaria embutido no <style> do HTML).
+checar("12d. Só existe UMA ocorrência da marcação de referência de bloco "
+       "(span.vd-ref-bloco) no corpo do HTML — o bloco sem ref não herda/"
+       "vaza a referência do bloco vizinho",
+       html_ref.count('class="vd-ref-bloco"') == 1)
+checar("12e. O título 'Bloco Sem Ref' não é seguido de nenhum "
+       "'— Referência' (a ausência de bloco.ref não vaza texto)",
+       "Bloco Sem Ref — Referência" not in html_ref)
 
 
 print("=" * 70)

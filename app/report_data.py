@@ -88,6 +88,11 @@ class BlocoReceita:
     titulo: str
     linhas: list[LinhaPrestacao]
     repasse_label: Optional[str] = None   # ex: "Repasse 50% (REAL)"
+    # Referência visual opcional ("A"/"B"/"C"...) exibida discretamente no
+    # título deste bloco, contraparte da mesma referência na linha-resumo
+    # da Prestação de Contas principal (ver LinhaPrestacao.ref) — None
+    # para todo bloco de toda outra unidade/relatório, inerte por padrão.
+    ref: Optional[str] = None
 
 
 @dataclass

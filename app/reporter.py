@@ -11,7 +11,7 @@ from app.report_data import (
 )
 from app.models import ResultadoUnidade, get_lancamentos_mes, get_historico_anual, get_db
 from app.calculators.patio import ResultadoPatio
-from app.engine import get_unit
+from app.engine import get_unit, get_unit_com_params
 from app.parsers import eventos as eventos_parser
 from app.rubricas import rotulo_exibicao
 
@@ -68,26 +68,37 @@ def _get_lancamentos_periodo(unidade_id: str, mes_ref: str, meses: int = 24) -> 
 
 
 def _com_mes_atual(lancamentos: list[dict], resultado, mes_ref: str) -> list[dict]:
-    """Garante que a competência sendo processada apareça no comparativo
-    mesmo quando ainda não foi salva em `lancamentos`.
+    """Garante que a competência sendo processada no PDF seja SEMPRE
+    representada pelos valores do `ResultadoUnidade` em memória — nunca
+    pelo que estiver persistido em `lancamentos` para essa mesma
+    competência, mesmo quando já existe um lançamento salvo lá (aprovado
+    ou não).
 
-    Isso acontece sempre que o PDF é gerado antes da aprovação ("Gerar PDF"
-    não chama salvar_lancamento — só "Aprovar" chama, e o faz antes de gerar
-    o relatório). Nesse caso, `_get_lancamentos_periodo` busca as
-    competências corretas, mas o próprio mes_ref ainda não existe no banco.
-    Não é um problema na consulta: é a competência atual que ainda não foi
-    persistida.
+    Correção de bug real de homologação (Nilo Square, out/2026): antes,
+    quando `mes_ref` já tinha uma linha em `lancamentos` (ex.: competência
+    aprovada antes, depois reaberta/recalculada com parâmetro diferente,
+    mas ainda não reaprovada), esta função deliberadamente mantinha o
+    valor antigo do banco no comparativo — só para NUNCA sobrescrever o
+    banco por um rascunho em memória durante uma aprovação em andamento.
+    Só que isso fazia o corpo do PDF (sempre construído a partir do
+    `resultado` recém-calculado) e a linha de "Out/26" do comparativo
+    mostrarem números diferentes para a MESMA competência, no MESMO PDF —
+    o operador via um resultado no card principal e outro na tabela de
+    comparativo, sem explicação visível.
 
-    Se mes_ref já estiver presente (aprovação, ou reabertura já recalculada
-    e salva), não faz nada — o valor do banco nunca é substituído pelo
-    rascunho em memória. Não trunca a lista — quem decide quantas linhas
-    exibir é _comparativo_12m, que também precisa do restante (meses do
-    ano anterior) para a comparação YoY.
+    Esta função NUNCA escreveu em `lancamentos` (só monta uma lista em
+    memória para render) — a mudança aqui é só qual fonte prevalece na
+    COMPOSIÇÃO do comparativo exibido: `mes_ref` é sempre substituído
+    pelo `resultado` em memória (nunca duplicado — a linha antiga do
+    banco para essa competência, se existir, é descartada da lista
+    exibida); todos os demais meses continuam vindo exclusivamente de
+    `lancamentos` (banco), sem nenhuma alteração. Não trunca a lista —
+    quem decide quantas linhas exibir é `_comparativo_12m`, que também
+    precisa do restante (meses do ano anterior) para a comparação YoY.
     """
-    if any(l["mes"] == mes_ref for l in lancamentos):
-        return lancamentos
+    outros_meses = [l for l in lancamentos if l["mes"] != mes_ref]
     atual = {"mes": mes_ref, **resultado.__dict__}
-    return sorted(lancamentos + [atual], key=lambda l: l["mes"], reverse=True)
+    return sorted(outros_meses + [atual], key=lambda l: l["mes"], reverse=True)
 
 
 def _comparativo_12m(lancamentos: list[dict]) -> list[ComparativoMes]:
@@ -669,8 +680,8 @@ def _blocos_cumul_du(r: ResultadoUnidade) -> list[BlocoReceita]:
             if item["valor"]:
                 linhas_du.append(LinhaPrestacao(f"(-) {item['nome']}", -item["valor"], "deducao"))
         linhas_du.append(LinhaPrestacao("Recebimento Líquido DU",
-                                         extras.get("ressarcimento_liquido_du") or 0.0, "total", ref="A"))
-        blocos.append(BlocoReceita(titulo="Recebimento de Direitos de Uso", linhas=linhas_du))
+                                         extras.get("ressarcimento_liquido_du") or 0.0, "total"))
+        blocos.append(BlocoReceita(titulo="Recebimento de Direitos de Uso", linhas=linhas_du, ref="A"))
 
     # Bloco 3 — Rateio de Direito de Uso (mesmo total que deduz uma única
     # vez o Bloco 1 e alimenta o Valor por Vaga — nenhuma dupla dedução,
@@ -682,14 +693,14 @@ def _blocos_cumul_du(r: ResultadoUnidade) -> list[BlocoReceita]:
             for item in despesas_rateio if item["valor"]
         ]
         linhas_rateio.append(LinhaPrestacao("Total Despesas Rateio DU",
-                                             extras.get("total_despesas_rateio_du") or 0.0, "total", ref="B"))
+                                             extras.get("total_despesas_rateio_du") or 0.0, "total"))
         numero_vagas = extras.get("numero_vagas")
         if numero_vagas:
             linhas_rateio.append(LinhaPrestacao("Número de Vagas", numero_vagas, "normal"))
         du_por_vaga = extras.get("du_por_vaga")
         if du_por_vaga is not None:
             linhas_rateio.append(LinhaPrestacao("Valor de Direito de Uso por Vaga", du_por_vaga, "destaque"))
-        blocos.append(BlocoReceita(titulo="Rateio de Direito de Uso", linhas=linhas_rateio))
+        blocos.append(BlocoReceita(titulo="Rateio de Direito de Uso", linhas=linhas_rateio, ref="B"))
 
     # Bloco 4 — Despesas da Operação.
     despesas_operacao = extras.get("despesas_operacao") or []
@@ -699,8 +710,8 @@ def _blocos_cumul_du(r: ResultadoUnidade) -> list[BlocoReceita]:
             for item in despesas_operacao if item["valor"]
         ]
         linhas_operacao.append(LinhaPrestacao("Total Despesas da Operação",
-                                               extras.get("total_despesas_operacao") or 0.0, "total", ref="C"))
-        blocos.append(BlocoReceita(titulo="Despesas da Operação", linhas=linhas_operacao))
+                                               extras.get("total_despesas_operacao") or 0.0, "total"))
+        blocos.append(BlocoReceita(titulo="Despesas da Operação", linhas=linhas_operacao, ref="C"))
 
     # Bloco 5 (excepcional) — Despesas após Resultado: só existe quando a
     # unidade tem rubricas configuradas neste grupo (ex.: Investimentos,
@@ -748,7 +759,18 @@ def build_report_data(resultado, mes_ref: str,
     if patio_split_id is not None and patio_resultado is not None:
         return _build_patio(patio_resultado, patio_split_id, mes_ref, hoje)
 
-    cfg = get_unit(resultado.unidade_id)
+    # get_unit_com_params (não get_unit): unidades sem bloco em
+    # data/units.yaml (ex. Nilo Square, criada 100% pela Administração)
+    # não têm NENHUM parâmetro de parametros_vigentes (ex. faixas_aluguel)
+    # visível via get_unit() — só identidade (nome/contratante/tipo_calculo
+    # etc.). get_unit() "funcionava por acidente" para unidades legadas
+    # como o FIERGS, cujas faixas já vêm dentro do próprio bloco YAML;
+    # nunca funcionou para uma unidade só-Admin. Bug real de homologação
+    # (Nilo Square, out/2026): o Repasse saía certo (calculado em
+    # app.engine.calcular, que já usa get_unit_com_params), mas o
+    # detalhamento por faixa no PDF ficava vazio, porque _prestacao_cumul_du
+    # lê cfg.get("faixas_aluguel") a partir do cfg montado AQUI.
+    cfg = get_unit_com_params(resultado.unidade_id, mes_ref)
     tipo_rel = cfg.get("tipo_relatorio", "padrao")
     tipo_cal = cfg.get("tipo_calculo", "")
 
@@ -845,7 +867,8 @@ def build_report_data_du(resultado: ResultadoUnidade, mes_ref: str) -> ReportDat
     tornam essas seções inertes quando não preenchidas, sem afetar nenhum
     outro relatório já existente, que sempre preenche os dois)."""
     hoje = date.today().strftime("%d/%m/%Y")
-    cfg = get_unit(resultado.unidade_id)
+    # Mesmo motivo de build_report_data — ver comentário lá.
+    cfg = get_unit_com_params(resultado.unidade_id, mes_ref)
 
     unidade = UnidadeInfo(
         nome=cfg["nome"],

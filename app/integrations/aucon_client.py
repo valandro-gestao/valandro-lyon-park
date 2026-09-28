@@ -22,6 +22,21 @@ secrets em produção — nunca banco, código, logs ou tela de Administração)
 lidas com o mesmo padrão já usado por app.paths (os.environ.get), sem
 python-dotenv/.env.aucon dentro de app/ — isso continua exclusivo do
 script de diagnóstico local.
+
+Código de filial (aucon_codigo_filial): vínculo entre uma unidade Lyon e
+sua filial correspondente na Aucon (ver migration 0016). Para uma unidade
+nova, o valor é obtido no próprio Aucon/eCloud, em
+Administração → Configurações → Cadastro de Filiais, coluna `ID` — esse é
+o número que deve ser cadastrado no campo "Código de filial na Aucon" da
+unidade, na tela de Administração do Lyon Reports.
+  - A existência de uma filial no Cadastro de Filiais da Aucon não
+    significa necessariamente que a unidade seja operacionalmente
+    integrada ao eCloud — confirmar com a Lyon antes de preencher
+    aucon_codigo_filial e habilitar a busca automática de faturamento
+    para uma unidade nova.
+  - "Pátio — Manutenções" não é uma unidade própria (não tem cadastro
+    individual em `unidades`, é um subrelatório do Pátio — ver
+    app.reporter._prestacao_manutencao) e não recebe código de filial.
 """
 from __future__ import annotations
 
