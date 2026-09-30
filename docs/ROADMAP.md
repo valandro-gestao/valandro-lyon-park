@@ -241,6 +241,26 @@ Este marco não é uma versão — é a validação operacional definitiva do fl
 
 ---
 
+## Débitos técnicos/arquiteturais conhecidos
+
+> Diferente das seções de versão acima, esta lista não é sequenciada por prioridade de produto — é um registro de lacunas arquiteturais já identificadas, para não serem redescobertas do zero numa próxima urgência. Cada item é resolvido dentro da versão onde fizer sentido (ou antes, se virar bloqueio operacional).
+
+### `historico_anual` como cache desincronizado de `lancamentos` (prioritário)
+
+**Sintoma real (homologação FIERGS, set/2026):** o PDF de uma unidade mostrava `Comparativo — Últimos N meses` correto (5 competências) mas `Histórico Anual` incompleto (só 2 das 5), porque as duas seções leem fontes diferentes — `lancamentos` (fonte de verdade, sempre atual) vs. `historico_anual` (cache agregado, só atualizado por migration).
+
+**Causa:** `historico_anual` é populado inteiramente por migrations (0006, e agora 0017 — ver [migrations/0017_reconstruir_historico_anual_global.py](../migrations/0017_reconstruir_historico_anual_global.py)), nunca "ao vivo" quando uma competência é aprovada ou reaberta/recalculada. `app.reporter._historico_anual` só ajusta em memória a competência do próprio PDF sendo gerado (e só quando ela ainda não está persistida) — nunca as competências aprovadas entre a última reconstrução e o PDF atual. Qualquer unidade com aprovações depois da última reconstrução fica com o Histórico Anual desatualizado, silenciosamente (nenhum erro, só um número errado no PDF).
+
+**Correção emergencial já aplicada:** migration `0017` reconstrói `historico_anual` para todas as unidades a partir de `lancamentos` (mesma regra de agregação já consolidada em 0006/0011) — resolve os dados já existentes, mas não fecha a lacuna: uma nova aprovação amanhã volta a desatualizar o cache.
+
+**Decisão de arquitetura pendente** (correção definitiva, ainda não escolhida):
+1. **Manter o cache, mantê-lo sincronizado** — reconstruir (ou atualizar incrementalmente) `historico_anual` automaticamente sempre que um lançamento for aprovado ou reaberto/recalculado (ex.: dentro do próprio `app.models.salvar_lancamento`, ou como parte do workflow de aprovação em `app.run_manager`); ou
+2. **Eliminar a persistência do cache** — calcular o Histórico Anual diretamente de `lancamentos` a cada PDF (mesmo princípio que `_comparativo_12m` já usa para o Comparativo de 12 meses), aceitando o custo de uma agregação a mais por PDF em troca de nunca mais poder ficar dessincronizado.
+
+Nenhuma das duas foi implementada — só a correção emergencial de dados (0017). Decisão e implementação ficam para quando esta versão for endereçada.
+
+---
+
 ## v1.3.0 — Automação de Entradas e Fechamento
 
 > **Pré-requisito:** só entra em desenvolvimento depois do marco operacional de agosto/2026 (fechamento completo de uma competência real, ponta a ponta, só com a ferramenta).
