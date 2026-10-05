@@ -49,5 +49,9 @@ scripts/
 # faz SELECT, roda via Render Shell (ver docstring do próprio arquivo).
 !scripts/diagnostico_producao_set2026.py
 
+# Exceção: diagnóstico read-only da 4ª rodada de homologação (fechamento
+# set/2026) — só SELECT, roda via Render Shell (ver docstring do arquivo).
+!scripts/diagnostico_producao_set2026_v12.py
+
 # Configuração do Claude Code — específica do ambiente de desenvolvimento
 .claude/
