@@ -285,8 +285,17 @@ Eventos, mídias e demais planilhas hoje importadas manualmente entram no mesmo 
 **Geração automática de relatórios**  
 Ao fechar a competência com as entradas já automatizadas, os PDFs de todas as unidades são gerados automaticamente com os parâmetros vigentes — a operadora recebe o fechamento pré-calculado.
 
-**Notificações e entregas automáticas**  
-Ao aprovar um relatório, o PDF é enviado automaticamente ao contratante correspondente. Elimina a etapa manual de download e envio.
+**Preparação de rascunhos de e-mail para revisão humana**  
+Depois que as unidades forem aprovadas individualmente, a operadora gera rascunhos de e-mail com o PDF definitivo anexado — em lote, para todas as unidades elegíveis, e também individualmente, para exceções. O sistema **cria o rascunho real na caixa postal do Outlook e nunca envia**: a revisão e o envio continuam sendo humanos. Elimina a montagem manual de destinatários, assunto, corpo e anexos sem retirar a decisão final da operadora.
+
+Decisões já tomadas para esta funcionalidade:
+- Provedor: Microsoft 365 / Microsoft Graph. A caixa postal em que os rascunhos são criados ainda será confirmada com a operação.
+- Destinatários, assuntos, corpos e documentos acessórios serão levantados a partir dos e-mails reais já enviados pela operação (Débora), não definidos de forma abstrata.
+- Os templates poderão variar por unidade. O checklist de documentos de cada envio é estruturado (não texto livre).
+- O comportamento do Pátio (REAL, MAIOJAMA e Manutenções, mesmo contratante) será definido conforme o envio real atual.
+- Uma unidade só é elegível quando, simultaneamente: o workflow está `aprovado`, o lançamento correspondente está `aprovado` e o PDF definitivo existe. Qualquer inconsistência é rejeitada com o motivo, nunca ignorada.
+
+**Envio automático — evolução futura, não escopo atual.** O envio automático do PDF ao contratante, sem revisão humana, só será reavaliado depois de a preparação de rascunhos estar validada em operação real (princípio 6).
 
 ### Por que antes de Workflow, Analytics e da migração Supabase
 Estas funcionalidades eliminam trabalho manual repetitivo da operadora todo mês — valor direto e imediato. Workflow e Analytics agregam rastreabilidade e visibilidade gerencial, mas não eliminam trabalho manual existente. A migração Supabase entrega valor à plataforma Valandro, não à operadora diretamente. A ordem de prioridade deste roadmap — operação real, autonomia, automação, arquitetura — coloca esta versão à frente das três.
@@ -479,6 +488,18 @@ Itens identificados, com valor claro, mas sem priorização formal ainda. Serão
 | Backup automático antes de cada competência | Proteção contra corrupção de dados no início do fechamento | Segurança |
 | Exportação consolidada multi-unidade | Visão agregada do fechamento para relatório gerencial | Médio |
 
+### Defeitos conhecidos (registrados em 06/10/2026, não corrigidos)
+
+Defeitos identificados durante o diagnóstico da geração de rascunhos de e-mail. Estão aqui para não serem redescobertos; nenhum bloqueia o fluxo operacional atual, que aprova cada unidade individualmente pela tela de detalhe.
+
+**Aprovação só de workflow pode marcar `aprovado` sem lançamento aprovado**  
+Dois pontos da tela de Fechamento chamam apenas `run_manager.mark_approved`, sem recalcular nem gravar o lançamento: o botão "Aprovar todos" (`_aprovar_todos_gerados`) e o botão "Aprovar" rápido da linha da lista (`qaprov_`, em `_linha_unidade`). A aprovação correta — botão "Aprovar" da tela de detalhe (`_aprovar_unidade`) — recalcula, grava o lançamento como `aprovado`, gera o PDF, grava os parâmetros e só então marca o workflow. Uma unidade em `gerado` nunca aprovada individualmente não tem linha em `lancamentos` (nenhum código ativo grava lançamento fora da aprovação), então os dois atalhos a deixam com workflow `aprovado` e **sem lançamento**. Consequências: a cadeia de saldo acumulado (`get_saldo_entrada`), o comparativo e o histórico das competências seguintes não enxergam a unidade, e qualquer consumidor que confie só no workflow (como o futuro envio de e-mails) trataria como aprovado algo que não foi consolidado. Mitigação decidida: o lote de rascunhos de e-mail exige workflow, lançamento e PDF consistentes (ver v1.3.0).
+
+**Tratamento (06/10/2026):** os dois atalhos foram **removidos da interface ativa** (junto com as funções do lote, para não restar código órfão com o defeito); a aprovação oficial acontece só na tela de detalhe da unidade, e "Abrir" é o caminho. A aprovação individual (`_aprovar_unidade`) não foi alterada e não haverá refatoração dela. Cobertura em `tests/testes_remocao_atalhos_aprovacao.py`. **Pendente:** diagnóstico read-only da produção para localizar competências já aprovadas por esses atalhos (`scripts/diagnostico_aprovacao_inconsistente.py`); nenhuma correção automática — cada caso encontrado é decidido manualmente. O defeito só é considerado encerrado depois desse levantamento.
+
+**"Gerar pendentes" falha para o Pátio (`KeyError: 'patio_real'`)**  
+`_gerar_pendentes` chama `generate_report` para `patio_real` e `patio_maiojama` com `patio_resultado=None`. Sem o `ResultadoPatio`, `build_report_data` não entra no ramo do Pátio e cai no caminho genérico, que consulta `get_unit_com_params("patio_real")` — uid que não existe em `unidades`. O erro é capturado e a unidade vai para `erro`; o aviso final ainda contabiliza todas as unidades pendentes como geradas. Reproduzido em banco isolado. O Pátio é gerado corretamente pelos botões "Gerar PDF" de `_barra_acoes_patio`, que passam o `ResultadoPatio` da sessão. Não corrigido.
+
 ### Refinamento visual (backlog, sem prioridade maior que v1.2.0)
 
 Ajustes visuais pontuais identificados em uso real ou em reunião de validação — não representam mudança arquitetural nem de regra de cálculo, por isso não ocupam uma versão própria.
@@ -513,4 +534,4 @@ Nenhum fluxo é automatizado antes de ter rodado de ponta a ponta, manualmente, 
 
 ---
 
-*Última atualização: 01/09/2026*
+*Última atualização: 06/10/2026*

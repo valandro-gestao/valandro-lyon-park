@@ -1217,21 +1217,21 @@ def _tela_lista(mes_ref: str):
     tem_unidade_aucon = any(get_aucon_codigo_filial(u["id"]) for u in unidades)
 
     with col_acoes:
+        # Não há aprovação em lote nem atalho de aprovação na lista: a
+        # aprovação oficial acontece só na tela de detalhe da unidade
+        # (_aprovar_unidade), depois da conferência pela operação.
         if tem_unidade_aucon:
-            act1, act2, act3, act4 = st.columns(4)
-        else:
             act1, act2, act3 = st.columns(3)
+        else:
+            act1, act2 = st.columns(2)
         with act1:
             if st.button("Gerar pendentes", type="primary", use_container_width=True):
                 _gerar_pendentes(mes_ref, todos_uids)
                 st.rerun()
         with act2:
-            if st.button("Aprovar todos", use_container_width=True):
-                _dialog_confirmar_aprovar_todos(mes_ref, todos_uids)
-        with act3:
             _download_zip(mes_ref, todos_uids, run)
         if tem_unidade_aucon:
-            with act4:
+            with act3:
                 if st.button("Buscar no Aucon", use_container_width=True):
                     _buscar_faturamentos_aucon_lote(mes_ref, unidades)
                     st.rerun()
@@ -1437,20 +1437,11 @@ def _linha_unidade(mes_ref: str, u: dict, status: str, uid_map: dict, run: dict,
     else:
         with row[3]:
             bc = st.columns(2)
+            # Sem atalho de aprovação na lista: "Abrir" é o único caminho
+            # para aprovar (tela de detalhe → _aprovar_unidade).
             if bc[0].button("Abrir", key=f"open_{uid}_{mes_ref}", use_container_width=True):
                 st.session_state.selected_unit = uid
                 st.rerun()
-            if status in ("gerado", "revisado"):
-                if bc[1].button("Aprovar", key=f"qaprov_{uid}_{mes_ref}",
-                                 use_container_width=True, type="primary"):
-                    for r in report_uids:
-                        try:
-                            rm.mark_approved(mes_ref, r)
-                        except Exception:
-                            pass
-                    st.rerun()
-            else:
-                bc[1].write("")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -2894,37 +2885,6 @@ def _gerar_pendentes(mes_ref: str, todos_uids: list):
             rm.mark_error(mes_ref, uid, str(e))
     bar.empty()
     st.success(f"{len(pendentes)} PDF(s) gerado(s).")
-
-
-def _aprovar_todos_gerados(mes_ref: str, todos_uids: list):
-    count = 0
-    for uid in todos_uids:
-        if rm.get_unit_run(mes_ref, uid)["status"] in ("gerado", "revisado"):
-            try:
-                rm.mark_approved(mes_ref, uid)
-                count += 1
-            except Exception:
-                pass
-    if count:
-        st.success(f"{count} unidade(s) aprovada(s).")
-    else:
-        st.info("Nenhuma unidade com status 'gerado' ou 'revisado'.")
-
-
-@st.dialog("Aprovar todas as unidades geradas")
-def _dialog_confirmar_aprovar_todos(mes_ref: str, todos_uids: list):
-    """Confirmação antes da aprovação em massa — reduz risco de clique errado.
-    Não altera a lógica de aprovação: apenas intercala uma etapa de confirmação
-    antes de chamar a mesma função _aprovar_todos_gerados já existente."""
-    st.write("Deseja realmente aprovar todas as unidades geradas?")
-    c1, c2 = st.columns(2)
-    with c1:
-        if st.button("Cancelar", use_container_width=True):
-            st.rerun()
-    with c2:
-        if st.button("Aprovar", type="primary", use_container_width=True):
-            _aprovar_todos_gerados(mes_ref, todos_uids)
-            st.rerun()
 
 
 def _download_zip(mes_ref: str, todos_uids: list, run: dict):

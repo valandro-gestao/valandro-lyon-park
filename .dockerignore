@@ -53,5 +53,10 @@ scripts/
 # set/2026) — só SELECT, roda via Render Shell (ver docstring do arquivo).
 !scripts/diagnostico_producao_set2026_v12.py
 
+# Exceção: diagnóstico read-only de aprovações de workflow sem lançamento
+# aprovado — só SELECT, não corrige nada, roda via Render Shell (ver
+# docstring do arquivo).
+!scripts/diagnostico_aprovacao_inconsistente.py
+
 # Configuração do Claude Code — específica do ambiente de desenvolvimento
 .claude/
