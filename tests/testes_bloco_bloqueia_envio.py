@@ -363,12 +363,16 @@ print("=" * 70)
 print("2. Investimentos — netado antes do prejuízo/repasse (Viva Trindade)")
 print("=" * 70)
 
+# set/2026 (4ª rodada): investimentos/outras_despesas são rubricas MENSAIS —
+# chegam ao calculator só via custos_extras (o que a tela do Fechamento
+# envia), nunca por cfg["custos_variaveis"] (vigência). Valores e
+# expectativas abaixo permanecem exatamente os mesmos de antes.
 cfg_viva = {
     "id": "viva_trindade_like", "aliquota_imposto": 0.0, "percentual_aluguel": 0.85,
-    "custos_variaveis": {"investimentos": 2000.0},
 }
+CE_INV_2000 = {"investimentos": 2000.0}
 
-r1 = calcular_com_aliquota_cumul(cfg_viva, "2026-08", faturamento=10000.0, saldo_override=0.0)
+r1 = calcular_com_aliquota_cumul(cfg_viva, "2026-08", faturamento=10000.0, saldo_override=0.0, custos_extras=dict(CE_INV_2000))
 checar("2a. resultado (bruto) permanece igual ao faturamento (sem custos/PE)", r1.resultado == 10000.0)
 checar("2a. repasse calculado sobre resultado JÁ líquido de investimento (6800.0)",
        r1.aluguel_calculado == 6800.0)
@@ -377,14 +381,14 @@ checar("2a. extras['investimentos'] = 2000.0", r1.extras.get("investimentos") ==
 checar("2a. extras NÃO tem mais 'saldo_a_pagar' (dedução pós-repasse removida)",
        "saldo_a_pagar" not in r1.extras)
 
-r2 = calcular_com_aliquota_cumul(cfg_viva, "2026-08", faturamento=1000.0, saldo_override=0.0)
+r2 = calcular_com_aliquota_cumul(cfg_viva, "2026-08", faturamento=1000.0, saldo_override=0.0, custos_extras=dict(CE_INV_2000))
 checar("2b. Resultado < Investimentos: aluguel = 0 (sem repasse)", r2.aluguel_calculado == 0.0)
 checar("2b. Resultado < Investimentos: prejuízo acumulado de SAÍDA fica negativo (-1000.0)",
        r2.prejuizo_acumulado_saida == -1000.0)
 checar("2b. Resultado (bruto, exibido) continua sendo o valor cheio (1000.0), não o líquido",
        r2.resultado == 1000.0)
 
-r3 = calcular_com_aliquota_cumul(cfg_viva, "2026-08", faturamento=1500.0, saldo_override=-500.0)
+r3 = calcular_com_aliquota_cumul(cfg_viva, "2026-08", faturamento=1500.0, saldo_override=-500.0, custos_extras=dict(CE_INV_2000))
 checar("2c. investimento aumenta o prejuízo acumulado que já existia (-1000.0)",
        r3.prejuizo_acumulado_saida == -1000.0)
 
@@ -407,11 +411,11 @@ cfg_viva_oficial = {
     "id": "viva_trindade", "aliquota_imposto": 0.1425, "percentual_aluguel": 0.85,
     "ponto_equilibrio": 27823.50,
     "custos_mensais": {"condominio": 13039.72, "iptu": 0.0},
-    "custos_variaveis": {"outras_despesas": 2400.00, "investimentos": 0.0},
 }
 r_oficial = calcular_com_aliquota_cumul(
     cfg_viva_oficial, "2026-08", faturamento=48674.03,
     saldo_override=_SALDO_ENTRADA_AGOSTO_2026_DERIVADO,
+    custos_extras={"outras_despesas": 2400.0, "investimentos": 0.0},
 )
 checar("2d.1. fechamento oficial ago/2026: Subtotal = 41737.98", r_oficial.subtotal == 41737.98)
 checar("2d.1. fechamento oficial ago/2026: Resultado = -1525.24", r_oficial.resultado == -1525.24)
@@ -427,9 +431,9 @@ checar("2d.1. fechamento oficial ago/2026: sem 'investimentos' nos extras (valor
 # outras_despesas dentro de "resultado", investimentos só depois.
 cfg_ambos_novos = {
     "id": "viva_ambos_like", "aliquota_imposto": 0.0, "percentual_aluguel": 0.85,
-    "custos_variaveis": {"outras_despesas": 500.0, "investimentos": 1000.0},
 }
-r_ambos_novos = calcular_com_aliquota_cumul(cfg_ambos_novos, "2026-08", faturamento=10000.0, saldo_override=0.0)
+r_ambos_novos = calcular_com_aliquota_cumul(cfg_ambos_novos, "2026-08", faturamento=10000.0, saldo_override=0.0,
+                                             custos_extras={"outras_despesas": 500.0, "investimentos": 1000.0})
 # resultado = 10000 - 500 = 9500 (já líquido de outras_despesas)
 # disponivel = 9500 - 1000 = 8500; aluguel = 0.85*8500 = 7225
 checar("2d.2. outras_despesas já descontado em 'resultado' (9500.0, não no repasse)",
@@ -440,19 +444,19 @@ checar("2d.2. extras tem outras_despesas E investimentos, os dois presentes ao m
        r_ambos_novos.extras.get("outras_despesas") == 500.0
        and r_ambos_novos.extras.get("investimentos") == 1000.0)
 
-# 2d.3: schema — outras_despesas é campo próprio de COM_ALIQUOTA_CUMUL,
-# versionável por competência, e não substitui investimentos.
-_chaves_cumul_atualizadas = [c["chave"] for c in SCHEMAS_POR_TIPO["COM_ALIQUOTA_CUMUL"]["campos"]]
-checar("2d.3. schema COM_ALIQUOTA_CUMUL tem custos_variaveis.outras_despesas",
-       "custos_variaveis.outras_despesas" in _chaves_cumul_atualizadas)
-checar("2d.3. schema COM_ALIQUOTA_CUMUL continua com custos_variaveis.investimentos (não substituído)",
-       "custos_variaveis.investimentos" in _chaves_cumul_atualizadas)
-_campo_outras_despesas = next(
-    c for c in SCHEMAS_POR_TIPO["COM_ALIQUOTA_CUMUL"]["campos"]
-    if c["chave"] == "custos_variaveis.outras_despesas"
-)
-checar("2d.3. outras_despesas aceita vigência (versionável por competência)",
-       _campo_outras_despesas.get("aceita_vigencia") is True)
+# 2d.3: schema — (set/2026, 4ª rodada) outras_despesas/investimentos são rubricas
+# MENSAIS: não são mais parâmetros com vigência na Administração; o schema só
+# liga/desliga o campo (tem_outras_despesas / tem_investimentos), e coexistem.
+_campos_cumul = {c["chave"]: c for c in SCHEMAS_POR_TIPO["COM_ALIQUOTA_CUMUL"]["campos"]}
+checar("2d.3. schema COM_ALIQUOTA_CUMUL tem a chave tem_outras_despesas (toggle)",
+       _campos_cumul.get("tem_outras_despesas", {}).get("editor") == "toggle")
+checar("2d.3. schema COM_ALIQUOTA_CUMUL tem a chave tem_investimentos (toggle, coexiste com outras despesas)",
+       _campos_cumul.get("tem_investimentos", {}).get("editor") == "toggle")
+checar("2d.3. schema COM_ALIQUOTA_CUMUL NÃO expõe mais o VALOR de outras_despesas/investimentos como parâmetro",
+       "custos_variaveis.outras_despesas" not in _campos_cumul
+       and "custos_variaveis.investimentos" not in _campos_cumul)
+checar("2d.3. fundo_recomposicao (W Tower, contratual) continua como parâmetro com vigência",
+       _campos_cumul.get("custos_variaveis.fundo_recomposicao", {}).get("aceita_vigencia") is True)
 
 print("--- 2e-2f: fundo_recomposicao (W Tower) — comportamento ANTIGO inalterado ---")
 cfg_wtower = {
@@ -468,9 +472,10 @@ checar("2e. extras['fundo_recomposicao'] presente", r5.extras.get("fundo_recompo
 
 cfg_ambos = {
     "id": "ambos_like", "aliquota_imposto": 0.0, "percentual_aluguel": 0.80,
-    "custos_variaveis": {"investimentos": 1000.0, "fundo_recomposicao": 500.0},
+    "custos_variaveis": {"fundo_recomposicao": 500.0},   # fundo (W Tower) segue por vigência
 }
-r6 = calcular_com_aliquota_cumul(cfg_ambos, "2026-08", faturamento=10000.0, saldo_override=0.0)
+r6 = calcular_com_aliquota_cumul(cfg_ambos, "2026-08", faturamento=10000.0, saldo_override=0.0,
+                                  custos_extras={"investimentos": 1000.0})
 checar("2f. investimentos e fundo_recomposicao simultâneos: aluguel líquido de investimento (7200.0)",
        r6.aluguel_calculado == 7200.0)
 checar("2f. investimentos e fundo_recomposicao simultâneos: saldo_a_pagar líquido de fundo (6700.0)",

@@ -105,6 +105,10 @@ def get_parametros_efetivos(unidade_id: str, mes_ref: str) -> dict:
     """
     yaml_cfg = load_units()[unidade_id]
     db_params = get_parametros_vigentes(unidade_id, mes_ref)
+    # aucon_codigo_filial é estrutural (coluna `unidades`, já em yaml_cfg via
+    # load_units) — uma linha antiga em parametros_vigentes (cópia semeada
+    # por versões anteriores) nunca pode ter precedência sobre ela.
+    db_params.pop("aucon_codigo_filial", None)
     if not db_params:
         return yaml_cfg
     cfg = copy.deepcopy(yaml_cfg)

@@ -23,12 +23,14 @@ from app.paths import RUNS_DIR
 from app.models import (
     ResultadoUnidade, get_db, init_db, salvar_lancamento, get_saldo_acumulado,
     salvar_parametros, corrigir_saldo_anual, limpar_rascunho_unidade,
+    get_aucon_codigo_filial,
 )
 from app.parsers import eventos as eventos_parser
 from app.parsers import faturamento as fat_parser
 from app.reporter import build_report_data
 from app.renderer import render_html
-from app.rubricas import normalizar_rubricas, rotulo_exibicao as _custo_label
+from app.rubricas import normalizar_rubricas, rotulo_exibicao as _custo_label, RubricaItem
+from app.calculadora_schema import rubricas_mensais_do_tipo, rubricas_mensais_ativas
 from app.integrations import aucon_client
 
 # ─── CSS global ──────────────────────────────────────────────────────────────
@@ -442,6 +444,25 @@ def _status_chip_html(status: str) -> str:
 _RUBRICAS_MENSAIS_NAO_VIGENCIA = frozenset({"investimentos", "outras_despesas"})
 
 
+def _itens_custos_variaveis(u: dict) -> list:
+    """Itens de `custos_variaveis` que viram campo no Fechamento. As rubricas
+    MENSAIS do tipo (investimentos/outras_despesas) NÃO vêm mais da presença
+    de uma linha em parametros_vigentes/YAML — aparecem exatamente quando a
+    unidade as liga (`tem_investimentos`/`tem_outras_despesas`, configurados
+    na Administração). Linhas antigas dessas chaves ficam preservadas no
+    banco, mas não decidem nada aqui. Os demais itens (ex.: fundo_recomposicao,
+    rubricas genuínas de outros tipos) seguem o mecanismo de sempre."""
+    tc = u.get("tipo_calculo", "")
+    itens = normalizar_rubricas(u.get("custos_variaveis"))
+    reservadas = rubricas_mensais_do_tipo(tc)
+    if not reservadas:
+        return itens
+    itens = [i for i in itens if i.id not in reservadas]
+    for rid in rubricas_mensais_ativas(tc, u):
+        itens.append(RubricaItem(id=rid, nome=_custo_label(rid), valor=0.0))
+    return itens
+
+
 def _e_rubrica_mensal_nao_vigente(tipo_calculo: str, item_id: str) -> bool:
     """True quando `item_id` (dentro de custos_variaveis) é uma rubrica
     mensal (não deve virar vigência automática ao aprovar) — combina o id
@@ -747,7 +768,7 @@ def _chaves_estado_unidade(uid: str, u: dict) -> list[str]:
         chaves.append(f"base_tc_{uid}")
     for item in normalizar_rubricas(u.get("custos_mensais")):
         chaves.append(f"custo_{uid}_{item.id}")
-    for item in normalizar_rubricas(u.get("custos_variaveis")):
+    for item in _itens_custos_variaveis(u):
         chaves.append(f"cv_{uid}_{item.id}")
     if tc == "COM_ALIQUOTA_CUMUL_DU":
         # Homologação set/2026 (Nilo Square) — sem isso, o rascunho dos 4
@@ -984,7 +1005,11 @@ def _importar_faturamento_aucon(uid: str, mes_ref: str, u: dict,
     nenhum widget de unidade instanciado — mas se o operador já tinha
     aberto essa unidade antes na mesma sessão, o marcador antigo
     também precisa cair, senão a reabertura mostraria o valor antigo)."""
-    codigo_filial = u.get("aucon_codigo_filial")
+    # Fonte única do código: coluna `unidades.aucon_codigo_filial` (lida
+    # direto, sem cache — ver app.models.get_aucon_codigo_filial). `u` não é
+    # consultado para isso: o dict da tela da unidade é a cfg mesclada com
+    # parametros_vigentes e já chegou a carregar um código antigo.
+    codigo_filial = get_aucon_codigo_filial(uid)
     if not codigo_filial:
         return "erro", {"mensagem": "Unidade sem código de filial Aucon configurado."}
 
@@ -1034,7 +1059,7 @@ def _buscar_faturamentos_aucon_lote(mes_ref: str, unidades: list[dict]):
     _gerar_pendentes."""
     from datetime import datetime
 
-    alvo = [u for u in unidades if u.get("aucon_codigo_filial")]
+    alvo = [u for u in unidades if get_aucon_codigo_filial(u["id"])]
     if not alvo:
         st.info("Nenhuma unidade com integração Aucon configurada.")
         return
@@ -1189,7 +1214,7 @@ def _tela_lista(mes_ref: str):
     for u in unidades:
         todos_uids.extend(_report_uids_of(u["id"]))
 
-    tem_unidade_aucon = any(u.get("aucon_codigo_filial") for u in unidades)
+    tem_unidade_aucon = any(get_aucon_codigo_filial(u["id"]) for u in unidades)
 
     with col_acoes:
         if tem_unidade_aucon:
@@ -1644,7 +1669,14 @@ def _inputs_parametros(uid: str, u: dict, mes_ref: str,
     # unidade tem código de filial configurado (unidades sem integração
     # ficam totalmente fora deste bloco). Mesma regra/serviço do lote da
     # tela geral (_importar_faturamento_aucon) — nunca duas implementações.
-    if u.get("aucon_codigo_filial"):
+    if not get_aucon_codigo_filial(uid):
+        # Sem código de filial cadastrado: informação discreta (caption, não
+        # warning/error — várias unidades legitimamente não usam Aucon), sem
+        # botão de atualização, e o preenchimento manual segue livre. Não
+        # confundir com "Aucon consultado e retornou R$ 0,00" (esse caso tem
+        # código, botão e _aucon_meta no rascunho).
+        st.caption("ⓘ Aucon não configurado — código da filial não cadastrado.")
+    else:
         meta_aucon = _ler_meta_aucon(uid, mes_ref)
         cap_col, btn_col = st.columns([3, 1])
         with cap_col:
@@ -1800,7 +1832,7 @@ def _inputs_parametros(uid: str, u: dict, mes_ref: str,
                     st.markdown(f'<div class="vd-param-diff">{diff}</div>', unsafe_allow_html=True)
                 custos_extras[item.id] = val
 
-    itens_custos_variaveis = normalizar_rubricas(u.get("custos_variaveis"))
+    itens_custos_variaveis = _itens_custos_variaveis(u)
     if itens_custos_variaveis:
         st.caption("**Custos variáveis:**")
         n = min(4, len(itens_custos_variaveis))

@@ -1,4 +1,5 @@
 from app.models import ResultadoUnidade
+from app.rubricas import valor_rubrica_mensal
 
 
 def calcular_percentual_simples(cfg: dict, mes: str, faturamento: float,
@@ -50,9 +51,10 @@ def calcular_com_aliquota(cfg: dict, mes: str, faturamento: float,
         extras["fat_carregadores"] = fat_carregadores
 
     # Investimentos (FK, In 1183 e similares): dedução do aluguel → saldo_a_pagar
-    investimentos = float((custos_extras or {}).get("investimentos", 0.0))
-    if investimentos == 0.0:
-        investimentos = float((cfg.get("custos_variaveis") or {}).get("investimentos", 0.0))
+    # Rubrica mensal: pertence à competência (custos_extras). Ausente ou 0.0
+    # = zero — nunca herda valor de parametros_vigentes (ver
+    # app.rubricas.valor_rubrica_mensal).
+    investimentos = valor_rubrica_mensal(custos_extras, "investimentos")
     if investimentos:
         extras["investimentos"] = investimentos
         extras["saldo_a_pagar"] = round(aluguel - investimentos, 2)

@@ -187,3 +187,23 @@ def para_persistencia(itens: list[RubricaItem]) -> list[dict]:
     lista_estruturada (app.ui.administracao._editor_lista_estruturada),
     que não conhece RubricaItem — só listas de dicts comuns."""
     return [{"id": i.id, "nome": i.nome, "valor": i.valor} for i in itens]
+
+
+def valor_rubrica_mensal(custos_extras: dict | None, chave: str) -> float:
+    """Valor de uma rubrica MENSAL (`outras_despesas`, `investimentos`) —
+    a fonte é exclusivamente a entrada da própria competência
+    (`custos_extras`, vinda do widget do Fechamento), nunca
+    `parametros_vigentes`.
+
+    Um `0.0` informado é um zero real, não "ausente": a versão anterior
+    tratava `== 0.0` como "não informado" e caía para a vigência
+    (`cfg["custos_variaveis"]`), então qualquer vigência legada criada por
+    aprovações anteriores a a7ab174 (ex.: Viva Trindade, outras_despesas
+    2.400 aberta desde 2026-08) contaminava competências seguintes mesmo
+    com o campo zerado na tela. Chave ausente também vale 0.0 — esses
+    valores nunca são herdados de outra competência (ver
+    app.ui.fechamento._RUBRICAS_MENSAIS_NAO_VIGENCIA). Usada por
+    COM_ALIQUOTA_CUMUL (outras_despesas/investimentos) e COM_ALIQUOTA
+    (investimentos)."""
+    valor = (custos_extras or {}).get(chave)
+    return float(valor) if valor is not None else 0.0

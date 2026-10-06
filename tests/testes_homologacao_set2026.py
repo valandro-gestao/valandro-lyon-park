@@ -207,11 +207,13 @@ cfg_viva_oficial = {
     "id": "viva_trindade", "aliquota_imposto": 0.1425, "percentual_aluguel": 0.85,
     "ponto_equilibrio": 27823.50,
     "custos_mensais": {"condominio": 13039.72, "iptu": 0.0},
-    "custos_variaveis": {"outras_despesas": 2400.00, "investimentos": 0.0},
 }
+# set/2026 (4ª rodada): rubrica mensal chega só via custos_extras (o que o
+# Fechamento envia), não por vigência — mesmos valores/expectativas de antes.
 r_golden = calcular_com_aliquota_cumul(
     cfg_viva_oficial, "2026-08", faturamento=48674.03,
     saldo_override=_SALDO_ENTRADA_AGOSTO_2026,
+    custos_extras={"outras_despesas": 2400.0, "investimentos": 0.0},
 )
 checar("golden ago/2026: Resultado = -1525.24 (inalterado)", r_golden.resultado == -1525.24)
 checar("golden ago/2026: Repasse = 0.0 (inalterado)", r_golden.aluguel_calculado == 0.0)

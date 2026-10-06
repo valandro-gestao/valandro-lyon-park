@@ -40,10 +40,11 @@ investimentos. Fórmula validada contra o fechamento oficial:
     disponivel        = resultado - investimentos + prejuizo_entrada
     disponivel <= 0   -> aluguel=0, prejuizo_saida=disponivel
     disponivel  > 0   -> aluguel=percentual/faixas(disponivel), prejuizo_saida=0
-Campo reservado, resolvido via `custos_variaveis.outras_despesas`
-(parametros_vigentes, versionado por competência — mesma infraestrutura já
-usada por investimentos/fundo_recomposicao) — nunca aparece no editor
-genérico de rubricas (custos_mensais).
+Campo reservado, MENSAL: o valor vem exclusivamente da entrada da própria
+competência (`custos_extras`), nunca de `parametros_vigentes` — um 0.0
+informado é zero, não "buscar a vigência" (ver
+app.rubricas.valor_rubrica_mensal). Nunca aparece no editor genérico de
+rubricas (custos_mensais).
 
 Não suporta (removido, v1.2.0): taxa_admin_fixa como piso do repasse. Era
 usada só por MW Tristeza (4350.0) e a operadora confirmou que era controle
@@ -54,7 +55,7 @@ PERCENTUAL_SIMPLES (Vasco) — semântica diferente (piso quando o resultado
 NÃO supera o ponto de equilíbrio) — ver app.calculators.base.
 """
 from app.models import ResultadoUnidade, get_saldo_entrada
-from app.rubricas import custos_com_overrides, ids_normalizados
+from app.rubricas import custos_com_overrides, ids_normalizados, valor_rubrica_mensal
 
 
 def calcular_com_aliquota_cumul(cfg: dict, mes: str, faturamento: float,
@@ -115,26 +116,17 @@ def calcular_com_aliquota_cumul(cfg: dict, mes: str, faturamento: float,
     total_custos = sum(custos.values())
 
     # v1.2.0: outras_despesas reduz o resultado JUNTO do PE/custos_mensais —
-    # ANTES de "Resultado" ser apurado (ver docstring do módulo). Resolução
-    # no mesmo padrão de investimentos/fundo_recomposicao: custos_extras
-    # (entrada por cálculo) tem prioridade sobre o valor vigente em
-    # cfg["custos_variaveis"] (parametros_vigentes, versionado por
-    # competência).
-    outras_despesas = float((custos_extras or {}).get("outras_despesas", 0.0))
-    if outras_despesas == 0.0:
-        outras_despesas = float((cfg.get("custos_variaveis") or {}).get("outras_despesas", 0.0))
+    # ANTES de "Resultado" ser apurado (ver docstring do módulo). Rubrica
+    # mensal: só custos_extras (entrada da competência) — nunca a vigência.
+    outras_despesas = valor_rubrica_mensal(custos_extras, "outras_despesas")
 
     resultado_bruto = subtotal - pe - total_custos - outras_despesas
 
     # v1.2.0: investimentos reduz o resultado ANTES do prejuízo/repasse (ver
     # docstring do módulo — regra confirmada pela operadora para Viva
-    # Trindade). Resolução idêntica à anterior: custos_extras (entrada por
-    # cálculo) tem prioridade sobre o valor vigente em
-    # cfg["custos_variaveis"] (parametros_vigentes, versionado por
-    # competência via app.models.salvar_parametros).
-    investimento = float((custos_extras or {}).get("investimentos", 0.0))
-    if investimento == 0.0:
-        investimento = float((cfg.get("custos_variaveis") or {}).get("investimentos", 0.0))
+    # Trindade). Rubrica mensal, igual a outras_despesas: só custos_extras
+    # (entrada da competência) — nunca a vigência.
+    investimento = valor_rubrica_mensal(custos_extras, "investimentos")
 
     disponivel = resultado_bruto - investimento
     resultado_com_prejuizo = disponivel + prejuizo_entrada  # prejuizo é negativo

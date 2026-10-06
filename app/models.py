@@ -46,6 +46,10 @@ _PARAM_META: dict[str, tuple[str, str]] = {
     # Flags booleanas (v1.2.0) — antes só existiam em data/units.yaml,
     # nunca vigência-tracked. Ver _extrair_editaveis.
     "tem_faturamento_carregadores":              ("booleano",   "Faturamento de Carregadores"),
+    # Rubricas mensais (set/2026, 4ª rodada) — só ligam/desligam o campo no
+    # Fechamento; o VALOR é sempre da competência, nunca uma vigência.
+    "tem_investimentos":                         ("booleano",   "Investimentos"),
+    "tem_outras_despesas":                       ("booleano",   "Outras Despesas"),
     "tem_receita_selos":                         ("booleano",   "Receita de Selos"),
     "tem_base_taxa_cobranca":                    ("booleano",   "Taxa de Cobrança"),
 }
@@ -477,6 +481,14 @@ _ESTRUTURAIS = frozenset({
     "pagamento_parcelado",
     # Flag puramente informacional
     "prejuizo_correcao_anual",
+    # Vínculo com a filial Aucon: configuração ESTRUTURAL da unidade, cuja
+    # única fonte de verdade é a coluna `unidades.aucon_codigo_filial`
+    # (editada na Administração) — nunca um parâmetro com vigência. Sem
+    # esta exclusão, seed_parametros_from_yaml/_coletar_params_usados o
+    # copiavam para parametros_vigentes, onde um código antigo passava a
+    # sobrepor a coluna na tela da unidade (ver app.engine.
+    # get_parametros_efetivos) e divergia do lote.
+    "aucon_codigo_filial",
 })
 
 # Listas cujos VALORES são operacionais (percentuais, faixas, mínimos)
@@ -938,6 +950,20 @@ def atualizar_unidade(unidade_id: str, *, nome: str = None, contratante: str = N
             f"UPDATE unidades SET {', '.join(sets)} WHERE id=?",
             (*valores, unidade_id),
         )
+
+
+def get_aucon_codigo_filial(unidade_id: str) -> int | None:
+    """Código de filial Aucon da unidade — leitura direta da coluna
+    `unidades.aucon_codigo_filial`, sem cache e sem passar por
+    parametros_vigentes: é a ÚNICA fonte de verdade desse vínculo, usada
+    tanto pelo lote quanto pelo botão individual do Fechamento (uma
+    alteração feita na Administração vale na próxima leitura). None =
+    unidade fora da integração Aucon."""
+    with get_db() as conn:
+        row = conn.execute(
+            "SELECT aucon_codigo_filial FROM unidades WHERE id=?", (unidade_id,)
+        ).fetchone()
+    return row["aucon_codigo_filial"] if row and row["aucon_codigo_filial"] else None
 
 
 def definir_aucon_codigo_filial(unidade_id: str, valor: int | None) -> None:

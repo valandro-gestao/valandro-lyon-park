@@ -335,29 +335,40 @@ print()
 # H. Campos reservados (investimentos/fundo_recomposicao) inalterados
 # ═══════════════════════════════════════════════════════════════════════
 print("=" * 70)
-print("H. Campos reservados COM_ALIQUOTA/COM_ALIQUOTA_CUMUL inalterados")
+print("H. COM_ALIQUOTA — Investimentos é rubrica MENSAL (pertence à competência)")
 print("=" * 70)
 
-UID_H = "fk"  # COM_ALIQUOTA, custos_variaveis.investimentos
+UID_H = "fk"  # COM_ALIQUOTA, tem_investimentos
 MES_H = "2026-09"
 
+# set/2026 (4ª rodada): o contrato mudou — investimentos NÃO é mais um
+# parâmetro com vigência. Vem só de custos_extras (o que o Fechamento envia);
+# ausente ou 0.0 = zero, nunca herda parametros_vigentes.
 resultado_h_antes = engine.calcular(UID_H, MES_H, faturamento=100000.0)
 salvar_parametros(UID_H, MES_H, {"custos_variaveis": {"investimentos": 500.0}}, alterado_por="teste_h")
-resultado_h_depois = engine.calcular(UID_H, MES_H, faturamento=100000.0)
 
-checar("investimentos aplicado (dedução -> saldo_a_pagar) exatamente como antes",
+resultado_h_sem_chave = engine.calcular(UID_H, MES_H, faturamento=100000.0)
+checar("chave ausente em custos_extras = zero (a vigência de 500 NÃO é herdada)",
+       "investimentos" not in (resultado_h_sem_chave.extras or {})
+       and "saldo_a_pagar" not in (resultado_h_sem_chave.extras or {}))
+resultado_h_zero = engine.calcular(UID_H, MES_H, faturamento=100000.0, custos_extras={"investimentos": 0.0})
+checar("0.0 explícito = zero, mesmo com vigência antiga de 500",
+       "investimentos" not in (resultado_h_zero.extras or {}))
+
+resultado_h_depois = engine.calcular(UID_H, MES_H, faturamento=100000.0, custos_extras={"investimentos": 500.0})
+checar("investimentos informado na competência (500) aplicado (dedução -> saldo_a_pagar) como antes",
        resultado_h_depois.extras.get("investimentos") == 500.0
        and resultado_h_depois.extras.get("saldo_a_pagar") ==
            round(resultado_h_depois.aluguel_calculado - 500.0, 2))
 checar("aluguel_calculado (bruto, antes da dedução) não muda por causa da dedução",
        resultado_h_antes.aluguel_calculado == resultado_h_depois.aluguel_calculado)
 
-campos_fk = engine.get_unit("fk")
 from app.calculadora_schema import campos_do_tipo as _campos_do_tipo
-campo_investimentos = next(
-    c for c in _campos_do_tipo("COM_ALIQUOTA") if c["chave"] == "custos_variaveis.investimentos")
-checar("campo 'investimentos' continua natureza=escalar (nunca mapa_rubricas)",
-       campo_investimentos["natureza"] == "escalar")
+_chaves_aliq = {c["chave"]: c for c in _campos_do_tipo("COM_ALIQUOTA")}
+checar("COM_ALIQUOTA: Administração só liga/desliga o campo (tem_investimentos, toggle)",
+       _chaves_aliq.get("tem_investimentos", {}).get("editor") == "toggle")
+checar("COM_ALIQUOTA: o VALOR de investimentos deixou de ser parâmetro com vigência",
+       "custos_variaveis.investimentos" not in _chaves_aliq)
 checar("nenhum campo mapa_rubricas em COM_ALIQUOTA contém 'investimentos' na lista de custos_mensais",
        not any(c["chave"] == "custos_mensais" for c in _campos_do_tipo("COM_ALIQUOTA")))
 print()

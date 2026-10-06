@@ -15,10 +15,15 @@ Não expõe parâmetros sem efeito real no motor de cálculo:
   - `prejuizo_correcao_anual` — flag puramente informacional (string tipo
     "IPCA"), consumida só pelo script manual de correção anual
     (app.models.corrigir_saldo_anual), não pela calculadora em si.
-  - `tem_investimentos` — declarado em 3 unidades do YAML (fk, in_1183,
-    viva_trindade) mas nunca lido por nenhum código; a dedução real de
-    "investimentos" é dirigida pela PRESENÇA do valor em
-    `custos_variaveis.investimentos`, não por essa flag.
+  - (set/2026, 4ª rodada) `custos_variaveis.investimentos` e
+    `custos_variaveis.outras_despesas` NÃO são mais parâmetros com vigência:
+    são rubricas MENSAIS — o valor pertence à competência (Fechamento) e
+    nunca é herdado de parametros_vigentes. O que a Administração configura
+    é só se a unidade TEM o campo: `tem_investimentos` (COM_ALIQUOTA e
+    COM_ALIQUOTA_CUMUL) e `tem_outras_despesas` (COM_ALIQUOTA_CUMUL) —
+    ver RUBRICAS_MENSAIS_POR_TIPO. Linhas históricas dessas chaves em
+    parametros_vigentes são preservadas (auditoria / migration 0018), mas
+    não têm mais efeito nem editor.
   `adicional_fixo` (COM_ALIQUOTA_CUMUL) FOI mantido — avaliado
   explicitamente: `cumulativo.py` soma seu valor ao aluguel calculado
   quando presente, tem efeito real no motor, mesmo que nenhuma unidade
@@ -95,11 +100,10 @@ sem o YAML "ressuscitá-la". Unidades legadas cujo `custos_mensais` ainda é
 um dict simples (nunca editadas pelo editor novo) continuam funcionando
 sem qualquer migração — `app.rubricas.normalizar_rubricas` aceita as duas
 formas e é o único lugar do sistema que sabe interpretar ambas. Os únicos
-campos de custo que NÃO são mapa_rubricas são os dois reservados de
-COM_ALIQUOTA/COM_ALIQUOTA_CUMUL (`custos_variaveis.investimentos` e
-`custos_variaveis.fundo_recomposicao`) — natureza "escalar", com
-dedução própria no motor (ver app/calculators/base.py e cumulativo.py) —
-nunca aparecem no editor genérico.
+campos de custo que NÃO são mapa_rubricas são os reservados de
+COM_ALIQUOTA_CUMUL (`custos_variaveis.fundo_recomposicao`, contratual) e
+as rubricas mensais Investimentos/Outras Despesas — estas últimas fora do
+schema de parâmetros (só as chaves `tem_*`), ver acima.
 
 Validações de modelo (cruzando campos) ficam em `validacoes`, por tipo:
   {"tipo": "algum_de", "campos": [...], "mensagem": "..."}
@@ -202,11 +206,11 @@ SCHEMAS_POR_TIPO: dict[str, dict] = {
                 "editor": "toggle", "aceita_vigencia": True,
             },
             {
-                "chave": "custos_variaveis.investimentos", "label": "Investimentos (dedução do aluguel)",
-                "tipo_dado": "moeda", "natureza": "escalar",
-                "obrigatorio": False, "default_tecnico": 0.0,
-                "descricao": "Quando informado, é descontado do aluguel calculado, gerando um Saldo a Pagar. Campo reservado — nunca aparece no editor genérico de rubricas.",
-                "editor": "number_moeda", "aceita_vigencia": True,
+                "chave": "tem_investimentos", "label": "Tem Investimentos",
+                "tipo_dado": "booleano", "natureza": "escalar",
+                "obrigatorio": False, "default_tecnico": False,
+                "descricao": "Liga o campo Investimentos no Fechamento: valor informado mês a mês e descontado do aluguel calculado, gerando um Saldo a Pagar. O valor pertence à competência — nunca é herdado de outro mês.",
+                "editor": "toggle", "aceita_vigencia": True,
             },
         ],
         "validacoes": [],
@@ -295,18 +299,18 @@ SCHEMAS_POR_TIPO: dict[str, dict] = {
                 "minimo_itens": 0, "item_schema": _ITEM_SCHEMA_RUBRICA,
             },
             {
-                "chave": "custos_variaveis.outras_despesas", "label": "Outras Despesas",
-                "tipo_dado": "moeda", "natureza": "escalar",
-                "obrigatorio": False, "default_tecnico": 0.0,
-                "descricao": "Quando informado, é descontado do resultado junto do Ponto de Equilíbrio e dos custos mensais, antes do Resultado ser apurado. Categoria independente de Investimentos — os dois podem coexistir no mesmo mês. Campo reservado — nunca aparece no editor genérico de rubricas.",
-                "editor": "number_moeda", "aceita_vigencia": True,
+                "chave": "tem_outras_despesas", "label": "Tem Outras Despesas",
+                "tipo_dado": "booleano", "natureza": "escalar",
+                "obrigatorio": False, "default_tecnico": False,
+                "descricao": "Liga o campo Outras Despesas no Fechamento: valor informado mês a mês e descontado do resultado junto do Ponto de Equilíbrio e dos custos mensais, antes do Resultado ser apurado. Categoria independente de Investimentos. O valor pertence à competência — nunca é herdado de outro mês.",
+                "editor": "toggle", "aceita_vigencia": True,
             },
             {
-                "chave": "custos_variaveis.investimentos", "label": "Investimentos",
-                "tipo_dado": "moeda", "natureza": "escalar",
-                "obrigatorio": False, "default_tecnico": 0.0,
-                "descricao": "Quando informado, é descontado do resultado já apurado, antes do prejuízo acumulado e do repasse (aumenta o prejuízo quando o resultado disponível não é suficiente para cobrir o investimento). Categoria independente de Outras Despesas e de Fundo de Recomposição — não se excluem entre si. Campo reservado — nunca aparece no editor genérico de rubricas.",
-                "editor": "number_moeda", "aceita_vigencia": True,
+                "chave": "tem_investimentos", "label": "Tem Investimentos",
+                "tipo_dado": "booleano", "natureza": "escalar",
+                "obrigatorio": False, "default_tecnico": False,
+                "descricao": "Liga o campo Investimentos no Fechamento: valor informado mês a mês e descontado do resultado já apurado, antes do prejuízo acumulado e do repasse (aumenta o prejuízo quando o resultado disponível não cobre o investimento). Categoria independente de Outras Despesas e de Fundo de Recomposição. O valor pertence à competência — nunca é herdado de outro mês.",
+                "editor": "toggle", "aceita_vigencia": True,
             },
             {
                 "chave": "custos_variaveis.fundo_recomposicao", "label": "Fundo de Recomposição (dedução do aluguel)",
@@ -703,6 +707,25 @@ SCHEMAS_POR_TIPO: dict[str, dict] = {
         "validacoes": [],
     },
 }
+
+
+# Rubricas MENSAIS por tipo de cálculo (set/2026, 4ª rodada): o valor pertence
+# à competência, é informado no Fechamento e NUNCA vem de parametros_vigentes.
+# A Administração só liga/desliga o campo, pela chave `tem_<rubrica>`.
+RUBRICAS_MENSAIS_POR_TIPO: dict[str, tuple[str, ...]] = {
+    "COM_ALIQUOTA": ("investimentos",),
+    "COM_ALIQUOTA_CUMUL": ("outras_despesas", "investimentos"),
+}
+
+
+def rubricas_mensais_do_tipo(tipo_calculo: str) -> tuple[str, ...]:
+    return RUBRICAS_MENSAIS_POR_TIPO.get(tipo_calculo, ())
+
+
+def rubricas_mensais_ativas(tipo_calculo: str, cfg: dict) -> list[str]:
+    """Ids das rubricas mensais que ESTA unidade usa — as ligadas por
+    `tem_<id>` na configuração efetiva (`cfg`: YAML + parametros_vigentes)."""
+    return [rid for rid in rubricas_mensais_do_tipo(tipo_calculo) if cfg.get(f"tem_{rid}") is True]
 
 
 def campos_do_tipo(tipo_calculo: str) -> list[dict]:

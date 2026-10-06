@@ -1261,6 +1261,12 @@ def _aba_parametros(uid: str, u: dict):
     _secao_historico(uid, tipo_calculo)
 
 
+_CHAVES_MENSAIS_LEGADAS = {
+    "custos_variaveis.outras_despesas": "Outras Despesas",
+    "custos_variaveis.investimentos": "Investimentos",
+}
+
+
 def _secao_historico(uid: str, tipo_calculo: str):
     with st.expander("Histórico de alterações"):
         historico = get_historico_parametros(uid)
@@ -1287,6 +1293,11 @@ def _secao_historico(uid: str, tipo_calculo: str):
                     rubrica = rotulo_exibicao(chave.split(".", 1)[1])
                     label = f"{label} — {rubrica}"
                     tipo_dado = campo_schema.get("tipo_valor_item", tipo_dado)
+            elif chave in _CHAVES_MENSAIS_LEGADAS:
+                # Rubrica mensal (não é mais parâmetro nem tem editor) —
+                # registro histórico preservado para auditoria.
+                label = f"{_CHAVES_MENSAIS_LEGADAS[chave]} (rubrica mensal — registro histórico)"
+                tipo_dado = h.get("tipo_dado") or "moeda"
             else:
                 label = chave
             fim = h["competencia_fim"]

@@ -399,6 +399,7 @@ unidades:
     percentual_aluguel: 0.85
     aliquota_imposto: 0.1425
     tem_investimentos: true
+    tem_outras_despesas: true
     reajuste_mes: 5
     reajuste_indice: IPCA
     custos_mensais:
