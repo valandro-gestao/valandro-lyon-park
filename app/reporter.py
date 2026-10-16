@@ -14,6 +14,7 @@ from app.calculators.patio import ResultadoPatio
 from app.engine import get_unit, get_unit_com_params
 from app.parsers import eventos as eventos_parser
 from app.rubricas import rotulo_exibicao
+from app import split_repasse
 
 MESES_PT = [
     "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -39,12 +40,9 @@ def _pct_var(atual: float, anterior: float) -> float | None:
     return round((atual - anterior) / abs(anterior) * 100, 1)
 
 
-def _get_lancamentos_periodo(unidade_id: str, mes_ref: str, meses: int = 24) -> list[dict]:
-    """Busca até `meses` competências terminando em `mes_ref` (inclusive).
-    Padrão de 24: os 12 meses exibidos no comparativo mais os 12 meses
-    correspondentes um ano antes de cada um — necessários para a
-    comparação YoY em _comparativo_12m, sem depender de uma segunda
-    consulta por linha exibida."""
+def _janela_meses(mes_ref: str, meses: int = 24) -> list[str]:
+    """As `meses` competências que terminam em `mes_ref` (inclusive), da mais
+    recente para a mais antiga."""
     ano, mes = int(mes_ref[:4]), int(mes_ref[5:7])
     candidatos = []
     for i in range(meses):
@@ -54,6 +52,16 @@ def _get_lancamentos_periodo(unidade_id: str, mes_ref: str, meses: int = 24) -> 
             m += 12
             a -= 1
         candidatos.append(f"{a}-{m:02d}")
+    return candidatos
+
+
+def _get_lancamentos_periodo(unidade_id: str, mes_ref: str, meses: int = 24) -> list[dict]:
+    """Busca até `meses` competências terminando em `mes_ref` (inclusive).
+    Padrão de 24: os 12 meses exibidos no comparativo mais os 12 meses
+    correspondentes um ano antes de cada um — necessários para a
+    comparação YoY em _comparativo_12m, sem depender de uma segunda
+    consulta por linha exibida."""
+    candidatos = _janela_meses(mes_ref, meses)
 
     with get_db() as conn:
         placeholders = ",".join("?" * len(candidatos))
@@ -101,7 +109,8 @@ def _com_mes_atual(lancamentos: list[dict], resultado, mes_ref: str) -> list[dic
     return sorted(outros_meses + [atual], key=lambda l: l["mes"], reverse=True)
 
 
-def _comparativo_12m(lancamentos: list[dict]) -> list[ComparativoMes]:
+def _comparativo_12m(lancamentos: list[dict],
+                      resolver_split: "split_repasse.PercentualContratante | None" = None) -> list[ComparativoMes]:
     """Monta as até 12 linhas exibidas no comparativo mensal do PDF,
     comparando cada competência com o MESMO MÊS DO ANO ANTERIOR (YoY) —
     não com o mês imediatamente anterior.
@@ -113,6 +122,12 @@ def _comparativo_12m(lancamentos: list[dict]) -> list[ComparativoMes]:
 
     Quando a competência do ano anterior não existir, a variação fica
     `None` — nunca inventa comparação com outro mês.
+
+    `resolver_split` (só RESULTADO_SPLIT — Medcenter, Viva Open Mall): em vez
+    de ler `aluguel_calculado` como "Repasse" (é o SALDO A PAGAR), devolve em
+    cada linha o repasse ao contratante e o saldo a pagar separados, pela
+    regra de app.split_repasse. Sem ele, o comportamento é exatamente o de
+    sempre para todas as demais calculadoras.
     """
     por_mes = {l["mes"]: l for l in lancamentos}
     exibidas = sorted(lancamentos, key=lambda l: l["mes"], reverse=True)[:12]
@@ -125,7 +140,11 @@ def _comparativo_12m(lancamentos: list[dict]) -> list[ComparativoMes]:
         # só um valor técnico (= resultado) nessa calculadora (ver
         # app.calculators.patio_manutencao) — fica "—" em vez de repetir o
         # Resultado sob a coluna Repasse.
-        if l.get("unidade_id") == "patio_manutencao":
+        saldo_a_pagar = None
+        if resolver_split is not None:
+            valores = split_repasse.valores_split(l, resolver_split)
+            repasse, saldo_a_pagar = valores.repasse, valores.saldo
+        elif l.get("unidade_id") == "patio_manutencao":
             repasse = None
         else:
             repasse = l.get("aluguel_calculado", 0.0)
@@ -151,6 +170,7 @@ def _comparativo_12m(lancamentos: list[dict]) -> list[ComparativoMes]:
             resultado=res,
             variacao_resultado=var_res,
             repasse=repasse,
+            saldo_a_pagar=saldo_a_pagar,
         ))
     return result
 
@@ -271,6 +291,38 @@ def _historico_anual(unidade_id: str, mes_ref: str, resultado) -> Historico:
         colunas=[label for _, label in _HISTORICO_ANUAL_COLUNAS],
         linhas=linhas,
     )
+
+
+_HISTORICO_ANUAL_COLUNAS_SPLIT = [
+    "Faturamento", "Resultado", split_repasse.ROTULO_REPASSE, split_repasse.ROTULO_SALDO,
+]
+
+
+def _historico_anual_split(lancamentos: list[dict],
+                           resolver: "split_repasse.PercentualContratante") -> Historico:
+    """Histórico Anual de RESULTADO_SPLIT: Faturamento, Resultado, Repasse ao
+    Contratante e Saldo a Pagar, somados DIRETAMENTE de `lancamentos` (já
+    filtrados e com a competência do relatório vinda da memória — ver
+    split_repasse.lancamentos_aprovados_ate). Não lê nem altera o cache
+    `historico_anual`. O rótulo "(N meses)" é a contagem de competências
+    efetivamente somadas no ano."""
+    anos = split_repasse.agregar_por_ano(lancamentos, resolver)
+    linhas = [
+        LinhaHistoricoAnual(
+            ano=ano,
+            ano_label=_formatar_ano_label(ano, a["meses"]),
+            valores={
+                "Faturamento": a["faturamento"],
+                "Resultado": a["resultado"],
+                split_repasse.ROTULO_REPASSE: a["repasse"],
+                split_repasse.ROTULO_SALDO: a["saldo"],
+            },
+        )
+        for ano, a in sorted(anos.items())
+    ]
+    if not linhas:
+        return Historico(colunas=[], linhas=[])
+    return Historico(colunas=list(_HISTORICO_ANUAL_COLUNAS_SPLIT), linhas=linhas)
 
 
 _custo_label = rotulo_exibicao  # ver app.rubricas — rótulo de rubricas
@@ -523,9 +575,14 @@ def _prestacao_resultado_split(r: ResultadoUnidade, cfg: dict) -> Prestacao:
             linhas.append(LinhaPrestacao(f"(-) {_custo_label(k)}", -v, "deducao"))
     linhas.append(LinhaPrestacao("Resultado Operacional", r.resultado, "destaque"))
     linhas.append(LinhaPrestacao(
-        f"Resultado Operador ({int(pct_op*100)}%)", extras.get("resultado_operador", 0.0), "normal"))
+        f"Resultado Operador ({split_repasse.rotulo_percentual(pct_op)}%)",
+        extras.get("resultado_operador", 0.0), "normal"))
+    # "Repasse ao Contratante": mesmo nome das colunas do comparativo/histórico
+    # e do saldo; percentual EFETIVO da competência (extras, ou a configuração
+    # vigente nela), sem truncar frações.
     linhas.append(LinhaPrestacao(
-        f"Resultado Contratante ({int(pct_cnt*100)}%)", extras.get("resultado_contratante", 0.0), "subtotal"))
+        f"{split_repasse.ROTULO_REPASSE} ({split_repasse.rotulo_percentual(pct_cnt)}%)",
+        extras.get("resultado_contratante", 0.0), "subtotal"))
     if extras.get("parcela_fixa"):
         linhas.append(LinhaPrestacao("(-) Parcela Fixa Mensal",
                                       -extras["parcela_fixa"], "deducao"))
@@ -792,15 +849,33 @@ def build_report_data(resultado, mes_ref: str,
         tipo_relatorio=tipo_rel,
     )
 
+    # RESULTADO_SPLIT (Medcenter, Viva Open Mall): aluguel_calculado é o SALDO
+    # A PAGAR. O card passa a se chamar "Saldo a Pagar" (mesmo valor de
+    # sempre); comparativo e histórico apresentam Repasse ao Contratante e
+    # Saldo a Pagar separados, só de competências aprovadas (+ a do próprio
+    # relatório). Nenhuma outra calculadora passa por aqui.
+    eh_split = tipo_cal == "RESULTADO_SPLIT"
+    resolver_split = split_repasse.PercentualContratante(resultado.unidade_id) if eh_split else None
+
     cards = Cards(
         faturamento=resultado.faturamento,
         resultado=resultado.resultado,
         repasse=repasse,
+        **({"repasse_label": split_repasse.ROTULO_SALDO} if eh_split else {}),
     )
 
-    lancamentos = _get_lancamentos_periodo(resultado.unidade_id, mes_ref)
-    lancamentos = _com_mes_atual(lancamentos, resultado, mes_ref)
-    comparativo = _comparativo_12m(lancamentos)
+    if eh_split:
+        historico_split = split_repasse.lancamentos_aprovados_ate(
+            resultado.unidade_id, mes_ref, resultado)
+        # comparativo: as 24 competências que terminam em mes_ref (12 exibidas
+        # + as do ano anterior para a variação YoY), já filtradas e com a
+        # competência do relatório vinda da memória.
+        meses_janela = set(_janela_meses(mes_ref))
+        lancamentos = [l for l in historico_split if l["mes"] in meses_janela]
+    else:
+        lancamentos = _get_lancamentos_periodo(resultado.unidade_id, mes_ref)
+        lancamentos = _com_mes_atual(lancamentos, resultado, mes_ref)
+    comparativo = _comparativo_12m(lancamentos, resolver_split)
     n_meses = len(comparativo)
 
     import sys
@@ -822,7 +897,10 @@ def build_report_data(resultado, mes_ref: str,
     else:
         prestacao = _prestacao_padrao(resultado, cfg)
 
-    historico = _historico_anual(resultado.unidade_id, mes_ref, resultado)
+    if eh_split:
+        historico = _historico_anual_split(historico_split, resolver_split)
+    else:
+        historico = _historico_anual(resultado.unidade_id, mes_ref, resultado)
 
     # Eventos — carregado da planilha por unidade (uid-específico)
     bloco_eventos = None
@@ -851,6 +929,8 @@ def build_report_data(resultado, mes_ref: str,
         bloco_eventos=bloco_eventos,
         blocos_receitas=blocos_receitas,
         comparativo_meses_disponiveis=n_meses,
+        **({"comparativo_repasse_label": split_repasse.ROTULO_REPASSE,
+            "comparativo_com_saldo": True} if eh_split else {}),
     )
 
 

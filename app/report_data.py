@@ -23,6 +23,9 @@ class Cards:
     # None para unidades sem conceito de repasse (ex.: PATIO_MANUTENCAO) —
     # o template já trata None como "—" (ver app.renderer._fmt_br).
     repasse: Optional[float]
+    # Rótulo do terceiro card. Padrão = o de sempre; RESULTADO_SPLIT usa
+    # "Saldo a Pagar" (o valor do card sempre foi o saldo a pagar).
+    repasse_label: str = "Valor do Repasse"
 
 
 @dataclass
@@ -35,6 +38,9 @@ class ComparativoMes:
     variacao_resultado: Optional[float]
     # None para unidades sem conceito de repasse (ex.: PATIO_MANUTENCAO).
     repasse: Optional[float]
+    # Só RESULTADO_SPLIT preenche: saldo a pagar do mês, em coluna própria ao
+    # lado do repasse ao contratante (ver ReportData.comparativo_com_saldo).
+    saldo_a_pagar: Optional[float] = None
 
 
 @dataclass
@@ -131,3 +137,7 @@ class ReportData:
     bloco_eventos: Optional[BlocoEventos] = None
     # Meta — usado para avisos no template
     comparativo_meses_disponiveis: int = 0   # total de meses encontrados no DB
+    # Comparativo mensal: rótulo da coluna de repasse e coluna extra "Saldo a
+    # Pagar". Padrão = o layout de sempre (só RESULTADO_SPLIT altera).
+    comparativo_repasse_label: str = "Repasse"
+    comparativo_com_saldo: bool = False

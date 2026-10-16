@@ -62,6 +62,8 @@ def render_html(report: ReportData) -> str:
         cards=report.cards,
         comparativo_12m=report.comparativo_12m,
         comparativo_meses_disponiveis=report.comparativo_meses_disponiveis,
+        comparativo_repasse_label=report.comparativo_repasse_label,
+        comparativo_com_saldo=report.comparativo_com_saldo,
         prestacao=report.prestacao,
         historico=report.historico,
         blocos_receitas=report.blocos_receitas,

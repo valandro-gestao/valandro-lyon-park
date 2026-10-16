@@ -43,7 +43,7 @@
   </div>
 
   <div class="card destaque">
-    <div class="card-label">Valor do Repasse</div>
+    <div class="card-label">{{ cards.repasse_label }}</div>
     <div class="card-value">R$ {{ cards.repasse | fmt_br }}</div>
   </div>
 
@@ -96,7 +96,8 @@
         <th>Var. YoY</th>
         <th>Resultado</th>
         <th>Var. YoY</th>
-        <th>Repasse</th>
+        <th>{{ comparativo_repasse_label }}</th>
+        {% if comparativo_com_saldo %}<th>Saldo a Pagar</th>{% endif %}
       </tr>
     </thead>
     <tbody>
@@ -124,6 +125,7 @@
           {% endif %}
         </td>
         <td>{{ m.repasse | fmt_br }}</td>
+        {% if comparativo_com_saldo %}<td>{{ m.saldo_a_pagar | fmt_br }}</td>{% endif %}
       </tr>
       {% endfor %}
     </tbody>

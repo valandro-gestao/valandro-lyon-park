@@ -17,6 +17,7 @@ import streamlit as st
 from streamlit.components.v1 import html as st_html
 
 from app import run_manager as rm
+from app import split_repasse
 from app.calculators.patio import ResultadoPatio
 from app.engine import calcular, get_unit, get_unit_com_params, get_unidades_ativas
 from app.paths import RUNS_DIR
@@ -2167,6 +2168,12 @@ def _secao_historico_unificada(uid: str, unit_run: dict):
             v = l.get(key)
             return _fmt(v) if isinstance(v, (int, float)) else "—"
 
+        try:
+            eh_split = get_unit(uid).get("tipo_calculo") == "RESULTADO_SPLIT"
+        except Exception:
+            eh_split = False
+        resolver_split = split_repasse.PercentualContratante(uid) if eh_split else None
+
         def _build_dre_rows(lancamentos):
             linhas = []  # list of (label, key_or_fn)
 
@@ -2233,7 +2240,26 @@ def _secao_historico_unificada(uid: str, unit_run: dict):
             # é só um valor técnico (= resultado) nessa calculadora, nunca um
             # repasse real (ver app.calculators.patio_manutencao e a mesma
             # exclusão já feita em _mostrar_resultado_unit).
-            if uid != "patio_manutencao":
+            if uid == "patio_manutencao":
+                pass
+            elif eh_split:
+                # RESULTADO_SPLIT: aluguel_calculado é o SALDO A PAGAR — não
+                # é "repasse". Mostra repasse ao contratante, parcela fixa e
+                # saldo separados, pela mesma regra de leitura do PDF
+                # (app.split_repasse). Meses sem `extras` (histórico
+                # restaurado) são reconstruídos; a linha de origem informa
+                # isso. A parcela fixa exibida nesses meses é DERIVADA
+                # (repasse - saldo) — um valor fora do padrão dos vizinhos
+                # fica visível aqui para conferência, sem alerta automático.
+                def _vs(l):
+                    return split_repasse.valores_split(l, resolver_split)
+
+                linhas.append((split_repasse.ROTULO_REPASSE, lambda l: _fmt(_vs(l).repasse)))
+                linhas.append((f"(-) {split_repasse.ROTULO_PARCELA}",
+                               lambda l: _fmt(None if _vs(l).parcela is None else -_vs(l).parcela)))
+                linhas.append((split_repasse.ROTULO_SALDO, lambda l: _fmt(_vs(l).saldo)))
+                linhas.append(("Origem do repasse", lambda l: _vs(l).origem))
+            else:
                 linhas.append(("Aluguel/Repasse",     lambda l: _v(l, "aluguel_calculado")))
 
             return linhas

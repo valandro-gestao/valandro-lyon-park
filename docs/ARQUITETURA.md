@@ -359,6 +359,24 @@ resultado_contratante = resultado × percentual_contratante
 saldo_a_pagar = resultado_contratante - parcela_fixa
 ```
 
+**Repasse ao Contratante x Saldo a Pagar — o que fica em cada campo.** O calculador grava o **saldo a pagar** em `lancamentos.aluguel_calculado` (e também em `extras.saldo_a_pagar`). O **repasse ao contratante** é `extras.resultado_contratante`, e a parcela fixa, `extras.parcela_fixa` — presentes apenas nos meses calculados pelo sistema (a partir de 2026-06). O histórico restaurado de planilhas (até 2026-05) tem `extras` vazio. `aluguel_calculado` **nunca** é reinterpretado nem reescrito no banco: continua sendo o saldo.
+
+**Leitura (`app/split_repasse.py`)** — único ponto que traduz um lançamento em repasse, saldo e parcela, usado pelo PDF e pela tela "Competências anteriores":
+
+| Lançamento | Repasse ao Contratante | Saldo a Pagar | Parcela fixa | Origem |
+|---|---|---|---|---|
+| Com `extras.resultado_contratante` | o valor persistido (não recalcula) | `extras.saldo_a_pagar` (ou `aluguel_calculado`) | `extras.parcela_fixa` | persistido |
+| Sem ele (histórico legado) | `round(resultado × percentual_contratante vigente na competência, 2)` | `aluguel_calculado` persistido, intocado | derivada: repasse − saldo (só se saldo > 0) | reconstruído |
+| Percentual sem vigência na competência | `—` (sem reserva no YAML) | `aluguel_calculado` | `—` | indisponível |
+
+O percentual de cada competência vem da vigência de `percentual_contratante` (Medcenter: 75% até 2026-06 e 85% a partir de 2026-07). A parcela fixa **varia por competência** (Viva Open Mall: R$ 30.000,00 até 2025-02 e R$ 32.533,36 desde 2025-03) e por isso nunca é lida do parâmetro vigente para reconstruir o histórico — é derivada do próprio lançamento.
+
+**Relatório (PDF).** Card principal "Saldo a Pagar" (o mesmo valor de sempre); demonstrativo com a linha "Repasse ao Contratante (XX%)", usando o percentual efetivo da competência; comparativo mensal com as colunas "Repasse ao Contratante" e "Saldo a Pagar"; histórico anual com os dois indicadores, **somados direto de `lancamentos`** (o cache `historico_anual` não é lido nem alterado para esta calculadora).
+
+**Competências consideradas no histórico e no comparativo.** Só competências **aprovadas** — `lancamentos.status = 'aprovado'` e, quando existe `runs/{mês}/status.json` com a unidade, um workflow que não a coloque em elaboração — até a competência do relatório, **mais a competência do próprio relatório, sempre, uma única vez**, vinda da memória (o valor do banco para essa competência é descartado). Workflow `aprovado` entra; `reaberto` e `pendente` ficam de fora; `gerado`, `revisado` e `erro` entram **somente** se a competência já foi aprovada (`last_approved_at`) e não foi reaberta depois (`reopened_at`) — assim "Gerar PDF" numa competência já aprovada (que devolve o status a `gerado`) não a tira dos históricos seguintes, mas uma competência reaberta e ainda não reaprovada continua de fora. Assim o PDF de conferência, gerado antes da aprovação, continua mostrando o mês corrente, e um PDF aprovado nunca exibe valores de competências em elaboração ou reabertas. Competências sem `status.json` (histórico restaurado) valem pelo lançamento aprovado.
+
+**Tela "Competências anteriores".** Para `RESULTADO_SPLIT` mostra as linhas Repasse ao Contratante, (−) Parcela Fixa, Saldo a Pagar e "Origem do repasse" (persistido / reconstruído). Nos meses reconstruídos a parcela exibida é derivada; um valor fora do padrão dos meses vizinhos (ex.: Viva 2023-04, Medcenter 2026-02) fica visível para conferência, sem alerta automático. A sinalização nunca vai ao PDF.
+
 ---
 
 ### 3.7 COM_ALIQUOTA_REPASSE_DUPLO
