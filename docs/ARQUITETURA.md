@@ -689,6 +689,8 @@ flowchart TD
 
 Quando um relatório já aprovado ou revisado é recalculado, o PDF existente é automaticamente arquivado em `data/runs/{mes_ref}/reports/versions/` com timestamp antes da nova geração. O histórico de versões fica registrado no `status.json`.
 
+**Regeneração do PDF de uma competência aprovada.** O botão "Regenerar PDF" (`run_manager.regenerar_pdf_aprovado`) não recalcula nem reaprova: gera o PDF **só do lançamento aprovado persistido** (nunca de um "Calcular" da sessão), mantém o status `aprovado` e a data original da aprovação, arquiva o PDF anterior em `versions/` (`status_at_time: aprovado`) e não escreve em `lancamentos`, `saldos_acumulados` nem `parametros_vigentes` (a configuração é lida por `get_parametros_efetivos`, sem a semeadura de `get_unit_com_params`). A geração é feita em arquivo temporário e a substituição do PDF vigente é atômica; em caso de falha o PDF, o status e as versões ficam como estavam. O `status.json` é gravado de forma atômica. Para o Pátio aprovado a regeneração está desabilitada (os blocos de Mídias e Carregadores não ficam no lançamento persistido). Competências não aprovadas continuam usando "Gerar PDF" (`generate_report`), inalterado.
+
 ---
 
 ## 8. Compatibilidade

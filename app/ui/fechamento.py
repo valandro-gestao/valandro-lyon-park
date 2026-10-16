@@ -2028,18 +2028,36 @@ def _barra_decisao_final(mes_ref: str, uid: str, u: dict, r, resultados: dict, u
         # Gerar PDF — só RENDERIZA o que já existe (cache desta competência
         # ou o último lançamento salvo); nunca aprova nem recalcula a cadeia.
         with ac1:
-            if st.button("Gerar PDF", key=f"act_pdf_{uid}", use_container_width=True):
-                r_atual = resultados.get((uid, mes_ref)) or rm.load_resultado_from_db(mes_ref, uid)
-                if r_atual is None:
-                    st.error("Calcule antes de gerar o PDF.")
-                else:
+            aprovado = status == "aprovado"
+            if st.button("Regenerar PDF" if aprovado else "Gerar PDF",
+                         key=f"act_pdf_{uid}", use_container_width=True):
+                if aprovado:
+                    # Competência APROVADA: regenera só a partir do lançamento
+                    # aprovado persistido — nunca de um "Calcular" da sessão —,
+                    # preservando status e data de aprovação, e arquivando o PDF
+                    # anterior em "Versões". Falha: nada é alterado (nem mark_error).
+                    regenerado = False
                     try:
-                        rm.generate_report(mes_ref, uid, r_atual)
-                        st.success("PDF gerado.")
-                        st.rerun()
+                        rm.regenerar_pdf_aprovado(mes_ref, uid)
+                        regenerado = True
                     except Exception as e:
-                        rm.mark_error(mes_ref, uid, str(e))
-                        st.error(f"Erro: {e}")
+                        st.error(f"Não foi possível regenerar o PDF — a aprovação e o PDF vigente "
+                                 f"foram preservados. Detalhe: {e}")
+                    if regenerado:
+                        st.success("PDF regenerado a partir do lançamento aprovado.")
+                        st.rerun()
+                else:
+                    r_atual = resultados.get((uid, mes_ref)) or rm.load_resultado_from_db(mes_ref, uid)
+                    if r_atual is None:
+                        st.error("Calcule antes de gerar o PDF.")
+                    else:
+                        try:
+                            rm.generate_report(mes_ref, uid, r_atual)
+                            st.success("PDF gerado.")
+                            st.rerun()
+                        except Exception as e:
+                            rm.mark_error(mes_ref, uid, str(e))
+                            st.error(f"Erro: {e}")
 
         # Baixar PDF (se existir)
         with ac2:
@@ -2094,14 +2112,19 @@ def _barra_decisao_final(mes_ref: str, uid: str, u: dict, r, resultados: dict, u
     # não por id de unidade — vale para Nilo Square e qualquer futura
     # unidade nesse modelo.
     if u.get("tipo_calculo") == "COM_ALIQUOTA_CUMUL_DU":
-        r_du = resultados.get((uid, mes_ref)) or rm.load_resultado_from_db(mes_ref, uid)
+        # Competência aprovada: o PDF auxiliar usa SÓ o lançamento aprovado
+        # persistido (nunca um "Calcular" temporário da sessão) e não semeia
+        # parâmetros. Demais status: comportamento de sempre.
+        du_aprovado = status == "aprovado"
+        r_du = (rm.load_resultado_aprovado(mes_ref, uid) if du_aprovado
+                else resultados.get((uid, mes_ref)) or rm.load_resultado_from_db(mes_ref, uid))
         if r_du is not None:
             from app.reporter import build_report_data_du
             from app.renderer import render_html, export_pdf
             dcol, _ = st.columns([1, 3])
             with dcol:
                 if st.button("PDF Direito de Uso", key=f"act_pdf_du_{uid}", use_container_width=True):
-                    report_du = build_report_data_du(r_du, mes_ref)
+                    report_du = build_report_data_du(r_du, mes_ref, somente_leitura=du_aprovado)
                     html_du = render_html(report_du)
                     nome_du = f"{mes_ref}_{uid}_direito_de_uso.pdf"
                     caminho_du = export_pdf(html_du, nome_du)
@@ -2466,6 +2489,12 @@ def _dialog_confirmar_recalculo_patio(mes_ref: str, fat: float, extras: dict,
             _executar_calculo_patio(mes_ref, fat, extras)
 
 
+_MSG_PATIO_APROVADO = (
+    "A regeneração do PDF de um Pátio aprovado ainda não está disponível: os blocos de Mídias e "
+    "Carregadores não ficam no lançamento aprovado. Aprovação e PDF vigente permanecem como estão."
+)
+
+
 def _barra_acoes_patio(mes_ref: str, resultados: dict, run: dict):
     r_patio = resultados.get(("patio", mes_ref))
     for sub_uid, split_id in [("patio_real", "real"), ("patio_maiojama", "maiojama")]:
@@ -2479,7 +2508,14 @@ def _barra_acoes_patio(mes_ref: str, resultados: dict, run: dict):
         with st.container(key=f"vd-decisao-final-{sub_uid}"):
             bc1, bc2, bc3, bc4 = st.columns(4)
             with bc1:
-                if st.button("Gerar PDF", key=f"wf_gen_{sub_uid}", use_container_width=True):
+                if status == "aprovado":
+                    # O PDF do Pátio depende do ResultadoPatio completo (Mídias e
+                    # Carregadores), que não fica no lançamento aprovado: ainda
+                    # não há como regenerá-lo sem recalcular.
+                    st.button("Regenerar PDF", key=f"wf_gen_{sub_uid}", use_container_width=True,
+                              disabled=True, help=_MSG_PATIO_APROVADO)
+                    st.caption(_MSG_PATIO_APROVADO)
+                elif st.button("Gerar PDF", key=f"wf_gen_{sub_uid}", use_container_width=True):
                     r_db = rm.load_resultado_from_db(mes_ref, sub_uid)
                     try:
                         rm.generate_report(mes_ref, sub_uid, r_db,

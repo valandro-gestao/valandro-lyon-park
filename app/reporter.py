@@ -11,7 +11,7 @@ from app.report_data import (
 )
 from app.models import ResultadoUnidade, get_lancamentos_mes, get_historico_anual, get_db
 from app.calculators.patio import ResultadoPatio
-from app.engine import get_unit, get_unit_com_params
+from app.engine import get_unit, get_unit_com_params, get_parametros_efetivos
 from app.parsers import eventos as eventos_parser
 from app.rubricas import rotulo_exibicao
 from app import split_repasse
@@ -810,7 +810,8 @@ def _prestacao_manutencao(r: ResultadoUnidade, cfg: dict) -> Prestacao:
 
 def build_report_data(resultado, mes_ref: str,
                        patio_split_id: str = None,
-                       patio_resultado: "ResultadoPatio | None" = None) -> ReportData:
+                       patio_resultado: "ResultadoPatio | None" = None,
+                       somente_leitura: bool = False) -> ReportData:
     hoje = date.today().strftime("%d/%m/%Y")
 
     if patio_split_id is not None and patio_resultado is not None:
@@ -827,7 +828,12 @@ def build_report_data(resultado, mes_ref: str,
     # app.engine.calcular, que já usa get_unit_com_params), mas o
     # detalhamento por faixa no PDF ficava vazio, porque _prestacao_cumul_du
     # lê cfg.get("faixas_aluguel") a partir do cfg montado AQUI.
-    cfg = get_unit_com_params(resultado.unidade_id, mes_ref)
+    # somente_leitura (regeneração de PDF de competência APROVADA): resolve a
+    # mesma configuração efetiva, mas SEM a semeadura de parâmetros que
+    # get_unit_com_params faz como efeito colateral (ver app.engine) — o
+    # caminho de regeneração não pode gravar em parametros_vigentes. Todos os
+    # demais fluxos seguem exatamente como antes.
+    cfg = (get_parametros_efetivos if somente_leitura else get_unit_com_params)(resultado.unidade_id, mes_ref)
     tipo_rel = cfg.get("tipo_relatorio", "padrao")
     tipo_cal = cfg.get("tipo_calculo", "")
 
@@ -934,7 +940,7 @@ def build_report_data(resultado, mes_ref: str,
     )
 
 
-def build_report_data_du(resultado: ResultadoUnidade, mes_ref: str) -> ReportData:
+def build_report_data_du(resultado: ResultadoUnidade, mes_ref: str, somente_leitura: bool = False) -> ReportData:
     """PDF auxiliar 'Direito de Uso' (refinamento pós-homologação Aucon,
     COM_ALIQUOTA_CUMUL_DU — Nilo Square e qualquer futura unidade nesse
     modelo). Reaproveita o MESMO template (templates/relatorio.html) e a
@@ -947,8 +953,9 @@ def build_report_data_du(resultado: ResultadoUnidade, mes_ref: str) -> ReportDat
     tornam essas seções inertes quando não preenchidas, sem afetar nenhum
     outro relatório já existente, que sempre preenche os dois)."""
     hoje = date.today().strftime("%d/%m/%Y")
-    # Mesmo motivo de build_report_data — ver comentário lá.
-    cfg = get_unit_com_params(resultado.unidade_id, mes_ref)
+    # Mesmo motivo de build_report_data — ver comentário lá (inclusive
+    # somente_leitura, usado quando a competência já está aprovada).
+    cfg = (get_parametros_efetivos if somente_leitura else get_unit_com_params)(resultado.unidade_id, mes_ref)
 
     unidade = UnidadeInfo(
         nome=cfg["nome"],

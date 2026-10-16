@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 import os
 import shutil
+import time
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
@@ -63,9 +64,22 @@ def load_run(mes_ref: str) -> dict:
 
 
 def _save_run(mes_ref: str, data: dict):
+    """Grava o status.json de forma atômica (arquivo temporário + os.replace):
+    uma falha no meio da escrita nunca deixa o status.json truncado — o estado
+    anterior (status de aprovação, versões) permanece íntegro."""
     _run_dir(mes_ref).mkdir(parents=True, exist_ok=True)
-    with open(_status_path(mes_ref), "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+    destino = _status_path(mes_ref)
+    tmp = destino.with_name(destino.name + ".tmp")
+    try:
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        os.replace(tmp, destino)
+    except BaseException:
+        try:
+            tmp.unlink()
+        except OSError:
+            pass
+        raise
 
 
 def get_unit_run(mes_ref: str, uid: str) -> dict:
@@ -194,6 +208,132 @@ def reopen(mes_ref: str, uid: str, reason: Optional[str] = None):
 
 def mark_error(mes_ref: str, uid: str, message: str):
     _update_unit(mes_ref, uid, status="erro", error_message=message)
+
+
+# ─── regeneração do PDF de uma competência APROVADA ──────────────────────────
+
+# Pátio: o PDF de cada contratante depende do ResultadoPatio completo (blocos
+# "Outros Serviços — Mídias" e "Carregadores"), que NÃO fica no lançamento
+# persistido (só `repasse_outros`) — não há como regenerá-lo só do banco.
+_UIDS_PATIO = ("patio_real", "patio_maiojama")
+
+
+def load_resultado_aprovado(mes_ref: str, uid: str) -> Optional[ResultadoUnidade]:
+    """Resultado do lançamento APROVADO da unidade na competência, lido do
+    banco. None se não existe lançamento ou se ele não está `aprovado`.
+    Nunca consulta valores temporários da sessão."""
+    with get_db() as conn:
+        row = conn.execute(
+            "SELECT status FROM lancamentos WHERE unidade_id=? AND mes_referencia=?",
+            (uid, mes_ref),
+        ).fetchone()
+    if row is None or row["status"] != "aprovado":
+        return None
+    return load_resultado_from_db(mes_ref, uid)
+
+
+def regenerar_pdf_aprovado(mes_ref: str, uid: str) -> str:
+    """Regenera o PDF de uma competência JÁ APROVADA preservando a aprovação.
+
+    Não é um fluxo de aprovação: não recalcula, não grava lançamento, saldo
+    nem parâmetro, e não mexe em `status`, `last_approved_at`,
+    `last_reviewed_at` nem `reopened_*`. O resultado vem EXCLUSIVAMENTE do
+    lançamento aprovado persistido (esta função nem recebe um resultado), e a
+    configuração é lida sem a semeadura de parâmetros de get_unit_com_params
+    (build_report_data(..., somente_leitura=True)).
+
+    Só atualiza `pdf_path` (mesmo caminho), `version` (+1), `last_generated_at`
+    e `versions` (o PDF anterior, byte a byte, com status_at_time "aprovado").
+
+    Ordem à prova de falha — o PDF vigente, o status e o histórico de versões
+    nunca ficam pior do que estavam:
+      1. renderiza para um arquivo TEMPORÁRIO (falha aqui: nada foi tocado);
+      2. copia o temporário para a pasta de destino e valida que é um PDF;
+      3. arquiva o PDF vigente em versions/;
+      4. registra a nova versão no status.json (gravação atômica);
+      5. substitui o PDF vigente por os.replace (atômico). Se isso falhar, o
+         registro do passo 4 é revertido e o arquivamento descartado.
+
+    Levanta ValueError (sem alterar nada) se o workflow não for `aprovado`, se
+    não houver lançamento aprovado, ou para o Pátio (ver _UIDS_PATIO).
+    """
+    if uid in _UIDS_PATIO:
+        raise ValueError(
+            "A regeneração do PDF de um Pátio aprovado ainda não está disponível: os blocos de "
+            "Mídias e Carregadores não ficam no lançamento aprovado."
+        )
+    unit_run = get_unit_run(mes_ref, uid)
+    if unit_run["status"] != "aprovado":
+        raise ValueError(f"Só é possível regenerar o PDF de uma competência aprovada (status atual: '{unit_run['status']}').")
+    resultado = load_resultado_aprovado(mes_ref, uid)
+    if resultado is None:
+        raise ValueError("Lançamento aprovado não encontrado para esta unidade/competência.")
+
+    from app.renderer import OUTPUT_DIR
+
+    html = render_html(build_report_data(resultado, mes_ref, somente_leitura=True))
+
+    _reports_dir(mes_ref).mkdir(parents=True, exist_ok=True)
+    _versions_dir(mes_ref).mkdir(parents=True, exist_ok=True)
+    pdf_dest = _pdf_path(mes_ref, uid)
+    sufixo = f"{os.getpid()}_{int(time.time() * 1000)}"
+    nome_render = f"regen_{uid}_{mes_ref}_{sufixo}.pdf"
+    render_tmp = Path(OUTPUT_DIR) / nome_render
+    dest_tmp = pdf_dest.with_name(f".regen_{uid}_{sufixo}.pdf")
+
+    atual = unit_run.get("pdf_path")
+    anterior = {
+        "pdf_path": atual,
+        "version": unit_run["version"],
+        "versions": list(unit_run.get("versions", [])),
+        "last_generated_at": unit_run.get("last_generated_at"),
+    }
+    backup: Optional[Path] = None
+    registrado = False
+    try:
+        export_pdf(html, nome_render)                      # 1) temporário (área do renderer)
+        with open(render_tmp, "rb") as f:
+            if f.read(5) != b"%PDF-" or os.path.getsize(render_tmp) < 100:
+                raise RuntimeError("O PDF gerado é inválido; o PDF vigente foi mantido.")
+        shutil.copyfile(render_tmp, dest_tmp)              # 2) mesma pasta/sistema de arquivos do destino
+
+        versions = list(anterior["versions"])
+        if atual and Path(atual).exists():                 # 3) arquiva o PDF vigente
+            backup = _version_pdf_path(mes_ref, uid, unit_run["version"])
+            shutil.copy2(atual, backup)
+            versions.append({
+                "version": unit_run["version"],
+                "pdf_path": str(backup),
+                "created_at": datetime.now().isoformat(timespec="seconds"),
+                "status_at_time": "aprovado",
+            })
+        _update_unit(mes_ref, uid,                         # 4) SEM `status`
+            pdf_path=str(pdf_dest),
+            version=unit_run["version"] + 1,
+            last_generated_at=datetime.now().isoformat(timespec="seconds"),
+            versions=versions,
+        )
+        registrado = True
+        try:
+            os.replace(dest_tmp, pdf_dest)                 # 5) substituição atômica
+        except BaseException:
+            _update_unit(mes_ref, uid, **anterior)         # reverte o registro
+            registrado = False
+            raise
+    except BaseException:
+        if backup is not None and not registrado:
+            try:
+                backup.unlink()
+            except OSError:
+                pass
+        raise
+    finally:
+        for tmp in (render_tmp, dest_tmp):
+            try:
+                tmp.unlink()
+            except OSError:
+                pass
+    return str(pdf_dest)
 
 
 def get_versions(mes_ref: str, uid: str) -> list[dict]:
