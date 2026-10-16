@@ -58,5 +58,10 @@ scripts/
 # docstring do arquivo).
 !scripts/diagnostico_aprovacao_inconsistente.py
 
+# Exceção: diagnóstico read-only de Repasse x Parcela Fixa x Saldo a Pagar das
+# unidades RESULTADO_SPLIT (Medcenter, Viva Open Mall) — só SELECT, não migra
+# nem grava nada, roda via Render Shell (ver docstring do arquivo).
+!scripts/diagnostico_split_repasse.py
+
 # Configuração do Claude Code — específica do ambiente de desenvolvimento
 .claude/
