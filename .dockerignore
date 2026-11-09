@@ -63,5 +63,10 @@ scripts/
 # nem grava nada, roda via Render Shell (ver docstring do arquivo).
 !scripts/diagnostico_split_repasse.py
 
+# Exceção: diagnóstico read-only da conciliação da quitação de prejuízo
+# acumulado da Ekos (out/2026) — só SELECT, não migra nem grava nada, roda via
+# Render Shell (ver docstring do arquivo).
+!scripts/diagnostico_ekos_quitacao_out2026.py
+
 # Configuração do Claude Code — específica do ambiente de desenvolvimento
 .claude/
