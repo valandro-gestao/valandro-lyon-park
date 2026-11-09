@@ -46,6 +46,20 @@ informado é zero, não "buscar a vigência" (ver
 app.rubricas.valor_rubrica_mensal). Nunca aparece no editor genérico de
 rubricas (custos_mensais).
 
+v1.4.0 — Quitação de Prejuízo Acumulado (rubrica mensal `quitacao_prejuizo`,
+ligada por `tem_quitacao_prejuizo`; Ekos, out/2026): recebimento que liquida o
+saldo histórico de ENTRADA. Não é faturamento nem altera o resultado
+operacional; aplicada antes de o resultado do mês absorver prejuízo:
+    aplicada          = min(recebida, max(0, -entrada))
+    excedente         = recebida - aplicada   (pendente de conciliação)
+    entrada_ajustada  = entrada + aplicada    (nunca positiva)
+    disponivel + entrada_ajustada > 0 -> repasse = percentual(...), saída = 0
+                                      senão repasse = 0, saída = a própria soma
+O excedente nunca entra em receita, repasse nem saldo futuro. Chaves em
+extras: quitacao_prejuizo, quitacao_prejuizo_aplicada,
+quitacao_prejuizo_excedente (+ _status = pendente_conciliacao) e
+prejuizo_acumulado_entrada_ajustada.
+
 Não suporta (removido, v1.2.0): taxa_admin_fixa como piso do repasse. Era
 usada só por MW Tristeza (4350.0) e a operadora confirmou que era controle
 da planilha antiga, sem correspondência na regra contratual real (repasse
@@ -108,7 +122,7 @@ def calcular_com_aliquota_cumul(cfg: dict, mes: str, faturamento: float,
     # exclusão que app.calculators.faixas já usa.
     _nao_custo = {"fat_carregadores", "investimentos", "fundo_recomposicao",
                   "outras_despesas", "ponto_equilibrio_override",
-                  "base_calculo_taxa_cobranca"}
+                  "base_calculo_taxa_cobranca", "quitacao_prejuizo"}
     _ids_rubricas = ids_normalizados(cfg.get("custos_mensais"))
     for k, v in (custos_extras or {}).items():
         if k not in custos and k not in _ids_rubricas and k not in _nao_custo and v:
@@ -129,7 +143,37 @@ def calcular_com_aliquota_cumul(cfg: dict, mes: str, faturamento: float,
     investimento = valor_rubrica_mensal(custos_extras, "investimentos")
 
     disponivel = resultado_bruto - investimento
-    resultado_com_prejuizo = disponivel + prejuizo_entrada  # prejuizo é negativo
+
+    # v1.4.0 — Quitação de Prejuízo Acumulado (Ekos, out/2026): recebimento
+    # de terceiro (ex.: antigo proprietário) que liquida o SALDO HISTÓRICO
+    # transportado — nunca receita, faturamento ou resultado operacional do
+    # mês. Aplicada exclusivamente sobre a ENTRADA, antes de o resultado do
+    # mês absorver o que restar: o resultado operacional (`resultado`,
+    # `subtotal`, `disponivel`) não muda, e o repasse passa a incidir sobre o
+    # resultado disponível depois de o saldo histórico ser liquidado. Rubrica
+    # mensal (só custos_extras, nunca vigência), ligada por
+    # `tem_quitacao_prejuizo`. Sem ela (ou com 0) este bloco é inerte.
+    #   aplicada  = min(recebida, saldo histórico em aberto)   (nunca > |entrada|)
+    #   excedente = recebida - aplicada  -> PENDENTE DE CONCILIAÇÃO: só
+    #               informativo (extras), fora de receita/repasse/saldo futuro
+    #   entrada ajustada = entrada + aplicada  (nunca positiva)
+    # Só vale para unidades que LIGARAM o campo (`tem_quitacao_prejuizo`): uma
+    # chave `quitacao_prejuizo` solta em custos_extras (rascunho antigo,
+    # chamada direta) nunca altera o cálculo de uma unidade que não a usa.
+    quitacao_recebida = (
+        max(0.0, valor_rubrica_mensal(custos_extras, "quitacao_prejuizo"))
+        if cfg.get("tem_quitacao_prejuizo") is True else 0.0
+    )
+    quitacao_aplicada = 0.0
+    quitacao_excedente = 0.0
+    prejuizo_entrada_ajustada = prejuizo_entrada
+    if quitacao_recebida:
+        em_aberto = max(0.0, -prejuizo_entrada)
+        quitacao_aplicada = round(min(quitacao_recebida, em_aberto), 2)
+        quitacao_excedente = round(quitacao_recebida - quitacao_aplicada, 2)
+        prejuizo_entrada_ajustada = round(prejuizo_entrada + quitacao_aplicada, 2)
+
+    resultado_com_prejuizo = disponivel + prejuizo_entrada_ajustada  # prejuizo é negativo
 
     # Aluguel: por faixas ou percentual simples
     faixas_aluguel = cfg.get("faixas_aluguel")
@@ -165,6 +209,17 @@ def calcular_com_aliquota_cumul(cfg: dict, mes: str, faturamento: float,
         # app.reporter._prestacao_padrao). Não gera mais "saldo_a_pagar":
         # o repasse já sai líquido do investimento, calculado acima.
         extras["investimentos"] = investimento
+    if quitacao_recebida:
+        # Preserva o valor efetivamente recebido, o aplicado, o excedente e
+        # o saldo de entrada AJUSTADO. `prejuizo_acumulado_entrada` do
+        # resultado continua sendo a entrada histórica original (= saída do
+        # mês anterior), para a cadeia de saldos seguir íntegra.
+        extras["quitacao_prejuizo"] = quitacao_recebida
+        extras["quitacao_prejuizo_aplicada"] = quitacao_aplicada
+        extras["quitacao_prejuizo_excedente"] = quitacao_excedente
+        extras["prejuizo_acumulado_entrada_ajustada"] = prejuizo_entrada_ajustada
+        if quitacao_excedente:
+            extras["quitacao_prejuizo_excedente_status"] = "pendente_conciliacao"
     if adicional:
         extras["adicional_fixo"] = adicional
         aluguel = round(aluguel + adicional, 2)

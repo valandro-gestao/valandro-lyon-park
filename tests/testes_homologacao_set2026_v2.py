@@ -109,7 +109,10 @@ def _default_widget_investimentos(mes_ref):
 
 
 checar("investimentos/outras_despesas são reconhecidos como rubrica mensal não-vigência",
-       _RUBRICAS_MENSAIS_NAO_VIGENCIA == frozenset({"investimentos", "outras_despesas"}))
+       # v1.4.0: a lista passou a incluir também `quitacao_prejuizo` (Ekos) —
+       # as duas rubricas originais continuam obrigatoriamente nela.
+       {"investimentos", "outras_despesas"} <= _RUBRICAS_MENSAIS_NAO_VIGENCIA
+       and _RUBRICAS_MENSAIS_NAO_VIGENCIA == frozenset({"investimentos", "outras_despesas", "quitacao_prejuizo"}))
 checar("fundo_recomposicao (W Tower) NÃO está na lista — comportamento homologado intocado",
        "fundo_recomposicao" not in _RUBRICAS_MENSAIS_NAO_VIGENCIA)
 

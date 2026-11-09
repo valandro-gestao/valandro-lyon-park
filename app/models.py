@@ -50,6 +50,7 @@ _PARAM_META: dict[str, tuple[str, str]] = {
     # Fechamento; o VALOR é sempre da competência, nunca uma vigência.
     "tem_investimentos":                         ("booleano",   "Investimentos"),
     "tem_outras_despesas":                       ("booleano",   "Outras Despesas"),
+    "tem_quitacao_prejuizo":                     ("booleano",   "Quitação de Prejuízo Acumulado"),
     "tem_receita_selos":                         ("booleano",   "Receita de Selos"),
     "tem_base_taxa_cobranca":                    ("booleano",   "Taxa de Cobrança"),
 }

@@ -21,7 +21,9 @@ Não expõe parâmetros sem efeito real no motor de cálculo:
     nunca é herdado de parametros_vigentes. O que a Administração configura
     é só se a unidade TEM o campo: `tem_investimentos` (COM_ALIQUOTA e
     COM_ALIQUOTA_CUMUL) e `tem_outras_despesas` (COM_ALIQUOTA_CUMUL) —
-    ver RUBRICAS_MENSAIS_POR_TIPO. Linhas históricas dessas chaves em
+    ver RUBRICAS_MENSAIS_POR_TIPO (inclui `tem_quitacao_prejuizo`, v1.4.0:
+    recebimento que liquida o saldo histórico de entrada — ver
+    app.calculators.cumulativo). Linhas históricas dessas chaves em
     parametros_vigentes são preservadas (auditoria / migration 0018), mas
     não têm mais efeito nem editor.
   `adicional_fixo` (COM_ALIQUOTA_CUMUL) FOI mantido — avaliado
@@ -310,6 +312,13 @@ SCHEMAS_POR_TIPO: dict[str, dict] = {
                 "tipo_dado": "booleano", "natureza": "escalar",
                 "obrigatorio": False, "default_tecnico": False,
                 "descricao": "Liga o campo Investimentos no Fechamento: valor informado mês a mês e descontado do resultado já apurado, antes do prejuízo acumulado e do repasse (aumenta o prejuízo quando o resultado disponível não cobre o investimento). Categoria independente de Outras Despesas e de Fundo de Recomposição. O valor pertence à competência — nunca é herdado de outro mês.",
+                "editor": "toggle", "aceita_vigencia": True,
+            },
+            {
+                "chave": "tem_quitacao_prejuizo", "label": "Tem Quitação de Prejuízo Acumulado",
+                "tipo_dado": "booleano", "natureza": "escalar",
+                "obrigatorio": False, "default_tecnico": False,
+                "descricao": "Liga o campo Quitação de Prejuízo Acumulado no Fechamento: valor recebido de terceiro (ex.: antigo proprietário) que liquida o saldo histórico transportado — informado na competência do recebimento, aplicado só sobre o saldo de entrada, sem entrar em faturamento nem alterar o resultado operacional. Qualquer excedente fica pendente de conciliação, fora de receita, repasse e saldo futuro. O valor pertence à competência — nunca é herdado de outro mês.",
                 "editor": "toggle", "aceita_vigencia": True,
             },
             {
@@ -714,7 +723,7 @@ SCHEMAS_POR_TIPO: dict[str, dict] = {
 # A Administração só liga/desliga o campo, pela chave `tem_<rubrica>`.
 RUBRICAS_MENSAIS_POR_TIPO: dict[str, tuple[str, ...]] = {
     "COM_ALIQUOTA": ("investimentos",),
-    "COM_ALIQUOTA_CUMUL": ("outras_despesas", "investimentos"),
+    "COM_ALIQUOTA_CUMUL": ("outras_despesas", "investimentos", "quitacao_prejuizo"),
 }
 
 

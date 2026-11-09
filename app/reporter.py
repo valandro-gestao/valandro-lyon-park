@@ -440,7 +440,21 @@ def _prestacao_padrao(r: ResultadoUnidade, cfg: dict) -> Prestacao:
     # mesmo com o acumulado sendo usado corretamente no cálculo do repasse.
     # As 6 unidades que já têm "prejuizo" configurado (Viva Trindade, W
     # Tower etc.) não mudam: a condição por dado já era verdadeira nelas.
-    if r.prejuizo_acumulado_entrada or r.prejuizo_acumulado_saida:
+    quitacao_aplicada = extras.get("quitacao_prejuizo_aplicada") or 0.0
+    if quitacao_aplicada:
+        # v1.4.0 (Ekos / Quitação de Prejuízo Acumulado): saldo histórico
+        # anterior -> quitação aplicada -> saldo final. O saldo anterior é a
+        # ENTRADA original (= saída do mês anterior); a quitação só liquida
+        # esse saldo (nunca é receita nem altera o Resultado acima). Valor
+        # recebido e excedente (pendente de conciliação) ficam nos dados
+        # persistidos e na tela de Fechamento, não neste PDF.
+        linhas.append(LinhaPrestacao("(+/-) Prejuízo Acumulado — Saldo Anterior",
+                                      r.prejuizo_acumulado_entrada, "deducao"))
+        linhas.append(LinhaPrestacao("(+) Quitação de Prejuízo Acumulado",
+                                      quitacao_aplicada, "normal"))
+        linhas.append(LinhaPrestacao("(+/-) Prejuízo Acumulado — Saldo Final",
+                                      r.prejuizo_acumulado_saida, "deducao"))
+    elif r.prejuizo_acumulado_entrada or r.prejuizo_acumulado_saida:
         # Mostra a SAÍDA (saldo já considerando o resultado deste mês, já
         # líquido de investimentos quando aplicável), não a entrada — ver
         # app.models.get_saldo_entrada: a entrada é só o ponto de partida

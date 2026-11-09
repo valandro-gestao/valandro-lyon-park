@@ -55,6 +55,7 @@ _LABELS_LEGADO: dict[str, str] = {
     "aucon": "Aucon / Equip.",
     "instalacoes": "Manutenção Instalações",
     "investimentos": "Investimentos",
+    "quitacao_prejuizo": "Quitação de Prejuízo Acumulado",
     "fundo_recomposicao": "Fundo Recomposição",
     "agua": "Água",
     "internet": "Internet",

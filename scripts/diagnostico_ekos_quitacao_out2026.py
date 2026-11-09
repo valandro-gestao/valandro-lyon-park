@@ -11,13 +11,17 @@ Responde, com os dados reais gravados:
   5. quitação recebida, valor aplicável, excedente pendente de conciliação e
      saldo final a transportar para novembro;
   6. situação do lançamento de outubro e do workflow (rascunho/gerado/aprovado);
-  7. a classificação do caso: INTEGRAL, PARCIAL, EXCEDENTE ou ABSORVIDO.
+  7. a classificação do caso: INTEGRAL, PARCIAL, EXCEDENTE ou SEM_SALDO_HISTORICO.
 
-A classificação aplica as regras definidas para a futura rubrica, SOBRE OS
-VALORES JÁ GRAVADOS (nada é recalculado): a quitação entra depois do repasse,
-só sobre o prejuízo remanescente (saída de outubro antes da quitação), nunca
-gera saldo positivo, repasse nem receita; se o prejuízo já foi absorvido pelo
-resultado de outubro, não é aplicada e o valor inteiro fica como excedente.
+A classificação aplica a regra APROVADA (v1.4.0, app.calculators.cumulativo):
+a quitação liquida exclusivamente o saldo histórico de ENTRADA da competência
+(`aplicada = min(recebida, |entrada|)`), nunca altera faturamento nem resultado
+operacional, e o repasse incide sobre o resultado disponível depois disso; o
+excedente fica pendente de conciliação (fora de receita, repasse e saldo
+futuro). Nada é recalculado nem gravado: o script só lê o que já está gravado e
+mostra uma PROJEÇÃO pela regra. Se o lançamento já foi calculado com a rubrica
+`quitacao_prejuizo`, o script a reconhece (entrada ajustada em
+extras.prejuizo_acumulado_entrada_ajustada) e não acusa falsa quebra de cadeia.
 
 Só faz SELECT e só lê arquivos. Abre o banco em modo read-only (URI `?mode=ro`
 do SQLite + `PRAGMA query_only=ON` — o próprio SQLite recusa qualquer escrita
@@ -27,11 +31,12 @@ nem dados de clientes; metadados de usuário da importação Aucon são omitidos
 
 Uso (Render Shell, a partir da raiz do app):
     cd /app && python3 scripts/diagnostico_ekos_quitacao_out2026.py
+    cd /app && python3 scripts/diagnostico_ekos_quitacao_out2026.py --resultado <disponível da tela>
 
 Por padrão lê de $DATA_DIR/db.sqlite (em produção, /mnt/data/db.sqlite) e de
 $DATA_DIR/runs/<mês>/status.json. Opções:
     python3 scripts/diagnostico_ekos_quitacao_out2026.py [/caminho/db.sqlite] \
-        [--unidade ekos] [--mes 2026-10] [--valor 4858.56]
+        [--unidade ekos] [--mes 2026-10] [--valor 4858.56] [--resultado <D>]
 """
 import argparse
 import json
@@ -80,26 +85,27 @@ def meses_entre(ini, fim):
     return out
 
 
-def classificar_quitacao(saida_antes, quitacao):
-    """Regra da quitação aplicada sobre a saída de outubro ANTES dela.
+def classificar_quitacao(entrada, quitacao):
+    """Regra aprovada, sobre o saldo histórico de ENTRADA (<= 0).
 
-    `saida_antes` é o prejuízo remanescente (<= 0). Devolve cenário, valor
-    aplicado, excedente (pendente de conciliação) e saldo final (nunca > 0).
+    Devolve cenário, valor aplicado, excedente (pendente de conciliação) e
+    entrada ajustada (nunca > 0). INTEGRAL: recebido == |entrada|; PARCIAL:
+    recebido < |entrada| (resta saldo histórico); EXCEDENTE: recebido >
+    |entrada|; SEM_SALDO_HISTORICO: entrada já era zero (tudo pendente).
     """
-    s = min(0.0, round(num(saida_antes), 2))
+    e = min(0.0, round(num(entrada), 2))
     q = round(num(quitacao), 2)
     if q <= EPS:
-        return {"cenario": "SEM_QUITACAO", "aplicada": 0.0, "excedente": 0.0, "saldo_final": s}
-    if s >= -EPS:
-        return {"cenario": "ABSORVIDO", "aplicada": 0.0, "excedente": q, "saldo_final": 0.0}
-    resto = abs(s)
+        return {"cenario": "SEM_QUITACAO", "aplicada": 0.0, "excedente": 0.0, "entrada_ajustada": e}
+    if e >= -EPS:
+        return {"cenario": "SEM_SALDO_HISTORICO", "aplicada": 0.0, "excedente": q, "entrada_ajustada": 0.0}
+    resto = abs(e)
     if abs(q - resto) < EPS:
-        return {"cenario": "INTEGRAL", "aplicada": q, "excedente": 0.0, "saldo_final": 0.0}
+        return {"cenario": "INTEGRAL", "aplicada": q, "excedente": 0.0, "entrada_ajustada": 0.0}
     if q < resto:
-        return {"cenario": "PARCIAL", "aplicada": q, "excedente": 0.0,
-                "saldo_final": round(s + q, 2)}
-    return {"cenario": "EXCEDENTE", "aplicada": round(resto, 2),
-            "excedente": round(q - resto, 2), "saldo_final": 0.0}
+        return {"cenario": "PARCIAL", "aplicada": q, "excedente": 0.0, "entrada_ajustada": round(e + q, 2)}
+    return {"cenario": "EXCEDENTE", "aplicada": round(resto, 2), "excedente": round(q - resto, 2),
+            "entrada_ajustada": 0.0}
 
 
 # ─── acesso (somente leitura) ────────────────────────────────────────────────
@@ -155,11 +161,18 @@ def decompor(row):
     e, s = num(d.get("prejuizo_acumulado_entrada")), num(d.get("prejuizo_acumulado_saida"))
     res, inv = num(d.get("resultado")), num(ex.get("investimentos"))
     disp = round(res - inv, 2)
-    base = round(disp + e, 2)
+    quit_rec = num(ex.get("quitacao_prejuizo"))
+    quit_apl = num(ex.get("quitacao_prejuizo_aplicada"))
+    # entrada EFETIVA do cálculo: a original, ou a ajustada quando há quitação
+    e_ef = num(ex["prejuizo_acumulado_entrada_ajustada"]) if "prejuizo_acumulado_entrada_ajustada" in ex else e
+    base = round(disp + e_ef, 2)
     return {"mes": row["mes_referencia"], "status": row["status"], "fat": num(row["faturamento"]),
-            "resultado": res, "invest": inv, "disponivel": disp, "entrada": e, "saida": s,
-            "base": base, "saida_formula": round(min(0.0, base), 2),
-            "aluguel": num(d.get("aluguel_calculado")), "extras_keys": sorted(ex.keys())}
+            "resultado": res, "invest": inv, "disponivel": disp, "entrada": e, "entrada_efetiva": e_ef,
+            "saida": s, "base": base, "saida_formula": round(min(0.0, base), 2),
+            "aluguel": num(d.get("aluguel_calculado")), "extras_keys": sorted(ex.keys()),
+            "quit_recebida": quit_rec, "quit_aplicada": quit_apl,
+            "quit_excedente": num(ex.get("quitacao_prejuizo_excedente")),
+            "tem_quitacao": "quitacao_prejuizo" in ex}
 
 
 def sec(t):
@@ -172,9 +185,9 @@ def main(argv=None):
     ap.add_argument("--unidade", default="ekos")
     ap.add_argument("--mes", default="2026-10")
     ap.add_argument("--valor", type=float, default=QUITACAO_PADRAO)
-    ap.add_argument("--saida-antes", type=float, default=None,
-                    help="só se a competência ainda NÃO tem lançamento (o lançamento é gravado na aprovação): "
-                         "saída/prejuízo acumulado exibido na tela de Fechamento, antes da quitação")
+    ap.add_argument("--resultado", type=float, default=None,
+                    help="só se a competência ainda NÃO tem lançamento (gravado na aprovação): resultado disponível "
+                         "(resultado - investimentos) exibido na tela de Fechamento, para projetar saída e repasse")
     a = ap.parse_args(argv)
 
     data_dir = Path(os.environ.get("DATA_DIR") or "/mnt/data")
@@ -239,6 +252,9 @@ def main(argv=None):
             v.append("NÃO APROVADO: não alimenta a cadeia")
         d = x["saida"] - x["entrada"]
         tag = "GERA" if d < -EPS else ("ABSORVE" if d > EPS else "-")
+        if x["tem_quitacao"]:
+            tag = (f"QUITAÇÃO recebida {brl(x['quit_recebida'])} / aplicada {brl(x['quit_aplicada'])}"
+                   f" / excedente {brl(x['quit_excedente'])}; saldo efetivo de entrada {brl(x['entrada_efetiva'])}")
         print(f"{m:8}{x['status']:10}{brl(x['resultado']):>11}{brl(x['invest']):>10}{brl(x['entrada']):>11}"
               f"{brl(d):>11}{brl(x['saida']):>11}{brl(x['aluguel']):>11}  {tag}; " + "; ".join(v))
         for t in v[:2]:
@@ -274,60 +290,70 @@ def main(argv=None):
         sinal.append(f"{mes} APROVADO: aplicar a quitação exige reabrir/reaprovar e sobrescreve a linha de lancamentos "
                      f"(guarde esta saída como fotografia do estado anterior; PDFs antigos ficam em versions/)")
 
-    sec(f"4. CONCILIAÇÃO DA QUITAÇÃO — {mes} (valores gravados; regra pós-repasse)")
+    sec(f"4. CONCILIAÇÃO DA QUITAÇÃO — {mes} (regra: quitação sobre o saldo histórico de ENTRADA)")
     e_cad, origem = entrada_pela_cadeia(conn, uid, mes)
-    print(f"  (1) Prejuízo transportado do mês anterior, pela cadeia ...... {brl(e_cad):>12}   [{origem}]")
-    resumo = {}
-    if mes in L:
-        x = L[mes]
-        efeito = ("reduz o prejuízo" if x["disponivel"] > EPS else "amplia o prejuízo" if x["disponivel"] < -EPS else "neutro")
-        print(f"  (1b) Entrada gravada no lançamento de {mes} ................ {brl(x['entrada']):>12}"
+    x = L.get(mes)
+    Q_ef = x["quit_recebida"] if (x and x["tem_quitacao"]) else Q
+    c = classificar_quitacao(e_cad, Q_ef)
+    pct = None
+    pr = _q(conn, """select valor from parametros_vigentes where unidade_id=? and parametro='percentual_aluguel'
+                     and competencia_inicio<=? and (competencia_fim is null or competencia_fim>=?)
+                     order by competencia_inicio desc limit 1""", uid, mes, mes)
+    if pr:
+        pct = num(_j(pr[0]["valor"])) or None
+    D = x["disponivel"] if x else a.resultado
+    proj_saida = proj_repasse = None
+    if D is not None:
+        base = round(D + c["entrada_ajustada"], 2)
+        proj_saida = round(min(0.0, base), 2)
+        proj_repasse = (round(base * pct, 2) if (base > 0 and pct) else (0.0 if base <= 0 else None))
+    print(f"  (1) Saldo histórico de ENTRADA (prejuízo transportado), pela cadeia ... {brl(e_cad):>12}   [{origem}]")
+    if x:
+        print(f"  (1b) Entrada gravada no lançamento de {mes} ............................ {brl(x['entrada']):>12}"
               f"{'' if abs(x['entrada'] - e_cad) < EPS else '   <-- DIVERGE da cadeia'}")
-        print(f"  (2) Resultado operacional de {mes} ......................... {brl(x['resultado']):>12}")
-        print(f"  (3) (-) Investimentos ...................................... {brl(x['invest']):>12}")
-        print(f"  (4) Resultado disponível (efeito no saldo: {efeito}) .. {brl(x['disponivel']):>12}")
-        print(f"  (5) Base após absorver o prejuízo de entrada (4)+(1b) ...... {brl(x['base']):>12}"
-              f"   {'-> sobra para repasse' if x['base'] > EPS else '-> sem repasse; vira saída'}")
-        print(f"  (6) SALDO ANTES DA QUITAÇÃO (saída gravada) ................ {brl(x['saida']):>12}"
-              f"   [fórmula: {brl(x['saida_formula'])}]")
-        print(f"  (7) Repasse gravado (NÃO muda com a quitação) .............. {brl(x['aluguel']):>12}")
-        c = classificar_quitacao(x["saida"], Q)
-        print(f"  (8) Quitação recebida ...................................... {brl(Q):>12}")
-        print(f"  (9) Valor aplicável ........................................ {brl(c['aplicada']):>12}")
-        print(f"  (10) Excedente PENDENTE DE CONCILIAÇÃO ..................... {brl(c['excedente']):>12}")
-        print(f"  (11) Saldo final a transportar para {mes_seguinte(mes)} ................ {brl(c['saldo_final']):>12}")
-        rot = {"INTEGRAL": "QUITAÇÃO INTEGRAL (valor = prejuízo remanescente)",
-               "PARCIAL": "QUITAÇÃO PARCIAL (resta saldo negativo, sem baixa automática)",
-               "EXCEDENTE": "EXCEDENTE (paga mais que o prejuízo remanescente; sobra pendente)",
-               "ABSORVIDO": ("SALDO JÁ ABSORVIDO pelo resultado do mês (quitação NÃO aplicada; valor inteiro pendente)"
-                             if x["entrada"] < -EPS else "SEM PREJUÍZO REMANESCENTE (saldo já era zero; valor inteiro pendente)"),
-               "SEM_QUITACAO": "valor da quitação <= 0"}[c["cenario"]]
-        print(f"\n  CENÁRIO: {c['cenario']} — {rot}")
-        resumo = {"entrada_cadeia": e_cad, "entrada_gravada": x["entrada"], "resultado": x["resultado"],
-                  "disponivel": x["disponivel"], "saldo_antes": x["saida"], "quitacao": Q, **c, "repasse": x["aluguel"]}
-        if abs(x["saida"] - x["saida_formula"]) >= 0.015:
-            sinal.append(f"{mes}: saída gravada ≠ fórmula; conferir se o lançamento está atualizado")
-    elif a.saida_antes is not None:
-        c = classificar_quitacao(a.saida_antes, Q)
-        print(f"  Lançamento de {mes} inexistente; usando a saída INFORMADA MANUALMENTE (tela): {brl(a.saida_antes)}")
-        print(f"  (8) Quitação recebida ...................................... {brl(Q):>12}")
-        print(f"  (9) Valor aplicável ........................................ {brl(c['aplicada']):>12}")
-        print(f"  (10) Excedente PENDENTE DE CONCILIAÇÃO ..................... {brl(c['excedente']):>12}")
-        print(f"  (11) Saldo final a transportar para {mes_seguinte(mes)} ................ {brl(c['saldo_final']):>12}")
-        print(f"\n  CENÁRIO (indicativo, valor não gravado): {c['cenario']}")
-        resumo = {"entrada_cadeia": e_cad, "saldo_antes_informado": a.saida_antes, "quitacao": Q, **c}
-        sinal.append(f"{mes}: classificação baseada em valor digitado, não em dado gravado")
+        print(f"  (2) Resultado operacional ..................................... {brl(x['resultado']):>12}")
+        print(f"  (3) (-) Investimentos ......................................... {brl(x['invest']):>12}")
+    print(f"  (4) Resultado disponível ({'gravado' if x else 'informado em --resultado' if D is not None else 'n/d — use --resultado'}) "
+          f"............ {brl(D):>12}")
+    print(f"  (5) Quitação recebida ......................................... {brl(Q_ef):>12}"
+          f"{'   [gravada no lançamento]' if (x and x['tem_quitacao']) else ''}")
+    print(f"  (6) Valor APLICADO ao saldo histórico (limite |entrada|) ...... {brl(c['aplicada']):>12}")
+    print(f"  (7) Excedente PENDENTE DE CONCILIAÇÃO ......................... {brl(c['excedente']):>12}")
+    print(f"  (8) Saldo histórico após a quitação ........................... {brl(c['entrada_ajustada']):>12}")
+    print(f"  (9) Saída FINAL a transportar para {mes_seguinte(mes)} (projeção pela regra) ..... {brl(proj_saida):>12}")
+    print(f"  (10) Repasse projetado (percentual vigente {('%.2f%%' % (pct * 100)) if pct else 'n/d'}) ................ {brl(proj_repasse):>12}")
+    rot = {"INTEGRAL": "QUITAÇÃO INTEGRAL (valor recebido = saldo histórico de entrada)",
+           "PARCIAL": "QUITAÇÃO PARCIAL (resta saldo histórico; sem baixa automática)",
+           "EXCEDENTE": "EXCEDENTE (recebido > saldo histórico; sobra pendente de conciliação)",
+           "SEM_SALDO_HISTORICO": "SEM SALDO HISTÓRICO a quitar (valor inteiro pendente de conciliação)",
+           "SEM_QUITACAO": "valor da quitação <= 0"}[c["cenario"]]
+    print(f"\n  CENÁRIO: {c['cenario']} — {rot}")
+    if x and x["tem_quitacao"]:
+        ok = (abs(x["quit_aplicada"] - c["aplicada"]) < EPS and abs(x["quit_excedente"] - c["excedente"]) < EPS
+              and (proj_saida is None or abs(x["saida"] - proj_saida) < 0.015))
+        print(f"  Lançamento JÁ calculado COM quitação — saída gravada {brl(x['saida'])}, repasse gravado {brl(x['aluguel'])}: "
+              f"{'CONSISTENTE com a regra' if ok else 'DIVERGE da regra'}")
+        if not ok:
+            sinal.append(f"{mes}: lançamento com quitação diverge da regra (aplicada/excedente/saída)")
+        if x["quit_excedente"]:
+            sinal.append(f"{mes}: excedente de {brl(x['quit_excedente'])} PENDENTE DE CONCILIAÇÃO")
+    elif x:
+        print(f"  Lançamento JÁ gravado SEM quitação — saída {brl(x['saida'])}, repasse {brl(x['aluguel'])} "
+              f"(a projeção acima mostra o efeito de lançar a quitação).")
+        sinal.append(f"{mes}: já calculado/gravado sem quitação; lançá-la exige reabrir e reaprovar")
     else:
-        print(f"  Lançamento de {mes} inexistente (só é gravado na aprovação): sem dados gravados para classificar.")
-        print(f"  Referência indicativa (não é classificação): quitação {brl(Q)} vs |entrada| {brl(abs(e_cad))} "
-              f"-> diferença {brl(Q - abs(e_cad))}.")
-        print("  Se a competência ainda não foi aprovada, leia na tela de Fechamento o 'Prejuízo Acumulado' (saída) e rode com "
-              "--saida-antes <valor negativo>.")
-        sinal.append(f"{mes}: sem lançamento; caso não classificável com dados gravados")
+        print(f"  Lançamento de {mes} inexistente (só é gravado na aprovação): classificação pela entrada da cadeia; "
+              f"a projeção de saída/repasse depende do resultado — informe --resultado <valor disponível da tela> para vê-la.")
+    resumo = {"entrada_cadeia": e_cad, "quitacao_recebida": Q_ef, "aplicada": c["aplicada"], "excedente": c["excedente"],
+              "entrada_ajustada": c["entrada_ajustada"], "cenario": c["cenario"]}
+    if proj_saida is not None:
+        resumo.update({"resultado_disponivel": D, "saida_final_proj": proj_saida, "repasse_proj": proj_repasse})
+    if x:
+        resumo.update({"saida_gravada": x["saida"], "repasse_gravado": x["aluguel"]})
 
     sec("RESUMO PARA COLAR")
     for k, v in resumo.items():
-        print(f"  {k:<16} {brl(v) if isinstance(v, float) else v}")
+        print(f"  {k:<20} {brl(v) if isinstance(v, float) else ('n/d' if v is None else v)}")
     print("  sinalizadores:", "nenhum" if not sinal else "")
     for s in sinal:
         print("   -", s)

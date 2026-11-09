@@ -442,7 +442,7 @@ def _status_chip_html(status: str) -> str:
 # genuinamente recorrente/contratual (mesmo valor por vários meses
 # seguidos, configurado via Administração), homologado e sem relato de
 # problema; seu mecanismo de vigência permanece exatamente como estava.
-_RUBRICAS_MENSAIS_NAO_VIGENCIA = frozenset({"investimentos", "outras_despesas"})
+_RUBRICAS_MENSAIS_NAO_VIGENCIA = frozenset({"investimentos", "outras_despesas", "quitacao_prejuizo"})
 
 
 def _itens_custos_variaveis(u: dict) -> list:
@@ -2259,6 +2259,11 @@ def _secao_historico_unificada(uid: str, unit_run: dict):
             if tem_investimentos:
                 linhas.append(("(-) Investimentos",
                                 lambda l: _fmt(_valor_investimentos(l.get("extras")))))
+            # Quitação de Prejuízo Acumulado — só aparece se algum lançamento
+            # do período a aplicou (mesma condição do PDF).
+            if any(_valor_quitacao_aplicada(l.get("extras")) is not None for l in lancamentos):
+                linhas.append(("(+) Quitação de Prejuízo Acumulado",
+                                lambda l: _fmt(_valor_quitacao_aplicada(l.get("extras")))))
             # PATIO_MANUTENCAO não tem conceito de repasse — aluguel_calculado
             # é só um valor técnico (= resultado) nessa calculadora, nunca um
             # repasse real (ver app.calculators.patio_manutencao e a mesma
@@ -2604,6 +2609,38 @@ def _valor_investimentos(extras: dict) -> float | None:
     return None
 
 
+def _valor_quitacao_aplicada(extras: dict) -> float | None:
+    """Quitação de Prejuízo Acumulado efetivamente APLICADA ao saldo
+    histórico (positiva) — mesma condição do PDF
+    (app.reporter._prestacao_padrao). None quando não se aplica (some da
+    linha). Só lê o que o calculator já gravou em extras."""
+    v = (extras or {}).get("quitacao_prejuizo_aplicada")
+    return v if v else None
+
+
+def _linhas_quitacao(r: ResultadoUnidade) -> list[tuple[str, str]]:
+    """Demonstração da quitação na memória de cálculo: saldo histórico
+    anterior, valor recebido, valor aplicado, excedente (pendente de
+    conciliação), saldo após quitação e saldo final a transportar. Só usa o
+    que o calculator gravou (app.calculators.cumulativo); nunca recalcula.
+    Vazia quando a competência não teve quitação informada."""
+    extras = r.extras or {}
+    recebida = extras.get("quitacao_prejuizo")
+    if not recebida:
+        return []
+    rows = [
+        ("Saldo histórico anterior (prejuízo acumulado)", _fmt(r.prejuizo_acumulado_entrada)),
+        ("(+) Quitação recebida", _fmt(recebida)),
+        ("(+) Quitação aplicada ao saldo histórico", _fmt(extras.get("quitacao_prejuizo_aplicada") or 0.0)),
+    ]
+    if extras.get("quitacao_prejuizo_excedente"):
+        rows.append(("Excedente PENDENTE DE CONCILIAÇÃO (fora de receita, repasse e saldo futuro)",
+                     _fmt(extras["quitacao_prejuizo_excedente"])))
+    rows.append(("Saldo histórico após quitação", _fmt(extras.get("prejuizo_acumulado_entrada_ajustada", r.prejuizo_acumulado_entrada))))
+    rows.append(("(+/-) Prejuízo Acumulado — saldo final a transportar", _fmt(r.prejuizo_acumulado_saida)))
+    return rows
+
+
 def _linha_taxa_cobranca(extras: dict, faturamento: float) -> tuple[str, str] | None:
     """Linha de Taxa de Cobrança da memória de cálculo — mesmo estágio,
     mesma condição e mesmo texto que app.reporter._prestacao_padrao/
@@ -2738,6 +2775,7 @@ def _dre_rows_unit(r: ResultadoUnidade) -> list[tuple[str, str]]:
     v_investimentos = _valor_investimentos(extras)
     if v_investimentos is not None:
         rows.append(("(-) Investimentos", _fmt(v_investimentos)))
+    rows.extend(_linhas_quitacao(r))
     # PATIO_MANUTENCAO não tem conceito de repasse/aluguel — o campo
     # aluguel_calculado só existe ali como valor técnico (= resultado, ver
     # app.calculators.patio_manutencao), nunca um repasse real. O indicador
@@ -2767,6 +2805,13 @@ def _mostrar_resultado_unit(r: ResultadoUnidade):
         # Informativo — cobrança de mensalistas (COM_ALIQUOTA_CUMUL_DU,
         # Nilo Square). Fora da cadeia de repasse, nunca some ao Resultado.
         extras_metrics["Direito de Uso por Vaga"] = _fmt(extras["du_por_vaga"])
+
+    if extras.get("quitacao_prejuizo_excedente"):
+        st.warning(
+            f"Quitação de Prejuízo Acumulado: {_fmt(extras['quitacao_prejuizo_excedente'])} "
+            "excedem o saldo histórico em aberto e ficam PENDENTES DE CONCILIAÇÃO — "
+            "não entram em faturamento, repasse nem saldo futuro. Decisão financeira/contábil necessária."
+        )
 
     if extras_metrics:
         ecols = st.columns(len(extras_metrics))
